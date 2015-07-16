@@ -49,9 +49,11 @@ def encode_l2_overlay_mcast_group_id(tunnel_id, index):
 def add_l2_interface_grouop(ctrl, ports, vlan_id=1, is_tagged=False, send_barrier=False):
     # group table
     # set up untag groups for each port
+    group_id_list=[]
     for of_port in ports:
         # do stuff
         group_id = encode_l2_interface_group_id(vlan_id, of_port)
+        group_id_list.append(group_id)
         if is_tagged:
             actions = [
                 ofp.action.output(of_port),
@@ -74,7 +76,8 @@ def add_l2_interface_grouop(ctrl, ports, vlan_id=1, is_tagged=False, send_barrie
 
         if send_barrier:
             do_barrier(ctrl)
-
+ 
+        return group_id_list
 
 def add_l2_mcast_group(ctrl, ports, vlanid, mcast_grp_index):
     buckets=[]

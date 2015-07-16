@@ -32,7 +32,7 @@ if "linux" in sys.platform:
 else:
     import pcap
 
-def match_exp_pkt(exp_pkt, pkt):
+def match_exp_pkt(self, exp_pkt, pkt):
     """
     Compare the string value of pkt with the string value of exp_pkt,
     and return True iff they are identical.  If the length of exp_pkt is
@@ -43,7 +43,17 @@ def match_exp_pkt(exp_pkt, pkt):
     p = str(pkt)
     if len(e) < 60:
         p = p[:len(e)]
-    return e == p
+
+    #return e == p
+    #some nic card have capature problem, will have more bytes capatured.
+    if pkt.find(exp_pkt) >=0:
+        return True
+    else:      
+        if self.config["dump_packet"]:
+            self.logger.debug("rx pkt    ->"+(":".join("{:02x}".format(ord(c)) for c in pkt)))
+            self.logger.debug("expect pkt->"+(":".join("{:02x}".format(ord(c)) for c in exp_pkt)))
+
+        return False
 
 
 class DataPlanePortLinux:
@@ -316,7 +326,7 @@ class DataPlane(Thread):
             self.logger.debug("Grabbing packet")
             for (rcv_port_number, pkt, time) in self.packets(port_number):
                 self.logger.debug("Checking packet from port %d", rcv_port_number)
-                if not exp_pkt or match_exp_pkt(exp_pkt, pkt):
+                if not exp_pkt or match_exp_pkt(self, exp_pkt, pkt):
                     return (rcv_port_number, pkt, time)
             self.logger.debug("Did not find packet")
             return None

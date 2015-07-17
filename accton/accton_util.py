@@ -44,12 +44,12 @@ def encode_l2_overlay_flood_group_id(tunnel_id, index):
 
 def encode_l2_overlay_mcast_group_id(tunnel_id, index):
     return id + (tunnel_id << OFDPA_TUNNEL_ID_SHIFT)+(9 << OFDPA_GROUP_TYPE_SHIFT)
-
     
 def add_l2_interface_grouop(ctrl, ports, vlan_id=1, is_tagged=False, send_barrier=False):
     # group table
     # set up untag groups for each port
     group_id_list=[]
+    msgs=[]
     for of_port in ports:
         # do stuff
         group_id = encode_l2_interface_group_id(vlan_id, of_port)
@@ -73,11 +73,12 @@ def add_l2_interface_grouop(ctrl, ports, vlan_id=1, is_tagged=False, send_barrie
                                         buckets=buckets
                                        )
         ctrl.message_send(request)
+        msgs.append(request)
 
         if send_barrier:
             do_barrier(ctrl)
  
-        return group_id_list
+    return group_id_list, msgs
 
 def add_l2_mcast_group(ctrl, ports, vlanid, mcast_grp_index):
     buckets=[]
@@ -92,11 +93,117 @@ def add_l2_mcast_group(ctrl, ports, vlanid, mcast_grp_index):
                                     buckets=buckets
                                    )
     ctrl.message_send(request)
+    return request
 
+def add_l2_flood_group(ctrl, ports, vlanid, id):
+    buckets=[]
+    for of_port in ports:
+        group_id = encode_l2_interface_group_id(vlanid, of_port)
+        action=[ofp.action.group(group_id)]
+        buckets.append(ofp.bucket(actions=action))
 
+    group_id =encode_l2_flood_group_id(vlanid, id)
+    request = ofp.message.group_add(group_type=ofp.OFPGT_ALL,
+                                    group_id=group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    return request
+
+def add_l2_rewrite_group(ctrl, port, vlanid, id, src_mac, dst_mac):
+    group_id = encode_l2_interface_group_id(vlanid, port)
+
+    action=[]
+    if src_mac is not None:
+        action.append(ofp.action.set_field(ofp.oxm.eth_src(src_mac)))
+
+    if dst_mac is not None:
+        action.append(ofp.action.set_field(ofp.oxm.eth_dst(dst_mac)))
+
+    action.append(ofp.action.group(group_id))
+    
+    buckets = [ofp.bucket(actions=action)]
+
+    group_id =encode_l2_rewrite_group_id(id)
+    request = ofp.message.group_add(group_type=ofp.OFPGT_INDIRECT,
+                                    group_id=group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    return request
+    
+def add_l3_unicast_group(ctrl, port, vlanid, id, src_mac, dst_mac):
+    group_id = encode_l2_interface_group_id(vlanid, port)
+
+    action=[]
+    if src_mac is not None:
+        action.append(ofp.action.set_field(ofp.oxm.eth_src(src_mac)))
+
+    if dst_mac is not None:
+        action.append(ofp.action.set_field(ofp.oxm.eth_dst(dst_mac)))
+
+    action.append(ofp.action.set_field(ofp.oxm.vlan_vid(vlanid)))
+        
+    action.append(ofp.action.group(group_id))
+    
+    buckets = [ofp.bucket(actions=action)]
+
+    group_id =encode_l3_unicast_group_id(id)
+    request = ofp.message.group_add(group_type=ofp.OFPGT_INDIRECT,
+                                    group_id=group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    return request
+    
+def add_l3_interface_group(ctrl, port, vlanid, id, src_mac):
+    group_id = encode_l2_interface_group_id(vlanid, port)
+
+    action=[]
+    action.append(ofp.action.set_field(ofp.oxm.eth_src(src_mac)))
+    action.append(ofp.action.set_field(ofp.oxm.vlan_vid(vlanid)))       
+    action.append(ofp.action.group(group_id))
+    
+    buckets = [ofp.bucket(actions=action)]
+
+    group_id =encode_l3_interface_group_id(id)
+    request = ofp.message.group_add(group_type=ofp.OFPGT_INDIRECT,
+                                    group_id=group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    return request
+
+def add_l3_ecmp_group(ctrl, id, l3_ucast_groups):
+    buckets=[]
+    for group in l3_ucast_groups:
+        buckets.append(ofp.bucket(actions=[ofp.action.group(group)]))
+
+    group_id =encode_l3_ecmp_group_id(id)
+    request = ofp.message.group_add(group_type=ofp.OFPGT_SELECT,
+                                    group_id=group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    return request
+        
+def add_l3_mcast_group(ctrl, vid,  mcast_group_id, groups_on_buckets):
+    buckets=[]
+    for group in groups_on_buckets:
+        buckets.append(ofp.bucket(actions=[ofp.action.group(group)]))
+    
+    group_id =encode_l3_mcast_group_id(vid, mcast_group_id)
+    request = ofp.message.group_add(group_type=ofp.OFPGT_ALL,
+                                    group_id=group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    return request
+    
 def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
     # table 10: vlan
     # goto to table 20
+    msgs=[]
     for of_port in ports:
         if (flag == VLAN_TABLE_FLAG_ONLY_TAG) or (flag == VLAN_TABLE_FLAG_ONLY_BOTH):
             match = ofp.match()
@@ -132,10 +239,13 @@ def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, 
                 priority=0)
             logging.info("Add vlan %d untagged packets on port %d and go to table 20" % (vlan_id, of_port))
             ctrl.message_send(request)
+            msgs.append(request)
 
     if send_barrier:
         do_barrier(ctrl)
 
+    return msgs
+    
 def add_bridge_flow(ctrl, dst_mac, vlanid, group_id, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_dst(dst_mac))
@@ -157,4 +267,6 @@ def add_bridge_flow(ctrl, dst_mac, vlanid, group_id, send_barrier=False):
     ctrl.message_send(request)
 
     if send_barrier:
-        do_barrier(ctrl)            
+        do_barrier(ctrl)   
+
+    return request        

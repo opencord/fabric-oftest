@@ -107,6 +107,8 @@ class PacketInMiss(base_tests.SimpleDataPlane):
 
     Send a packet to each dataplane port and verify that a packet
     in message is received from the controller for each
+    
+    NOTE: Verify This case the oft option shall not use --switch-ip
     """
 
     def runTest(self):
@@ -152,7 +154,80 @@ class PacketInMiss(base_tests.SimpleDataPlane):
             self.dataplane.send(of_port, pkt)
 
             #AOS current packet in will not have vlan tag
-            #verify_packet_in(self, vlan_pkt, of_port, ofp.OFPR_ACTION)
-            verify_packet_in(self, pkt, of_port, ofp.OFPR_ACTION)
+            if config["cicada_poject"]:
+                verify_packet_in(self, vlan_pkt, of_port, ofp.OFPR_ACTION)
+            else:
+                verify_packet_in(self, pkt, of_port, ofp.OFPR_ACTION)
+
             verify_no_other_packets(self)
+
+class PacketOut(base_tests.SimpleDataPlane):
+    """
+    Verify action Flood, ALL, in port
+    """
+
+    def runTest(self):
+        if config["cicada_poject"]:
+            pass
+            
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)
+        
+        parsed_pkt = simple_tcp_packet(pktlen=100)
+        parsed_vlan_pkt = simple_tcp_packet(pktlen=104, 
+                      vlan_vid=0x1002, dl_vlan_enable=True)
+                      
+        pkt = str(parsed_pkt)
+        vlan_pkt = str(parsed_vlan_pkt)
+       
+        
+        #packet out flood, untag packet
+        self.controller.message_send(ofp.message.packet_out(in_port=ofp.OFPP_CONTROLLER,
+                                                            buffer_id=ofp.OFP_NO_BUFFER,
+                                                            actions=[ofp.action.output(
+                                                                     port=ofp.OFPP_FLOOD)],
+                                                            data=pkt)) 
+
+        for of_port in config["port_map"].keys():
+            verify_packet(self, pkt, of_port)
+
+        verify_no_other_packets(self)
+
+        #packet out flood, tag packet, because it can't identify vlan has which port
+        #so we do as all action.
+        self.controller.message_send(ofp.message.packet_out(in_port=ofp.OFPP_CONTROLLER,
+                                                            buffer_id=ofp.OFP_NO_BUFFER,
+                                                            actions=[ofp.action.output(
+                                                                     port=ofp.OFPP_FLOOD)],
+                                                            data=vlan_pkt)) 
+
+        for of_port in config["port_map"].keys():
+            verify_packet(self, vlan_pkt, of_port)
+
+        verify_no_other_packets(self)
+
+        #packet out all
+        self.controller.message_send(ofp.message.packet_out(in_port=ofp.OFPP_CONTROLLER,
+                                                            buffer_id=ofp.OFP_NO_BUFFER,
+                                                            actions=[ofp.action.output(
+                                                                     port=ofp.OFPP_FLOOD)],
+                                                            data=pkt)) 
+
+        for of_port in config["port_map"].keys():
+            verify_packet(self, pkt, of_port)
+
+        verify_no_other_packets(self)        
+        
+        #packet out to in port
+        in_port = config["port_map"].keys()[0]
+        self.controller.message_send(ofp.message.packet_out(in_port=in_port,
+                                                            buffer_id=ofp.OFP_NO_BUFFER,
+                                                            actions=[ofp.action.output(
+                                                                     port=in_port)],
+                                                            data=pkt)) 
+
+        verify_packet(self, pkt, in_port)
+        verify_no_other_packets(self)
+
+
 

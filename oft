@@ -94,6 +94,7 @@ CONFIG_DEFAULT = {
     "disable_ipv6"       : False,
     "random_order"       : False,
     "dump_packet"        : True,
+    "cicada_poject"      : False,
     
     # Other configuration
     "port_map"           : {},
@@ -214,7 +215,9 @@ prefixing them with the '^' character.
     group.add_option("--random-order", action="store_true",
                       help="Randomize order of tests")
     group.add_option("--dump_packet", action="store_true",
-                      help="Dump packet content on log when verify packet fail")                      
+                      help="Dump packet content on log when verify packet fail")
+    group.add_option("--cicada_poject", action="store_true",
+                      help="True verify Cicada behavior, False verify AOS behaviro")
     parser.add_option_group(group)
 
     # Might need this if other parsers want command line

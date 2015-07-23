@@ -374,10 +374,13 @@ def add_termination_flow(ctrl, in_port, eth_type, dst_mac, vlanid, send_barrier=
 
     return request    
     
-def add_unicast_routing_flow(ctrl, eth_type, dst_ip, action_group_id, send_barrier=False):
+def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(eth_type))
-    match.oxm_list.append(ofp.oxm.ipv4_dst(dst_ip))
+    if mask!=0:
+        match.oxm_list.append(ofp.oxm.ipv4_dst_masked(dst_ip, mask))
+    else:
+        match.oxm_list.append(ofp.oxm.ipv4_dst(dst_ip))
 
     request = ofp.message.flow_add(
             table_id=30,

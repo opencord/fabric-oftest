@@ -229,14 +229,18 @@ class PacketOut(base_tests.SimpleDataPlane):
         verify_packet(self, pkt, in_port)
         verify_no_other_packets(self)
 
-class L3UcastRout(base_tests.SimpleDataPlane):
+class L3UcastRoute(base_tests.SimpleDataPlane):
     """
     P1(vlan1, 192.168.1.1) , port2(vlan2, 19.168.2.1)
     """
     def runTest(self):          
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
-    
+
+        if len(config["port_map"]) <2:
+            logging.info("Port count less than 2, can't run this case")
+            return
+        
         vlan_id=1
         intf_src_mac=[0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc]
         dst_mac=[0x00, 0x00, 0x00, 0x22, 0x22, 0x00]
@@ -252,42 +256,64 @@ class L3UcastRout(base_tests.SimpleDataPlane):
             add_termination_flow(self.controller, port, 0x0800, intf_src_mac, vlan_id)           
             #add unicast routing flow
             dst_ip = dip + (vlan_id<<8)           
-            add_unicast_routing_flow(self.controller, 0x0800, dst_ip, l3_msg.group_id)            
+            add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0, l3_msg.group_id)            
             vlan_id += 1
         
-        do_barrier(ctrl)  
+        do_barrier(self.controller)  
         
         port1=config["port_map"].keys()[0]
         port2=config["port_map"].keys()[1]
         #port 1 to port 2        
-        eth_dst = ':'.join(['%02X' % x for x in intf_src_mac])
+        switch_mac = ':'.join(['%02X' % x for x in intf_src_mac])
         dst_mac[5]=1
-        eth_src=':'.join(['%02X' % x for x in dst_mac])
+        port1_mac=':'.join(['%02X' % x for x in dst_mac])
 
         parsed_pkt = simple_tcp_packet(pktlen=100, 
-                                       eth_dst=eth_dst,
-                                       eth_src=eth_src,
+                                       eth_dst=switch_mac,
+                                       eth_src=port1_mac,
+                                       ip_ttl=64,
                                        ip_src="192.168.1.1",
                                        ip_dst='192.168.2.1')
         pkt=str(parsed_pkt)
         self.dataplane.send(port1, pkt)
+        #build expect packet
+        dst_mac[5]=2
+        port2_mac=':'.join(['%02X' % x for x in dst_mac])  
+        exp_pkt = simple_tcp_packet(pktlen=100, 
+                                       eth_dst=port2_mac,
+                                       eth_src=switch_mac,
+                                       ip_ttl=63,
+                                       ip_src="192.168.1.1",
+                                       ip_dst='192.168.2.1')        
+        pkt=str(exp_pkt)
         verify_packet(self, pkt, port2)
         verify_no_other_packets(self)
-        
+
         #port 2 to port 1
-        eth_dst = ':'.join(['%02X' % x for x in intf_src_mac])
+        switch_mac = ':'.join(['%02X' % x for x in intf_src_mac])
         dst_mac[5]=2
-        eth_src=':'.join(['%02X' % x for x in dst_mac])
+        port2_mac=':'.join(['%02X' % x for x in dst_mac])  
 
         parsed_pkt = simple_tcp_packet(pktlen=100, 
-                                       eth_dst=eth_dst,
-                                       eth_src=eth_src,
+                                       eth_dst=switch_mac,
+                                       eth_src=port2_mac,
+                                       ip_ttl=64,
                                        ip_src="192.168.2.1",
                                        ip_dst='192.168.1.1')
         pkt=str(parsed_pkt)                                       
         self.dataplane.send(port2, pkt)
-        #verify_packet(self, pkt, port1)
-        #verify_no_other_packets(self)    
+        #build expect packet
+        dst_mac[5]=1
+        port1_mac=':'.join(['%02X' % x for x in dst_mac])  
+        exp_pkt = simple_tcp_packet(pktlen=100, 
+                                       eth_dst=port1_mac,
+                                       eth_src=switch_mac,
+                                       ip_ttl=63,
+                                       ip_src="192.168.2.1",
+                                       ip_dst='192.168.1.1')        
+        pkt=str(exp_pkt) 
+        verify_packet(self, pkt, port1)
+        verify_no_other_packets(self)    
     
 class L3McastRoute(base_tests.SimpleDataPlane):
     def runTest(self):          

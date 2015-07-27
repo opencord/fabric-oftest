@@ -29,6 +29,26 @@ TCP = scapy.layers.inet.TCP
 UDP = scapy.layers.inet.UDP
 ICMP = scapy.layers.inet.ICMP
 
+from scapy.fields import *
+from scapy.packet import *
+
+class ThreeBytesField(X3BytesField, ByteField):
+    def i2repr(self, pkt, x):
+        return ByteField.i2repr(self, pkt, x)
+
+class VXLAN(Packet):
+    name = "VXLAN"
+    fields_desc = [ FlagsField("flags", 0x08, 8, ['R', 'R', 'R', 'I', 'R', 'R', 'R', 'R']),
+                    X3BytesField("reserved1", 0x000000),
+                    ThreeBytesField("vni", 0),
+                    XByteField("reserved2", 0x00)]
+
+    def mysummary(self):
+        return self.sprintf("VXLAN (vni=%VXLAN.vni%)")
+
+bind_layers(UDP, VXLAN, dport=4789)
+bind_layers(VXLAN, Ether)
+
 if not config["disable_ipv6"]:
     IPv6 = scapy.layers.inet6.IPv6
     ICMPv6Unknown = scapy.layers.inet6.ICMPv6Unknown

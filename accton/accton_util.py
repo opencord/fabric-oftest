@@ -6,9 +6,13 @@ import ofp
 import time
 from oftest.testutils import *
 
+from ncclient import manager
+import ncclient
+
 OFDPA_GROUP_TYPE_SHIFT=28
 OFDPA_VLAN_ID_SHIFT   =16
-OFDPA_TUNNEL_ID_SHIFT =16
+OFDPA_TUNNEL_ID_SHIFT =12
+OFDPA_TUNNEL_SUBTYPE_SHIFT=10
 
 #VLAN_TABLE_FLAGS
 VLAN_TABLE_FLAG_ONLY_UNTAG=1
@@ -39,12 +43,12 @@ def encode_l3_mcast_group_id(vlan, id):
 def encode_l3_ecmp_group_id(id):
     return id + (7 << OFDPA_GROUP_TYPE_SHIFT)
 
-def encode_l2_overlay_flood_group_id(tunnel_id, index):
-    return id + (tunnel_id << OFDPA_TUNNEL_ID_SHIFT)+(8 << OFDPA_GROUP_TYPE_SHIFT)
+def encode_l2_overlay_group_id(tunnel_id, subtype, index):
+    tunnel_id=tunnel_id&0xffff #16 bits
+    subtype = subtype&3        #2 bits
+    index = index & 0x3f       #10 bits
+    return index + (tunnel_id << OFDPA_TUNNEL_ID_SHIFT)+ (subtype<<OFDPA_TUNNEL_SUBTYPE_SHIFT)+(8 << OFDPA_GROUP_TYPE_SHIFT)
 
-def encode_l2_overlay_mcast_group_id(tunnel_id, index):
-    return id + (tunnel_id << OFDPA_TUNNEL_ID_SHIFT)+(9 << OFDPA_GROUP_TYPE_SHIFT)
-    
 def add_l2_interface_grouop(ctrl, ports, vlan_id=1, is_tagged=False, send_barrier=False):
     # group table
     # set up untag groups for each port
@@ -229,7 +233,78 @@ def add_l3_mcast_group(ctrl, vid,  mcast_group_id, groups_on_buckets):
                                    )
     ctrl.message_send(request)
     return request
-    
+
+def add_l2_overlay_flood_over_unicast_tunnel_group(ctrl, tunnel_id, ports, index):
+    buckets=[]
+    for port in ports:
+        buckets.append(ofp.bucket(actions=[ofp.action.output(port)]))
+
+    group_id=encode_l2_overlay_group_id(tunnel_id, 0, index)
+    request = ofp.message.group_add(group_type=ofp.OFPGT_ALL,
+                                    group_id=group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    return request
+
+def add_l2_overlay_flood_over_mcast_tunnel_group(ctrl, tunnel_id, ports, index):
+    buckets=[]
+    for port in ports:
+        buckets.append(ofp.bucket(actions=[ofp.action.output(port)]))
+
+    group_id=encode_l2_overlay_group_id(tunnel_id, 1, index)
+    request = ofp.message.group_add(group_type=ofp.OFPGT_ALL,
+                                    group_id=group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    return request
+
+def add_l2_overlay_mcast_over_unicast_tunnel_group(ctrl, tunnel_id, ports, index):
+    buckets=[]
+    for port in ports:
+        buckets.append(ofp.bucket(actions=[ofp.action.output(port)]))
+
+    group_id=encode_l2_overlay_group_id(tunnel_id, 2, index)
+    request = ofp.message.group_add(group_type=ofp.OFPGT_ALL,
+                                    group_id=group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    return request
+
+def add_l2_overlay_mcast_over_mcast_tunnel_group(ctrl, tunnel_id, ports, index):
+    buckets=[]
+    for port in ports:
+        buckets.append(ofp.bucket(actions=[ofp.action.output(port)]))
+
+    group_id=encode_l2_overlay_group_id(tunnel_id, 3, index)
+    request = ofp.message.group_add(group_type=ofp.OFPGT_ALL,
+                                    group_id=group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    return request
+	
+def add_port_table_flow(ctrl, is_overlay=True):
+    match = ofp.match()
+
+    if is_overlay == True:
+       match.oxm_list.append(ofp.oxm.in_port(0x10000))
+    else:
+       match.oxm_list.append(ofp.oxm.in_port(0))
+
+    request = ofp.message.flow_add(
+		table_id=0,
+		cookie=42,
+		match=match,
+		instructions=[
+		  ofp.instruction.goto_table(50)
+		],
+		priority=0)
+    logging.info("Add port table, match port %lx" % 0x10000)
+    ctrl.message_send(request)
+
 def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
     # table 10: vlan
     # goto to table 20
@@ -321,8 +396,11 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_
     
 def add_bridge_flow(ctrl, dst_mac, vlanid, group_id, send_barrier=False):
     match = ofp.match()
-    match.oxm_list.append(ofp.oxm.eth_dst(dst_mac))
+    if dst_mac!=None:
+        match.oxm_list.append(ofp.oxm.eth_dst(dst_mac))
+
     match.oxm_list.append(ofp.oxm.vlan_vid(0x1000+vlanid))
+
     request = ofp.message.flow_add(
             table_id=50,
             cookie=42,
@@ -343,18 +421,49 @@ def add_bridge_flow(ctrl, dst_mac, vlanid, group_id, send_barrier=False):
         do_barrier(ctrl)   
 
     return request        
+
+def add_overlay_bridge_flow(ctrl, dst_mac, vnid, group_id, is_group=True, send_barrier=False):
+    match = ofp.match()
+    if dst_mac!=None:
+        match.oxm_list.append(ofp.oxm.eth_dst(dst_mac))
+
+    match.oxm_list.append(ofp.oxm.tunnel_id(vnid))
+    if is_group == True:
+        actions=[ofp.action.group(group_id)]
+    else:
+        actions=[ofp.action.output(group_id)]
+
+    request = ofp.message.flow_add(
+            table_id=50,
+            cookie=42,
+            match=match,
+            instructions=[
+                ofp.instruction.write_actions(
+                    actions=actions),
+                    ofp.instruction.goto_table(60)
+                ],
+            buffer_id=ofp.OFP_NO_BUFFER,
+            priority=1000) 
+
+    logging.info("Inserting Brdige flow vnid %d, mac %s", vnid, dst_mac)
+    ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)   
+
+    return request        
     
 def add_termination_flow(ctrl, in_port, eth_type, dst_mac, vlanid, send_barrier=False):
     match = ofp.match()
-    match.oxm_list.append(ofp.oxm.in_port(in_port))
     match.oxm_list.append(ofp.oxm.eth_type(eth_type))
-    match.oxm_list.append(ofp.oxm.eth_dst(dst_mac))
-    match.oxm_list.append(ofp.oxm.vlan_vid(0x1000+vlanid))
-
-    if dst_mac[0]&0x01 == 0x01: #macast
-        goto_table=40
-    else:        
-        goto_table=30
+    if dst_mac[0]&0x01 == 0x01:
+       match.oxm_list.append(ofp.oxm.eth_dst_masked(dst_mac, [0xff, 0xff, 0xff, 0x80, 0x00, 0x00]))
+       goto_table=40
+    else:
+       match.oxm_list.append(ofp.oxm.in_port(in_port))    
+       match.oxm_list.append(ofp.oxm.eth_dst(dst_mac))
+       match.oxm_list.append(ofp.oxm.vlan_vid(0x1000+vlanid))
+       goto_table=30
 
     request = ofp.message.flow_add(
             table_id=20,
@@ -401,3 +510,329 @@ def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, send
         do_barrier(ctrl)   
 
     return request        
+        
+def add_mcast4_routing_flow(ctrl, vlan_id, src_ip, src_ip_mask, dst_ip, action_group_id, send_barrier=False):
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.eth_type(0x0800))
+    match.oxm_list.append(ofp.oxm.vlan_vid(vlan_id))    
+    if src_ip_mask!=0:
+        match.oxm_list.append(ofp.oxm.ipv4_src_masked(src_ip, src_ip_mask))
+    else:
+        match.oxm_list.append(ofp.oxm.ipv4_src(src_ip))
+        
+    match.oxm_list.append(ofp.oxm.ipv4_dst(dst_ip))
+    
+    request = ofp.message.flow_add(
+            table_id=40,
+            cookie=42,
+            match=match,
+            instructions=[
+                    ofp.instruction.write_actions(
+                        actions=[ofp.action.group(action_group_id)]),
+                    ofp.instruction.goto_table(60)
+                ],
+            buffer_id=ofp.OFP_NO_BUFFER,
+            priority=1) 
+
+    logging.info("Inserting mcast routing flow eth_type %lx, dip %lx, sip %lx, sip_mask %lx",0x0800, dst_ip, src_ip, src_ip_mask)
+    ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)   
+
+    return request            
+       
+def get_vtap_lport_config_xml(dp_id, lport, phy_port, vlan, vnid, operation='merge'):  
+    """
+    Command Example:
+    of-agent vtap 10001 ethernet 1/1 vid 1
+    of-agent vtp 10001 vni 10
+    """
+    if vlan != 0:
+        config_vtap_xml="""
+        <config>
+            <capable-switch xmlns="urn:onf:of111:config:yang" xmlns:xc="urn:ietf:params:xml:ns:netconf:base:1.0">
+                <id>capable-switch-1</id>
+                <resources>
+                    <port xc:operation="OPERATION">
+                        <resource-id >LPORT</resource-id>     
+                        <features>
+                            <current>
+                              <rate>10Gb</rate>
+                              <medium>fiber</medium>
+                              <pause>symmetric</pause>      
+                            </current>
+                            <advertised>
+                              <rate>10Gb</rate>
+                              <rate>100Gb</rate>
+                              <medium>fiber</medium>
+                              <pause>symmetric</pause>
+                            </advertised>    
+                            <supported>
+                              <rate>10Gb</rate>
+                              <rate>100Gb</rate>
+                              <medium>fiber</medium>
+                              <pause>symmetric</pause>
+                            </supported> 
+                            <advertised-peer>
+                              <rate>10Gb</rate>
+                              <rate>100Gb</rate>
+                              <medium>fiber</medium>
+                              <pause>symmetric</pause>
+                            </advertised-peer>        
+                        </features>
+                        <ofdpa10:vtap xmlns:ofdpa10="urn:bcm:ofdpa10:accton01" xc:operation="OPERATION">
+                            <ofdpa10:phy-port>PHY_PORT</ofdpa10:phy-port>
+                            <ofdpa10:vid>VLAN_ID</ofdpa10:vid>
+                            <ofdpa10:vni>VNID</ofdpa10:vni>
+                        </ofdpa10:vtap>
+                    </port> 
+              </resources>
+              <logical-switches>
+                  <switch>
+                    <id>DATAPATH_ID</id>
+                    <datapath-id>DATAPATH_ID</datapath-id>
+                    <resources>
+                      <port xc:operation="OPERATION">LPORT</port>
+                    </resources>
+                  </switch>
+              </logical-switches>
+            </capable-switch>
+          </config>
+        """    
+    else:
+        config_vtap_xml="""
+        <config>
+            <capable-switch xmlns="urn:onf:of111:config:yang" xmlns:xc="urn:ietf:params:xml:ns:netconf:base:1.0">
+                <id>capable-switch-1</id>
+                <resources>
+                    <port xc:operation="OPERATION">
+                        <resource-id >LPORT</resource-id>     
+                        <features>
+                            <current>
+                              <rate>10Gb</rate>
+                              <medium>fiber</medium>
+                              <pause>symmetric</pause>      
+                            </current>
+                            <advertised>
+                              <rate>10Gb</rate>
+                              <rate>100Gb</rate>
+                              <medium>fiber</medium>
+                              <pause>symmetric</pause>
+                            </advertised>    
+                            <supported>
+                              <rate>10Gb</rate>
+                              <rate>100Gb</rate>
+                              <medium>fiber</medium>
+                              <pause>symmetric</pause>
+                            </supported> 
+                            <advertised-peer>
+                              <rate>10Gb</rate>
+                              <rate>100Gb</rate>
+                              <medium>fiber</medium>
+                              <pause>symmetric</pause>
+                            </advertised-peer>        
+                        </features>
+                        <ofdpa10:vtap xmlns:ofdpa10="urn:bcm:ofdpa10:accton01" xc:operation="OPERATION">
+                            <ofdpa10:phy-port>PHY_PORT</ofdpa10:phy-port>
+                            <ofdpa10:vni>VNID</ofdpa10:vni>
+                        </ofdpa10:vtap>
+                    </port> 
+              </resources>
+              <logical-switches>
+                  <switch>
+                    <id>DATAPATH_ID</id>
+                    <datapath-id>DATAPATH_ID</datapath-id>
+                    <resources>
+                      <port xc:operation="OPERATION">LPORT</port>
+                    </resources>
+                  </switch>
+              </logical-switches>
+            </capable-switch>
+          </config>
+        """        
+    str_datapath_id_f= "{:016x}".format(dp_id)        
+    str_datapath_id=':'.join([str_datapath_id_f[i:i+2] for i in range(0, len(str_datapath_id_f), 2)])	
+    config_vtap_xml=config_vtap_xml.replace("DATAPATH_ID", str_datapath_id)      
+    config_vtap_xml=config_vtap_xml.replace("LPORT", str(hex(lport)))         
+    config_vtap_xml=config_vtap_xml.replace("PHY_PORT", str(phy_port))       
+    config_vtap_xml=config_vtap_xml.replace("VLAN_ID", str(vlan))     
+    config_vtap_xml=config_vtap_xml.replace("VNID", str(vnid))
+    config_vtap_xml=config_vtap_xml.replace("OPERATION", str(operation))
+    return config_vtap_xml
+      
+def get_vtep_lport_config_xml(dp_id, lport, src_ip, dst_ip, next_hop_id, vnid, udp_src_port=6633, ttl=25, operation='merge'): 
+    """
+    Command Example:
+    of-agent vtep 10002 source user-input-src-ip destination user-input-dst-ip udp-source-port 6633 nexthop 2 ttl 25
+    of-agent vtp 10001 vni 10    
+    """
+
+    config_vtep_xml="""
+        <config>
+          <capable-switch xmlns="urn:onf:of111:config:yang" xmlns:xc="urn:ietf:params:xml:ns:netconf:base:1.0">
+            <id>capable-switch-1</id>
+            <resources>
+             <port xc:operation="OPERATION">
+               <resource-id>LPORT</resource-id>     
+                 <features>
+                   <current>
+                     <rate>10Gb</rate>
+                     <medium>fiber</medium>
+                     <pause>symmetric</pause>      
+                   </current>
+                   <advertised>
+                     <rate>10Gb</rate>
+                     <rate>100Gb</rate>
+                     <medium>fiber</medium>
+                     <pause>symmetric</pause>
+                   </advertised>    
+                   <supported>
+                     <rate>10Gb</rate>
+                     <rate>100Gb</rate>
+                     <medium>fiber</medium>
+                     <pause>symmetric</pause>
+                   </supported> 
+                   <advertised-peer>
+                     <rate>10Gb</rate>
+                     <rate>100Gb</rate>
+                     <medium>fiber</medium>
+                     <pause>symmetric</pause>
+                   </advertised-peer>        
+                </features>
+			  <ofdpa10:vtep xmlns:ofdpa10="urn:bcm:ofdpa10:accton01">
+				<ofdpa10:src-ip>SRC_IP</ofdpa10:src-ip>
+				<ofdpa10:dest-ip>DST_IP</ofdpa10:dest-ip>
+				<ofdpa10:udp-src-port>UDP_SRC_PORT</ofdpa10:udp-src-port>
+				<ofdpa10:vni>VNID</ofdpa10:vni>
+				<ofdpa10:nexthop-id>NEXT_HOP_ID</ofdpa10:nexthop-id>
+				<ofdpa10:ttl>TTL</ofdpa10:ttl>
+			  </ofdpa10:vtep>
+             </port> 
+            </resources>
+            <logical-switches>
+                <switch>
+                  <id>DATAPATH_ID</id>
+                  <datapath-id>DATAPATH_ID</datapath-id>
+                  <resources>
+                    <port xc:operation="OPERATION">LPORT</port>
+                  </resources>
+                </switch>
+            </logical-switches>
+          </capable-switch>
+        </config>  
+    """
+    str_datapath_id_f= "{:016x}".format(dp_id)        
+    str_datapath_id=':'.join([str_datapath_id_f[i:i+2] for i in range(0, len(str_datapath_id_f), 2)])	
+    config_vtep_xml=config_vtep_xml.replace("DATAPATH_ID", str_datapath_id)      
+    config_vtep_xml=config_vtep_xml.replace("LPORT", str(hex(lport)))
+    config_vtep_xml=config_vtep_xml.replace("SRC_IP", str(src_ip))            
+    config_vtep_xml=config_vtep_xml.replace("DST_IP", str(dst_ip))                 
+    config_vtep_xml=config_vtep_xml.replace("UDP_SRC_PORT", str(udp_src_port))                      
+    config_vtep_xml=config_vtep_xml.replace("NEXT_HOP_ID", str(next_hop_id))                           
+    config_vtep_xml=config_vtep_xml.replace("TTL", str(ttl))                           
+    config_vtep_xml=config_vtep_xml.replace("VNID", str(vnid))
+    config_vtep_xml=config_vtep_xml.replace("OPERATION", str(operation))		
+
+    return config_vtep_xml   
+      
+def get_next_hop_config_xml(next_hop_id, dst_mac, phy_port, vlan, operation='merge'): 
+    #of-agent nexthop 2 destination user-input-dst-mac ethernet 1/2 vid 2
+    config_nexthop_xml="""
+      <config>
+          <of11-config:capable-switch xmlns:of11-config="urn:onf:of111:config:yang" xmlns:xc="urn:ietf:params:xml:ns:netconf:base:1.0">
+            <ofdpa10:next-hop xmlns:ofdpa10="urn:bcm:ofdpa10:accton01"  xc:operation="OPERATION">
+              <ofdpa10:id>NEXT_HOP_ID</ofdpa10:id>
+              <ofdpa10:dest-mac>DST_MAC</ofdpa10:dest-mac>
+              <ofdpa10:phy-port>PHY_PORT</ofdpa10:phy-port>
+              <ofdpa10:vid>VLAN_ID</ofdpa10:vid>
+            </ofdpa10:next-hop>
+          </of11-config:capable-switch>
+      </config>
+      """
+    config_nexthop_xml=config_nexthop_xml.replace("VLAN_ID", str(vlan))
+    config_nexthop_xml=config_nexthop_xml.replace("PHY_PORT", str(phy_port))   
+    config_nexthop_xml=config_nexthop_xml.replace("NEXT_HOP_ID", str(next_hop_id))   
+    config_nexthop_xml=config_nexthop_xml.replace("DST_MAC", str(dst_mac))   
+    config_nexthop_xml=config_nexthop_xml.replace("OPERATION", str(operation))	
+    return config_nexthop_xml   
+
+def get_vni_config_xml(vni_id, mcast_ipv4, next_hop_id, operation='merge'):  
+    #of-agent vni 10 multicast 224.1.1.1 nexthop 20
+    if mcast_ipv4!=None:    
+        config_vni_xml="""
+          <config>
+              <of11-config:capable-switch xmlns:of11-config="urn:onf:of111:config:yang" xmlns:xc="urn:ietf:params:xml:ns:netconf:base:1.0">
+                <ofdpa10:vni xmlns:ofdpa10="urn:bcm:ofdpa10:accton01" xc:operation="OPERATION">
+                  <ofdpa10:id>VNID</ofdpa10:id>
+                  <ofdpa10:vni-multicast-group>MCAST_IP</ofdpa10:vni-multicast-group>
+                  <ofdpa10:multicast-group-nexthop-id>NEXT_HOP_ID</ofdpa10:multicast-group-nexthop-id>
+                </ofdpa10:vni>
+              </of11-config:capable-switch>
+          </config>
+          """   
+        config_vni_xml=config_vni_xml.replace("NEXT_HOP_ID", str(next_hop_id))   
+        config_vni_xml=config_vni_xml.replace("MCAST_IP", str(mcast_ipv4))             
+    else:
+        config_vni_xml="""
+          <config>
+              <of11-config:capable-switch xmlns:of11-config="urn:onf:of111:config:yang" xmlns:xc="urn:ietf:params:xml:ns:netconf:base:1.0">
+                <ofdpa10:vni xmlns:ofdpa10="urn:bcm:ofdpa10:accton01" xc:operation="OPERATION">
+                  <ofdpa10:id>VNID</ofdpa10:id>
+                </ofdpa10:vni>
+              </of11-config:capable-switch>
+          </config>
+          """   
+          
+    config_vni_xml=config_vni_xml.replace("VNID", str(vni_id))            
+    config_vni_xml=config_vni_xml.replace("OPERATION", str(operation))	
+    return config_vni_xml
+	
+def get_featureReplay(self):    
+    req = ofp.message.features_request()
+    res, raw = self.controller.transact(req)
+    self.assertIsNotNone(res, "Did not receive a response from the DUT.")        
+    self.assertEqual(res.type, ofp.OFPT_FEATURES_REPLY,
+                 ("Unexpected packet type %d received in response to "
+                  "OFPT_FEATURES_REQUEST") % res.type)
+    return res		
+	
+def send_edit_config(switch_ip, xml, target='runing'):
+    NETCONF_ACCOUNT="netconfuser"
+    NETCONF_PASSWD="netconfuser"
+    with manager.connect_ssh(host=switch_ip, port=830, username=NETCONF_ACCOUNT, password=NETCONF_PASSWD, hostkey_verify=False ) as m:
+        try:
+            m.edit_config(target='running', 
+                      config=xml, 
+                      default_operation='merge', 
+                      error_option='stop-on-error')
+
+        except Exception as e:
+            logging.info("Fail to set xml %s", xml)
+            return False
+
+	#return m.get_config(source='running').data_xml
+    return True
+
+def send_delete_config(switch_ip, xml, target='runing'):
+    NETCONF_ACCOUNT="netconfuser"
+    NETCONF_PASSWD="netconfuser"
+    with manager.connect_ssh(host=switch_ip, port=830, username=NETCONF_ACCOUNT, password=NETCONF_PASSWD, hostkey_verify=False ) as m:
+        try:
+            m.edit_config(target='running', 
+                      config=xml, 
+                      default_operation='delete', 
+                      error_option='stop-on-error')
+
+        except Exception as e:
+            logging.info("Fail to set xml %s", xml)
+            return False
+
+	#return m.get_config(source='running').data_xml
+    return True
+    
+def get_edit_config(switch_ip, target='runing'):
+    NETCONF_ACCOUNT="netconfuser"
+    NETCONF_PASSWD="netconfuser"
+    with manager.connect_ssh(host=switch_ip, port=830, username=NETCONF_ACCOUNT, password=NETCONF_PASSWD, hostkey_verify=False ) as m:
+	    print m.get_config(source='running').data_xml

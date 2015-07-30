@@ -291,19 +291,23 @@ def add_port_table_flow(ctrl, is_overlay=True):
 
     if is_overlay == True:
        match.oxm_list.append(ofp.oxm.in_port(0x10000))
+       NEXT_TABLE=50
     else:
        match.oxm_list.append(ofp.oxm.in_port(0))
+       NEXT_TABLE=10       
 
     request = ofp.message.flow_add(
 		table_id=0,
 		cookie=42,
 		match=match,
 		instructions=[
-		  ofp.instruction.goto_table(50)
+		  ofp.instruction.goto_table(NEXT_TABLE)
 		],
 		priority=0)
     logging.info("Add port table, match port %lx" % 0x10000)
     ctrl.message_send(request)
+    
+    
 
 def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
     # table 10: vlan
@@ -836,3 +840,20 @@ def get_edit_config(switch_ip, target='runing'):
     NETCONF_PASSWD="netconfuser"
     with manager.connect_ssh(host=switch_ip, port=830, username=NETCONF_ACCOUNT, password=NETCONF_PASSWD, hostkey_verify=False ) as m:
 	    print m.get_config(source='running').data_xml
+
+        
+def print_current_table_flow_stat(ctrl, table_id=0xff):
+    stat_req=ofp.message.flow_stats_request()
+    response, pkt = ctrl.transact(stat_req)
+    if response == None:
+        print "no response"
+        return None
+    print len(response.entries)
+    for obj in response.entries:
+        print "match ", obj.match
+        print "cookie", obj.cookie
+        print "priority", obj.priority
+        print "idle_timeout", obj.idle_timeout
+        print "hard_timeout", obj.hard_timeout
+        #obj.actions
+        print "packet count: %lx"%obj.packet_count

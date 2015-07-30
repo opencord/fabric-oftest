@@ -161,7 +161,6 @@ class L2Flood(base_tests.SimpleDataPlane):
         for ofport in flood_ports:
             verify_packet(self, pkt, ofport)        
         
-        
 class PacketInMiss(base_tests.SimpleDataPlane):
     """
     Test packet in function for a table-miss flow
@@ -377,7 +376,6 @@ class L3UcastRoute(base_tests.SimpleDataPlane):
         verify_packet(self, pkt, port1)
         verify_no_other_packets(self)    
 
-
 class L3UcastECMP(base_tests.SimpleDataPlane):
     """
     Port1(vlan1, 0x00, 0x00, 0x00, 0x22, 0x22, 0x01, 192.168.1.1) , 
@@ -466,8 +464,7 @@ class L3UcastECMP(base_tests.SimpleDataPlane):
         pkt=str(exp_pkt) 
         verify_packet(self, pkt, port1)
         verify_no_other_packets(self)    
-    
-        
+            
 class L3McastRoute1(base_tests.SimpleDataPlane):
     """
     Mcast routing, From VLAN 1 to VLAN 2
@@ -478,13 +475,14 @@ class L3McastRoute1(base_tests.SimpleDataPlane):
         """
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
-        
-        if len(config["port_map"]) <2:
+
+        if len(config["port_map"]) <3:
             logging.info("Port count less than 2, can't run this case")
             return
 
         vlan_id =1
-        out_vlan=2
+        port2_out_vlan=2
+        port3_out_vlan=3
         in_vlan=1 #macast group vid shall use input vlan diffe from l3 interface use output vlan        
         intf_src_mac=[0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc]
         intf_src_mac_str=':'.join(['%02X' % x for x in intf_src_mac])        
@@ -499,7 +497,8 @@ class L3McastRoute1(base_tests.SimpleDataPlane):
         
         port1=config["port_map"].keys()[0]
         port2=config["port_map"].keys()[1]
-        
+        port3=config["port_map"].keys()[2]
+
         #add l2 interface group
         for port in config["port_map"].keys():        
             add_one_l2_interface_grouop(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)           
@@ -511,8 +510,9 @@ class L3McastRoute1(base_tests.SimpleDataPlane):
         add_termination_flow(self.controller, port1, 0x0800, [0x01, 0x00, 0x5e, 0x00, 0x00, 0x00], vlan_id)
 
         #add l3 interface group
-        port2_ucast_msg=add_l3_interface_group(self.controller, port2, out_vlan, 2, intf_src_mac)
-        mcat_group_msg=add_l3_mcast_group(self.controller, in_vlan,  2, [port2_ucast_msg.group_id])
+        port2_ucast_msg=add_l3_interface_group(self.controller, port2, port2_out_vlan, 2, intf_src_mac)
+        port3_ucast_msg=add_l3_interface_group(self.controller, port3, port3_out_vlan, 3, intf_src_mac)        
+        mcat_group_msg=add_l3_mcast_group(self.controller, in_vlan,  2, [port2_ucast_msg.group_id, port3_ucast_msg.group_id])
         add_mcast4_routing_flow(self.controller, in_vlan, src_ip, 0, dst_ip, mcat_group_msg.group_id)               
         
         parsed_pkt = simple_udp_packet(pktlen=100, 
@@ -531,12 +531,12 @@ class L3McastRoute1(base_tests.SimpleDataPlane):
                                        ip_dst=dst_ip_str)
         pkt=str(parsed_pkt)            
         verify_packet(self, pkt, port2)
+        verify_packet(self, pkt, port3)        
         verify_no_other_packets(self)               
 
-        
 class L3McastRoute2(base_tests.SimpleDataPlane):
     """
-    Mcast routing, From VLAN 1 to VLAN 2
+    Mcast routing, but on same vlan (l2mcast)
     """
     def runTest(self):          
         """
@@ -563,10 +563,13 @@ class L3McastRoute2(base_tests.SimpleDataPlane):
         
         port1=config["port_map"].keys()[0]
         port2=config["port_map"].keys()[1]
+
         
         #add l2 interface group
         l2_intf_group_list=[]
-        for port in config["port_map"].keys():        
+        for port in config["port_map"].keys():
+            if port != port1 and port !=port2:
+                continue
             l2_intf_gid, msg=add_one_l2_interface_grouop(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)           
             l2_intf_group_list.append(l2_intf_gid)
             #add vlan flow table

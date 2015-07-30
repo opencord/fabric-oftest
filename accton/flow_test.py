@@ -37,7 +37,7 @@ class L2McastFlow(base_tests.SimpleDataPlane):
         # set up multicast group
         add_l2_mcast_group(self.controller, config["port_map"].keys(), 1, 1)
         
-        test_macs = [[0x01, 0x00, 0x5e, 0xff, 0xff, 0xff]]
+        test_macs = [[0x01, 0x00, 0x5e, 0x0f, 0xff, 0xff]]
 
         for test_mac in test_macs:
             group_id = encode_l2_mcast_group_id(1, 1)
@@ -120,8 +120,7 @@ class L2Flood(base_tests.SimpleDataPlane):
 
         input_port = ports.pop()
         flood_ports= ports
-        print "flood_ports %s"%flood_ports
-        print "input_port %s"%input_port        
+    
         #no fllod group create, veriy all drop
         parsed_pkt = simple_tcp_packet(eth_dst='00:12:34:56:78:9a')
         pkt = str(parsed_pkt)
@@ -145,7 +144,15 @@ class L2Flood(base_tests.SimpleDataPlane):
                
         for ofport in flood_ports:
             self.dataplane.send(ofport, pkt)
+            #self won't rx packet
             verify_no_packet(self, pkt, ofport)
+            #others will rx packet
+            tmp_ports=[]
+            for tmp in flood_ports:
+                if tmp != ofport:
+                    tmp_ports.append(tmp)                
+            verify_packets(self, pkt, tmp_ports)
+            
         verify_no_other_packets(self)
 
         parsed_pkt = simple_tcp_packet(eth_dst='FF:FF:FF:FF:FF:FF')

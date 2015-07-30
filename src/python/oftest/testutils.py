@@ -252,7 +252,7 @@ def simple_vxlan_packet(eth_dst='00:01:02:03:04:05',
                       udp_sport=1234,
                       udp_dport=4789,
                       vnid=1,
-                      inner_pyload=None,
+                      inner_payload=None,
                       ip_ihl=None,
                       ip_options=False
                       ):
@@ -292,10 +292,13 @@ def simple_vxlan_packet(eth_dst='00:01:02:03:04:05',
             pkt = scapy.Ether(dst=eth_dst, src=eth_src)/ \
                 scapy.IP(src=ip_src, dst=ip_dst, tos=ip_tos, ttl=ip_ttl, ihl=ip_ihl, options=ip_options)/ \
                 scapy.UDP(sport=udp_sport, dport=udp_dport)
+
+
     #add vxlan header
     pkt = pkt/scapy.VXLAN(vni=vnid)
     #add innder payload
-    pkt=pkt/inner_pyload
+    if inner_payload!=None:
+        pkt=pkt/inner_payload
 
     return pkt
 

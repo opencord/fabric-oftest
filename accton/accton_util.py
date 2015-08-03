@@ -19,6 +19,28 @@ VLAN_TABLE_FLAG_ONLY_UNTAG=1
 VLAN_TABLE_FLAG_ONLY_TAG  =2
 VLAN_TABLE_FLAG_ONLY_BOTH =3
 
+PORT_FLOW_TABLE=0
+VLAN_FLOW_TABLE=10
+TERMINATION_FLOW_TABLE=20
+UCAST_ROUTING_FLOW_TABLE=30
+MCAST_ROUTING_FLOW_TABLE=40
+BRIDGE_FLOW_TABLE=50
+ACL_FLOW_TABLE=60
+
+def convertIP4toStr(ip_addr):
+    a=(ip_addr&0xff000000)>>24
+    b=(ip_addr&0x00ff0000)>>16
+    c=(ip_addr&0x0000ff00)>>8
+    d=(ip_addr&0x000000ff)
+    return str(a)+"."+str(b)+"."+str(c)+"."+str(d)
+
+def convertMACtoStr(mac):
+    if not isinstance(mac, list):
+        assert(0)
+
+    return ':'.join(['%02X' % x for x in mac])
+
+
 def encode_l2_interface_group_id(vlan, id):
     return id + (vlan << OFDPA_VLAN_ID_SHIFT)
 

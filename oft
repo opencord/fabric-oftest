@@ -33,6 +33,10 @@ if os.path.exists(os.path.join(PY_SRC_DIR, 'oftest')):
     # Running from source tree
     sys.path.insert(0, PY_SRC_DIR)
 
+if os.path.exists(os.path.join(ROOT_DIR, 'accton')):
+    PY_ACCTON_DIR = os.path.join(ROOT_DIR, 'accton')
+    sys.path.insert(0, PY_ACCTON_DIR)
+    
 import oftest
 from oftest import config
 import oftest.ofutils

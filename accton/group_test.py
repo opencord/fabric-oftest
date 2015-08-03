@@ -3,10 +3,49 @@ Group table test
 Verify each group table can created correctly
 """
 from oftest import config
+
+import logging
+import random
+
+from oftest import config
+import oftest
 import oftest.base_tests as base_tests
 import ofp
+
 from oftest.testutils import *
 from accton_util import *
+
+def getkey(type):
+    def byGroupId(stats_entry):
+        return stats_entry.group_id
+        
+    def byGroupId(stats_entry):
+        return stats_entry.group_type
+
+        
+    if type == "group_id":
+        return byGroupId
+    elif type == "group_type":
+        return byGroupType
+
+    return byGroupId        
+
+class L2InterfaceGroupOne(base_tests.SimpleDataPlane):
+    def runTest(self):    
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)    
+
+        group_list1, msg1 = add_one_l2_interface_grouop(self.controller, config["port_map"].keys()[0], 1,  False, False)
+        stats = get_stats(self, ofp.message.group_desc_stats_request())
+ 
+        verify_group_stats=[ofp.group_desc_stats_entry(
+                          group_type=msg1.group_type,
+                          group_id=msg1.group_id,
+                          buckets=msg1.buckets)]
+
+        self.maxDiff=None
+
+        self.assertEquals(stats, verify_group_stats)
 
 class L2InterfaceGroup(base_tests.SimpleDataPlane):
     def runTest(self):    
@@ -15,26 +54,27 @@ class L2InterfaceGroup(base_tests.SimpleDataPlane):
 
         group_list1, msg1 = add_l2_interface_grouop(self.controller, config["port_map"].keys(), 1,  False, False)
         group_list2, msg2 =add_l2_interface_grouop(self.controller, config["port_map"].keys(), 2,  False, False)       
-
+        
         stats = get_stats(self, ofp.message.group_desc_stats_request())
  
         verify_group_stats=[]
+
         for msg in msg1:
             verify_group_stats.append(ofp.group_desc_stats_entry(
                                       group_type=msg.group_type,
                                       group_id=msg.group_id,
-                                      buckets=msg.buckets)
-                                      )
-        
+                                      buckets=msg.buckets))        
+
         for msg in msg2:
             verify_group_stats.append(ofp.group_desc_stats_entry(
                                       group_type=msg.group_type,
                                       group_id=msg.group_id,
-                                      buckets=msg.buckets)
-                                      )
-                                      
-        self.assertEquals(stats, verify_group_stats)
+                                      buckets=msg.buckets))
 
+        verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
+        stats=sorted(stats, key=getkey("group_id")) 
+        self.maxDiff=None        
+        self.assertEquals(stats, verify_group_stats)
         
 class L2McastGroup(base_tests.SimpleDataPlane):
     def runTest(self):
@@ -74,7 +114,10 @@ class L2McastGroup(base_tests.SimpleDataPlane):
                                   group_id=msg4.group_id,
                                   buckets=msg4.buckets)
                                   )
-
+                                  
+        verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
+        stats=sorted(stats, key=getkey("group_id"))                                   
+        self.maxDiff=None
         self.assertEquals(stats, verify_group_stats)
 
 
@@ -116,7 +159,10 @@ class L2FloodGroup(base_tests.SimpleDataPlane):
                                   group_id=msg4.group_id,
                                   buckets=msg4.buckets)
                                   )
-
+                                  
+        verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
+        stats=sorted(stats, key=getkey("group_id"))                                   
+        self.maxDiff=None
         self.assertEquals(stats, verify_group_stats)
 
 
@@ -159,6 +205,10 @@ class L2RewriteGroup(base_tests.SimpleDataPlane):
                                   buckets=msg4.buckets)
                                   )
 
+        verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
+        stats=sorted(stats, key=getkey("group_id")) 
+                                  
+        self.maxDiff=None
         self.assertEquals(stats, verify_group_stats)
         
 
@@ -200,7 +250,11 @@ class L3UnicastGroup(base_tests.SimpleDataPlane):
                                   group_id=msg4.group_id,
                                   buckets=msg4.buckets)
                                   )
-
+                                  
+        verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
+        stats=sorted(stats, key=getkey("group_id")) 
+                                  
+        self.maxDiff=None
         self.assertEquals(stats, verify_group_stats)  
 
 
@@ -252,6 +306,10 @@ class L3ECMPGroup(base_tests.SimpleDataPlane):
                                   buckets=msg5.buckets)
                                   )
 
+        verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
+        stats=sorted(stats, key=getkey("group_id")) 
+                                  
+        self.maxDiff=None
         self.assertEquals(stats, verify_group_stats)     
 
 
@@ -293,7 +351,10 @@ class L3InterfaceGroup(base_tests.SimpleDataPlane):
                                   buckets=msg4.buckets)
                                   )
 
-
+        verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
+        stats=sorted(stats, key=getkey("group_id")) 
+                                  
+        self.maxDiff=None
         self.assertEquals(stats, verify_group_stats)     
 
 
@@ -369,7 +430,11 @@ class L3McastGroup(base_tests.SimpleDataPlane):
                                   group_id=msg8.group_id,
                                   buckets=msg8.buckets)
                                   )  
+
+        verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
+        stats=sorted(stats, key=getkey("group_id")) 
                                   
+        self.maxDiff=None
         self.assertEquals(stats, verify_group_stats)     
 
 

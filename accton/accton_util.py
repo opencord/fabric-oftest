@@ -377,19 +377,23 @@ def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, 
 
     return msgs
 
-def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
+def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
     # table 10: vlan
     # goto to table 20
     if (flag == VLAN_TABLE_FLAG_ONLY_TAG) or (flag == VLAN_TABLE_FLAG_ONLY_BOTH):
         match = ofp.match()
         match.oxm_list.append(ofp.oxm.in_port(of_port))
         match.oxm_list.append(ofp.oxm.vlan_vid(0x1000+vlan_id))
+        
         request = ofp.message.flow_add(
             table_id=10,
             cookie=42,
             match=match,
             instructions=[
-              ofp.instruction.goto_table(20)
+                ofp.instruction.apply_actions(
+                     actions=[ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf))]
+                ),
+                ofp.instruction.goto_table(20)
             ],
             priority=0)
         logging.info("Add vlan %d tagged packets on port %d and go to table 20" %( vlan_id, of_port))
@@ -399,6 +403,7 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_
         match = ofp.match()
         match.oxm_list.append(ofp.oxm.in_port(of_port))
         match.oxm_list.append(ofp.oxm.vlan_vid(0))
+        
         request = ofp.message.flow_add(
             table_id=10,
             cookie=42,
@@ -486,7 +491,8 @@ def add_termination_flow(ctrl, in_port, eth_type, dst_mac, vlanid, send_barrier=
        match.oxm_list.append(ofp.oxm.eth_dst_masked(dst_mac, [0xff, 0xff, 0xff, 0x80, 0x00, 0x00]))
        goto_table=40
     else:
-       match.oxm_list.append(ofp.oxm.in_port(in_port))    
+       if in_port!=0:
+           match.oxm_list.append(ofp.oxm.in_port(in_port))
        match.oxm_list.append(ofp.oxm.eth_dst(dst_mac))
        match.oxm_list.append(ofp.oxm.vlan_vid(0x1000+vlanid))
        goto_table=30
@@ -509,13 +515,17 @@ def add_termination_flow(ctrl, in_port, eth_type, dst_mac, vlanid, send_barrier=
 
     return request    
     
-def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, send_barrier=False):
+def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=0, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(eth_type))
+    if vrf != 0:
+        match.oxm_list.append(ofp.oxm.exp2ByteValue(ofp.oxm.OFDPA_EXP_TYPE_VRF, vrf))
+    
     if mask!=0:
         match.oxm_list.append(ofp.oxm.ipv4_dst_masked(dst_ip, mask))
     else:
         match.oxm_list.append(ofp.oxm.ipv4_dst(dst_ip))
+
 
     request = ofp.message.flow_add(
             table_id=30,

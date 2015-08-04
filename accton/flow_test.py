@@ -552,6 +552,167 @@ class L3UcastRouteOnDiffVLANSamPort(base_tests.SimpleDataPlane):
         verify_packet(self, pkt, port)
         verify_no_other_packets(self)    
 		
+class L3UcastVrfRouteOnSamVLANSamPort(base_tests.SimpleDataPlane):
+    """
+    Port1(vlan1, VRF1, 0x00, 0x00, 0x00, 0x22, 0x22, 0x01, 192.168.1.1) , 
+    Port1(vlan1, VRF1, 0x00, 0x00, 0x00, 0x22, 0x22, 0x02, 19.168.2.1)
+    Port1(vlan2, VRF2, 0x00, 0x00, 0x00, 0x22, 0x22, 0x01, 192.168.1.1) , 
+    Port1(vlan2, VRF2, 0x00, 0x00, 0x00, 0x22, 0x22, 0x02, 19.168.2.1)
+    
+    """	
+    def runTest(self):          
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)
+        port = config["port_map"].keys()[0]
+		
+        vrf1=1
+        vrf2=2
+        vrf1_vlan_id=1
+        vrf2_vlan_id=2
+        intf_src_mac=[0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc]
+        port_mac1=[0x00, 0x00, 0x00, 0x22, 0x22, 0x01]
+        port_mac2=[0x00, 0x00, 0x00, 0x22, 0x22, 0x02]
+        port_ip1=0xc0a80101        
+        port_ip1_str=convertIP4toStr(port_ip1)
+        port_ip2=0xc0a80201
+        port_ip2_str=convertIP4toStr(port_ip2)
+		#add l2 interface group
+        add_one_l2_interface_grouop(self.controller, port, vlan_id=vrf1_vlan_id, is_tagged=True, send_barrier=False)
+        add_one_l2_interface_grouop(self.controller, port, vlan_id=vrf2_vlan_id, is_tagged=True, send_barrier=False)        
+		#add vlan flow table
+        add_one_vlan_table_flow(self.controller, port, vrf1_vlan_id, vrf=vrf1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
+        add_one_vlan_table_flow(self.controller, port, vrf2_vlan_id, vrf=vrf2, flag=VLAN_TABLE_FLAG_ONLY_TAG)
+        
+		#add termination flow
+        add_termination_flow(self.controller, 0, 0x0800, intf_src_mac, vrf1_vlan_id)
+        add_termination_flow(self.controller, 0, 0x0800, intf_src_mac, vrf2_vlan_id)
+        
+        """192.168.1.1->192.168.2.1"""
+        l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vrf1_vlan_id, id=1, src_mac=intf_src_mac, dst_mac=port_mac2)
+        add_unicast_routing_flow(self.controller, 0x0800, port_ip2, 0, l3_msg.group_id, vrf1)
+        l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vrf2_vlan_id, id=2, src_mac=intf_src_mac, dst_mac=port_mac2)
+        add_unicast_routing_flow(self.controller, 0x0800, port_ip2, 0, l3_msg.group_id, vrf2)
+        
+        """192.168.1.1->192.168.2.1"""
+        l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vrf1_vlan_id, id=3, src_mac=intf_src_mac, dst_mac=port_mac1)
+        add_unicast_routing_flow(self.controller, 0x0800, port_ip1, 0, l3_msg.group_id, vrf1)
+        l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vrf2_vlan_id, id=4, src_mac=intf_src_mac, dst_mac=port_mac1)
+        add_unicast_routing_flow(self.controller, 0x0800, port_ip1, 0, l3_msg.group_id, vrf2)
+        
+        do_barrier(self.controller)  
+	
+        """send packet to verify on VRF vrf1"""
+        """192.168.1.1->192.168.2.1"""        
+        switch_mac_str = convertMACtoStr(intf_src_mac)
+        port_mac1_str  = convertMACtoStr(port_mac1)
+        port_mac2_str  = convertMACtoStr(port_mac2)
+        ttl=64
+		#send packet
+        parsed_pkt = simple_tcp_packet(pktlen=100, 
+                                       eth_dst=switch_mac_str,
+                                       eth_src=port_mac1_str,
+                                       dl_vlan_enable=True,
+                                       vlan_vid=vrf1_vlan_id,
+                                       ip_ttl=ttl,
+                                       ip_src=port_ip1_str,
+                                       ip_dst=port_ip2_str)
+        pkt=str(parsed_pkt)
+        self.dataplane.send(port, pkt)
+        #build expect packet
+        exp_pkt = simple_tcp_packet(pktlen=100, 
+                                       eth_dst=port_mac2_str,
+                                       eth_src=switch_mac_str,
+                                       dl_vlan_enable=True,
+                                       vlan_vid=vrf1_vlan_id,                                       
+                                       ip_ttl=(ttl-1),
+                                       ip_src=port_ip1_str,
+                                       ip_dst=port_ip2_str)
+        pkt=str(exp_pkt)
+        verify_packet(self, pkt, port)
+        verify_no_other_packets(self)
+
+        """192.168.2.1->192.168.1.1"""
+        parsed_pkt = simple_tcp_packet(pktlen=100, 
+                                       eth_dst=switch_mac_str,
+                                       eth_src=port_mac2_str,
+                                       dl_vlan_enable=True,
+                                       vlan_vid=vrf1_vlan_id,                                       
+                                       ip_ttl=ttl,
+                                       ip_src=port_ip2_str,
+                                       ip_dst=port_ip1_str)
+        pkt=str(parsed_pkt)                                       
+        self.dataplane.send(port, pkt)
+        #build expect packet
+        exp_pkt = simple_tcp_packet(pktlen=100, 
+                                       eth_dst=port_mac1_str,
+                                       eth_src=switch_mac_str,
+                                       dl_vlan_enable=True,
+                                       vlan_vid=vrf1_vlan_id,                                       
+                                       ip_ttl=(ttl-1),
+                                       ip_src=port_ip2_str,
+                                       ip_dst=port_ip1_str)        
+        pkt=str(exp_pkt) 
+        verify_packet(self, pkt, port)
+        verify_no_other_packets(self)    
+       
+		
+        """send packet to verify on VRF vrf2"""
+        """192.168.1.1->192.168.2.1"""        
+        switch_mac_str = convertMACtoStr(intf_src_mac)
+        port_mac1_str  = convertMACtoStr(port_mac1)
+        port_mac2_str  = convertMACtoStr(port_mac2)
+        ttl=64
+		#send packet
+        parsed_pkt = simple_tcp_packet(pktlen=100, 
+                                       eth_dst=switch_mac_str,
+                                       eth_src=port_mac1_str,
+                                       dl_vlan_enable=True,
+                                       vlan_vid=vrf2_vlan_id,
+                                       ip_ttl=ttl,
+                                       ip_src=port_ip1_str,
+                                       ip_dst=port_ip2_str)
+        pkt=str(parsed_pkt)
+        self.dataplane.send(port, pkt)
+        #build expect packet
+        exp_pkt = simple_tcp_packet(pktlen=100, 
+                                       eth_dst=port_mac2_str,
+                                       eth_src=switch_mac_str,
+                                       dl_vlan_enable=True,
+                                       vlan_vid=vrf2_vlan_id,                                       
+                                       ip_ttl=(ttl-1),
+                                       ip_src=port_ip1_str,
+                                       ip_dst=port_ip2_str)
+        pkt=str(exp_pkt)
+        verify_packet(self, pkt, port)
+        verify_no_other_packets(self)
+
+        """192.168.2.1->192.168.1.1"""
+        parsed_pkt = simple_tcp_packet(pktlen=100, 
+                                       eth_dst=switch_mac_str,
+                                       eth_src=port_mac2_str,
+                                       dl_vlan_enable=True,
+                                       vlan_vid=vrf2_vlan_id,                                       
+                                       ip_ttl=ttl,
+                                       ip_src=port_ip2_str,
+                                       ip_dst=port_ip1_str)
+        pkt=str(parsed_pkt)                                       
+        self.dataplane.send(port, pkt)
+        #build expect packet
+        exp_pkt = simple_tcp_packet(pktlen=100, 
+                                       eth_dst=port_mac1_str,
+                                       eth_src=switch_mac_str,
+                                       dl_vlan_enable=True,
+                                       vlan_vid=vrf2_vlan_id,                                       
+                                       ip_ttl=(ttl-1),
+                                       ip_src=port_ip2_str,
+                                       ip_dst=port_ip1_str)        
+        pkt=str(exp_pkt) 
+        verify_packet(self, pkt, port)
+        verify_no_other_packets(self)          
+        
+        
+		  
+                
 class L3UcastECMP(base_tests.SimpleDataPlane):
     """
     Port1(vlan1, 0x00, 0x00, 0x00, 0x22, 0x22, 0x01, 192.168.1.1) , 

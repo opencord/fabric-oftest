@@ -6127,4 +6127,169 @@ class vlan_vid_masked(oxm):
 
 oxm.subtypes[2147486980] = vlan_vid_masked
 
+OFDPA_EXPERIMETER =0x00001018
 
+OFDPA_EXP_TYPE_VRF          =1
+OFDPA_EXP_TYPE_TRAFFIC_CLASS=2
+OFDPA_EXP_TYPE_COLOR        =3
+OFDPA_EXP_TYPE_DEI          =4
+OFDPA_EXP_TYPE_QOS_INDEX    =5
+OFDPA_EXP_TYPE_LMEP_ID      =6
+OFDPA_EXP_TYPE_MPLS_TTL     =7
+OFDPA_EXP_TYPE_MPLS_L2_PORT =8
+OFDPA_EXP_TYPE_OVID         =10
+OFDPA_EXP_TYPE_MPLS_DATA_FIRST_NIBBLE=11,
+OFDPA_EXP_TYPE_ACH_CHANNEL  =12
+OFDPA_EXP_TYPE_NEXT_LABLE_IS_GAL=13
+OFDPA_EXP_TYPE_OAM_Y1731_MDL=14
+OFDPA_EXP_TYPE_OAM_Y1731_OPCODE=15
+OFDPA_EXP_TYPE_COLOR_ACTION_INDEX=16
+OFDPA_EXP_TYPE_TXFCL        =17
+OFDPA_EXP_TYPE_RXFCL        =18
+OFDPA_EXP_TYPE_RX_TIMESAMP  =19
+OFDPA_EXP_TYPE_ACTSET_OUTPUT=42
+
+class exp1ByteValue(oxm):
+    type_len = 0xffff0007
+
+    def __init__(self, exp_type=0, value=None):
+        if value != None:
+            self.value = value
+            self.exp_type=exp_type
+        else:
+            self.value = 0
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!L", self.type_len))
+        packed.append(struct.pack("!L", OFDPA_EXPERIMETER))
+        packed.append(struct.pack("!H", self.exp_type))
+        packed.append(struct.pack("!b", self.value))        
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = exp1ByteValue()
+        _type_len = reader.read("!L")[0]
+        assert(_type_len == 0xffff0007)
+        experimenter = reader.read("!L")[0]
+        assert(experimenter == OFDPA_EXPERIMETER)
+        obj.exp_type= reader.read("!H")[0]
+        obj.value= reader.read("!b")[0]
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        if self.value != other.value: return False
+        if self.exp_type != other.exp_type: return False        
+        return True
+
+    def pretty_print(self, q):
+        q.text("exp1ByteValue {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("value = ");
+                q.text("%#x" % self.value)
+            q.breakable()
+        q.text('}')
+
+oxm.subtypes[0xffff0007] = exp1ByteValue
+
+class exp2ByteValue(oxm):
+    type_len = 0xffff0008
+
+    def __init__(self, exp_type=0, value=None):
+        if value != None:
+            self.value = value
+            self.exp_type=exp_type
+        else:
+            self.value = 0
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!L", self.type_len))
+        packed.append(struct.pack("!L", OFDPA_EXPERIMETER))
+        packed.append(struct.pack("!H", self.exp_type))
+        packed.append(struct.pack("!H", self.value))        
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = exp2ByteValue()
+        _type_len = reader.read("!L")[0]
+        assert(_type_len == 0xffff0008)
+        experimenter = reader.read("!L")[0]
+        assert(experimenter == OFDPA_EXPERIMETER)
+        obj.exp_type= reader.read("!H")[0]
+        obj.value= reader.read("!H")[0]
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        if self.value != other.value: return False
+        if self.exp_type != other.exp_type: return False        
+        return True
+
+    def pretty_print(self, q):
+        q.text("exp2ByteValue {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("value = ");
+                q.text("%#x" % self.value)
+            q.breakable()
+        q.text('}')
+
+oxm.subtypes[0xffff0008] = exp2ByteValue
+
+
+class exp4ByteValue(oxm):
+    type_len = 0xffff000a
+
+    def __init__(self, exp_type=0, value=None):
+        if value != None:
+            self.value = value
+            self.exp_type=exp_type
+        else:
+            self.value = 0
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!L", self.type_len))
+        packed.append(struct.pack("!L", OFDPA_EXPERIMETER))
+        packed.append(struct.pack("!H", self.exp_type))
+        packed.append(struct.pack("!L", self.value))        
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = exp4ByteValue()
+        _type_len = reader.read("!L")[0]
+        assert(_type_len == 0xffff000a)
+        experimenter = reader.read("!L")[0]
+        assert(experimenter == OFDPA_EXPERIMETER)
+        obj.exp_type= reader.read("!H")[0]
+        obj.value= reader.read("!L")[0]
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        if self.value != other.value: return False
+        if self.exp_type != other.exp_type: return False        
+        return True
+
+    def pretty_print(self, q):
+        q.text("exp4ByteValue {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("value = ");
+                q.text("%#x" % self.value)
+            q.breakable()
+        q.text('}')
+
+oxm.subtypes[0xffff000a] = exp4ByteValue

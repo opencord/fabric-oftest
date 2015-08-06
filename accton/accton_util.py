@@ -40,6 +40,14 @@ def convertMACtoStr(mac):
 
     return ':'.join(['%02X' % x for x in mac])
 
+def getSwitchCpuMACFromDPID(dpid):
+    str_datapath_id_f= "{:016x}".format(dpid)
+    str_datapath_id=':'.join([str_datapath_id_f[i:i+2] for i in range(0, len(str_datapath_id_f), 2)])
+    switch_cpu_mac_str=str_datapath_id[6:]
+    switch_cpu_mac = switch_cpu_mac_str.split(":")
+    switch_cpu_mac=[int(switch_cpu_mac[i],16) for i in range(0, len(switch_cpu_mac))]
+
+    return switch_cpu_mac_str, switch_cpu_mac
 
 def encode_l2_interface_group_id(vlan, id):
     return id + (vlan << OFDPA_VLAN_ID_SHIFT)
@@ -384,14 +392,20 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
         match = ofp.match()
         match.oxm_list.append(ofp.oxm.in_port(of_port))
         match.oxm_list.append(ofp.oxm.vlan_vid(0x1000+vlan_id))
-        
+
+        actions=[]
+        if vrf!=0:
+            actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
+            
+        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(value=vlan_id)))
+
         request = ofp.message.flow_add(
             table_id=10,
             cookie=42,
             match=match,
             instructions=[
                 ofp.instruction.apply_actions(
-                     actions=[ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf))]
+                     actions=actions
                 ),
                 ofp.instruction.goto_table(20)
             ],
@@ -404,15 +418,19 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
         match.oxm_list.append(ofp.oxm.in_port(of_port))
         match.oxm_list.append(ofp.oxm.vlan_vid(0))
         
+        actions=[]
+        if vrf!=0:
+            actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
+            
+        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vlan_id)))
+        
         request = ofp.message.flow_add(
             table_id=10,
             cookie=42,
             match=match,
             instructions=[
               ofp.instruction.apply_actions(
-                actions=[
-                  ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vlan_id))
-                ]
+                actions=actions
               ),
               ofp.instruction.goto_table(20)
             ],

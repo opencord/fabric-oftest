@@ -708,7 +708,7 @@ def get_vtap_lport_config_xml(dp_id, lport, phy_port, vlan, vnid, operation='mer
     str_datapath_id_f= "{:016x}".format(dp_id)        
     str_datapath_id=':'.join([str_datapath_id_f[i:i+2] for i in range(0, len(str_datapath_id_f), 2)])	
     config_vtap_xml=config_vtap_xml.replace("DATAPATH_ID", str_datapath_id)      
-    config_vtap_xml=config_vtap_xml.replace("LPORT", str(hex(lport)))         
+    config_vtap_xml=config_vtap_xml.replace("LPORT", str(int(lport)))         
     config_vtap_xml=config_vtap_xml.replace("PHY_PORT", str(phy_port))       
     config_vtap_xml=config_vtap_xml.replace("VLAN_ID", str(vlan))     
     config_vtap_xml=config_vtap_xml.replace("VNID", str(vnid))
@@ -758,7 +758,9 @@ def get_vtep_lport_config_xml(dp_id, lport, src_ip, dst_ip, next_hop_id, vnid, u
 				<ofdpa10:src-ip>SRC_IP</ofdpa10:src-ip>
 				<ofdpa10:dest-ip>DST_IP</ofdpa10:dest-ip>
 				<ofdpa10:udp-src-port>UDP_SRC_PORT</ofdpa10:udp-src-port>
-				<ofdpa10:vni>VNID</ofdpa10:vni>
+				<ofdpa10:vni xc:operation="OPERATION">
+                    <ofdpa10:id>VNID</ofdpa10:id>
+                </ofdpa10:vni>
 				<ofdpa10:nexthop-id>NEXT_HOP_ID</ofdpa10:nexthop-id>
 				<ofdpa10:ttl>TTL</ofdpa10:ttl>
 			  </ofdpa10:vtep>
@@ -779,7 +781,7 @@ def get_vtep_lport_config_xml(dp_id, lport, src_ip, dst_ip, next_hop_id, vnid, u
     str_datapath_id_f= "{:016x}".format(dp_id)        
     str_datapath_id=':'.join([str_datapath_id_f[i:i+2] for i in range(0, len(str_datapath_id_f), 2)])	
     config_vtep_xml=config_vtep_xml.replace("DATAPATH_ID", str_datapath_id)      
-    config_vtep_xml=config_vtep_xml.replace("LPORT", str(hex(lport)))
+    config_vtep_xml=config_vtep_xml.replace("LPORT", str(int(lport)))
     config_vtep_xml=config_vtep_xml.replace("SRC_IP", str(src_ip))            
     config_vtep_xml=config_vtep_xml.replace("DST_IP", str(dst_ip))                 
     config_vtep_xml=config_vtep_xml.replace("UDP_SRC_PORT", str(udp_src_port))                      

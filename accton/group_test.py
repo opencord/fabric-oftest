@@ -19,7 +19,7 @@ def getkey(type):
     def byGroupId(stats_entry):
         return stats_entry.group_id
         
-    def byGroupId(stats_entry):
+    def byGroupType(stats_entry):
         return stats_entry.group_type
 
         
@@ -73,7 +73,7 @@ class L2InterfaceGroup(base_tests.SimpleDataPlane):
 
         verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
         stats=sorted(stats, key=getkey("group_id")) 
-        self.maxDiff=None        
+        #self.maxDiff=None        
         self.assertEquals(stats, verify_group_stats)
         
 class L2McastGroup(base_tests.SimpleDataPlane):

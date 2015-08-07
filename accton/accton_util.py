@@ -889,7 +889,7 @@ def get_edit_config(switch_ip, target='runing'):
     NETCONF_ACCOUNT="netconfuser"
     NETCONF_PASSWD="netconfuser"
     with manager.connect_ssh(host=switch_ip, port=830, username=NETCONF_ACCOUNT, password=NETCONF_PASSWD, hostkey_verify=False ) as m:
-	    print m.get_config(source='running').data_xml
+	    return m.get_config(source='running').data_xml
 
         
 def print_current_table_flow_stat(ctrl, table_id=0xff):

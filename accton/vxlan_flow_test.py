@@ -38,33 +38,34 @@ class VxlanConfigNetconf(base_tests.SimpleDataPlane):
         network_port_sip="192.168.1.1"
         network_port_dip="192.168.2.1"
 
+        xml_before=get_edit_config(config["switch_ip"])
 		#get datapath_id from feature message
         feature_reply=get_featureReplay(self)	
         next_hop_conf_xml=get_next_hop_config_xml(next_hop_id=next_hop_id_mcast, 
 		                                          dst_mac=dst_mac_mcast, 
 												  phy_port=network_port_phy_port, 
 												  vlan=network_port_vlan)        
-        logging.info("config NextHop %d, DST_MAC %s, PHY %d, VLAN %d", next_hop_id, dst_mac, network_port_phy_port, network_port_vlan);
-        assert(send_edit_config(config["switch_ip"], next_hop_conf_xml) == False)                
+        logging.info("config NextHop %d, DST_MAC %s, PHY %d, VLAN %d", next_hop_id_mcast, dst_mac_mcast, network_port_phy_port, network_port_vlan);
+        assert(send_edit_config(config["switch_ip"], next_hop_conf_xml) == True)                
         
         next_hop_conf_xml=get_next_hop_config_xml(next_hop_id=next_hop_id, 
 		                                          dst_mac=dst_mac, 
 												  phy_port=network_port_phy_port, 
 												  vlan=network_port_vlan)
         logging.info("config NextHop %d, DST_MAC %s, PHY %d, VLAN %d", next_hop_id, dst_mac, network_port_phy_port, network_port_vlan);
-        assert(send_edit_config(config["switch_ip"], next_hop_conf_xml) == False)                                                  
+        assert(send_edit_config(config["switch_ip"], next_hop_conf_xml) == True)                                                  
         
         vni_config_xml=get_vni_config_xml(vni_id=vnid, 
                                           mcast_ipv4=mcast_ipv4, 
                                           next_hop_id=next_hop_id_mcast)
         logging.info("config VNI %lx", vnid);
-        assert(send_edit_config(config["switch_ip"], vni_config_xml) == False)
+        assert(send_edit_config(config["switch_ip"], vni_config_xml) == True)
             
         vtap_conf_xml=get_vtap_lport_config_xml(dp_id=feature_reply.datapath_id, 
                                         lport=access_lport, phy_port=access_phy_port, 
                                         vlan=access_port_vid, vnid=vnid)
         logging.info("config VTAP 0x%lx, PHY %d, VID %d, VNID %lx", access_lport, access_phy_port, access_port_vid, vnid);
-        assert(send_edit_config(config["switch_ip"], vtap_conf_xml) == False)
+        assert(send_edit_config(config["switch_ip"], vtap_conf_xml) == True)
 
         vtep_conf_xml=get_vtep_lport_config_xml(dp_id=feature_reply.datapath_id, 
                                                 lport=network_lport, 
@@ -72,7 +73,7 @@ class VxlanConfigNetconf(base_tests.SimpleDataPlane):
                                                 next_hop_id=next_hop_id, 
                                                 vnid=vnid)												
         logging.info("config VTEP 0x%lx, SRC_IP %s, DST_IP %s, NEXTHOP_ID %d", network_lport, network_port_sip, network_port_dip, next_hop_id);                                                
-        assert(send_edit_config(config["switch_ip"], vtep_conf_xml) == False)            
+        assert(send_edit_config(config["switch_ip"], vtep_conf_xml) == True)            
             
         get_edit_config(config["switch_ip"])
 
@@ -80,33 +81,34 @@ class VxlanConfigNetconf(base_tests.SimpleDataPlane):
         vtap_conf_xml=get_vtap_lport_config_xml(dp_id=feature_reply.datapath_id, 
 		                                        lport=access_lport, phy_port=access_phy_port, 
 												vlan=access_port_vid, vnid=vnid, operation="delete")
-        assert(send_edit_config(config["switch_ip"], vtap_conf_xml) == False)
+        assert(send_edit_config(config["switch_ip"], vtap_conf_xml) == True)
         
         vtep_conf_xml=get_vtep_lport_config_xml(dp_id=feature_reply.datapath_id, 
 		                                        lport=network_lport, 
 												src_ip=network_port_sip, dst_ip=network_port_dip, 
 												next_hop_id=next_hop_id, 
 												vnid=vnid, operation="delete")												
-        assert(send_edit_config(config["switch_ip"], vtep_conf_xml) == False)
+        assert(send_edit_config(config["switch_ip"], vtep_conf_xml) == True)
 
         vni_config_xml=get_vni_config_xml(vni_id=vnid, 
                                           mcast_ipv4=mcast_ipv4, 
                                           next_hop_id=next_hop_id_mcast, operation="delete")
-        assert(send_edit_config(config["switch_ip"], vni_config_xml) == False)
+        assert(send_edit_config(config["switch_ip"], vni_config_xml) == True)
 
         next_hop_conf_xml=get_next_hop_config_xml(next_hop_id=next_hop_id, 
 		                                          dst_mac=dst_mac, 
 												  phy_port=network_port_phy_port, 
 												  vlan=network_port_vlan, operation="delete")
-        assert(send_edit_config(config["switch_ip"], next_hop_conf_xml) == False)
+        assert(send_edit_config(config["switch_ip"], next_hop_conf_xml) == True)
 
         next_hop_conf_xml=get_next_hop_config_xml(next_hop_id=next_hop_id_mcast, 
 		                                          dst_mac=dst_mac_mcast, 
 												  phy_port=network_port_phy_port, 
 												  vlan=network_port_vlan, operation="delete")
-        assert(send_edit_config(config["switch_ip"], next_hop_conf_xml) == False)            
+        assert(send_edit_config(config["switch_ip"], next_hop_conf_xml) == True)            
 
-        get_edit_config(config["switch_ip"])
+        xml_after=get_edit_config(config["switch_ip"])
+        assert(xml_before == xml_after)
         
 class OverlayFloodGroup(base_tests.SimpleDataPlane):
     """

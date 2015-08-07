@@ -13,7 +13,7 @@ from accton_util import *
 NW1_ACCESS_LPORT=0x10001
 NW2_ACCESS_LPORT=0x10002        
 NW1_NEWORK_LPORT=0x10003
-NW2_NEWORK_LPORT=0x10004        
+NW2_NEWORK_LPORT=0x10003        
 
 NW1_VRF=1
 NW2_VRF=2
@@ -172,7 +172,6 @@ class vrouterSameVNIRouting(base_tests.SimpleDataPlane):
                                                 vnid=NW2_VNID)												
         logging.info("config VTEP 0x%lx, VNID=%lu, SRC_IP %s, DST_IP %s, NEXTHOP_ID %d", NW2_NEWORK_LPORT, NW2_VNID, SWITCH_IP, VXLAN_TNL_H1_IP_STR, VXLAN_TNL_H_R_NHP_ID);
         assert(send_edit_config(config["switch_ip"], vtep_conf_xml) == True)
-        
         
         """add routing flow"""    
         #add port table to have vxlan ability
@@ -366,13 +365,15 @@ class vrouterSameVNIRouting(base_tests.SimpleDataPlane):
         logging.info("delete config VTEP 0x%lx, VNID=%lu, SRC_IP %s, DST_IP %s, NEXTHOP_ID %d", NW1_NEWORK_LPORT, NW1_VNID, SWITCH_IP, VXLAN_TNL_H1_IP_STR, VXLAN_TNL_H_R_NHP_ID);
         assert(send_edit_config(config["switch_ip"], vtep_conf_xml) == True)
 
-        vtep_conf_xml=get_vtep_lport_config_xml(dp_id=feature_reply.datapath_id, 
-                                                lport=NW2_NEWORK_LPORT, 
-                                                src_ip=SWITCH_IP_STR, dst_ip=VXLAN_TNL_H1_IP_STR,
-                                                next_hop_id=VXLAN_TNL_H_R_NHP_ID, 
-                                                vnid=NW2_VNID, operation="delete")												
-        logging.info("delete config VTEP 0x%lx, VNID=%lu, SRC_IP %s, DST_IP %s, NEXTHOP_ID %d", NW2_NEWORK_LPORT, NW2_VNID, SWITCH_IP, VXLAN_TNL_H1_IP_STR, VXLAN_TNL_H_R_NHP_ID);
-        assert(send_edit_config(config["switch_ip"], vtep_conf_xml) == True)
+        if NW1_NEWORK_LPORT != NW2_NEWORK_LPORT:
+            vtep_conf_xml=get_vtep_lport_config_xml(dp_id=feature_reply.datapath_id, 
+                                                    lport=NW2_NEWORK_LPORT, 
+                                                    src_ip=SWITCH_IP_STR, dst_ip=VXLAN_TNL_H1_IP_STR,
+                                                    next_hop_id=VXLAN_TNL_H_R_NHP_ID, 
+                                                    vnid=NW2_VNID, operation="delete")												
+            logging.info("delete config VTEP 0x%lx, VNID=%lu, SRC_IP %s, DST_IP %s, NEXTHOP_ID %d", NW2_NEWORK_LPORT, NW2_VNID, SWITCH_IP, VXLAN_TNL_H1_IP_STR, VXLAN_TNL_H_R_NHP_ID);
+            assert(send_edit_config(config["switch_ip"], vtep_conf_xml) == True)
+
         #delete next hop and network port for H1
         next_hop_conf_xml=get_next_hop_config_xml(next_hop_id=VXLAN_TNL_H_R_NHP_ID, 
 		                                          dst_mac=VXLAN_TNL_H_R_MAC_STR, 

@@ -106,7 +106,6 @@ class L2Flood(base_tests.SimpleDataPlane):
     Test L2 unknown unicast flooding and broadcast flood
     """
     def runTest(self):
-        return
         ports = sorted(config["port_map"].keys())
 
         delete_all_flows(self.controller)

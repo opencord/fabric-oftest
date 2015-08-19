@@ -14,19 +14,20 @@ class RedirectArpToSpecifyPortOrController(base_tests.SimpleDataPlane):
 		
         test_ports = sorted(config["port_map"].keys())	
 
-        test_vid =1
+        test_vid =2
         #add vlan flow to pass vlan verification
-        add_l2_interface_grouop(self.controller, test_ports, vlan_id=test_vid, is_tagged=False, send_barrier=False)
-        add_vlan_table_flow(self.controller, test_ports, vlan_id=test_vid, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False)
+        add_l2_interface_grouop(self.controller, test_ports, vlan_id=test_vid, is_tagged=True, send_barrier=False)
+        add_vlan_table_flow(self.controller, test_ports, vlan_id=test_vid, flag=VLAN_TABLE_FLAG_ONLY_TAG, send_barrier=False)
         
         #get a port to be the flood destination port, 
         #remember test_ports already mius FLOOD_TO_PORT
         FLOOD_TO_PORT = test_ports.pop();
-        l2_mcast_group=add_l2_mcast_group(self.controller, [FLOOD_TO_PORT], vlanid=test_vid, mcast_grp_index=1)
+        l2_mcast_group=add_l2_mcast_group(self.controller, [FLOOD_TO_PORT], vlanid=test_vid, mcast_grp_index=test_vid)
 		
 		#match ether_type=arp and da=bcast
 
         match = ofp.match()
+        match.oxm_list.append(ofp.oxm.vlan_vid(test_vid)) #match arp ethertype        
         match.oxm_list.append(ofp.oxm.eth_type(0x0806)) #match arp ethertype
         match.oxm_list.append(ofp.oxm.eth_dst([0xff, 0xff, 0xff, 0xff, 0xff, 0xff])) #match DA is bcast		
         request = ofp.message.flow_add(
@@ -39,13 +40,14 @@ class RedirectArpToSpecifyPortOrController(base_tests.SimpleDataPlane):
                                             ])
                                    ],
                       buffer_id=ofp.OFP_NO_BUFFER,
-                      priority=1) 
+                      priority=10) 
 
         self.controller.message_send(request)
 		
-        arp=simple_arp_packet()
+        arp=simple_arp_packet(vlan_vid=test_vid)
         
         for port in test_ports:
+            print "send on port %ld"%port
             self.dataplane.send(port, str(arp))
             verify_packet(self, str(arp), FLOOD_TO_PORT)  
             verify_packet_in(self, str(arp), port, ofp.OFPR_ACTION)

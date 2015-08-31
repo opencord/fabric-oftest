@@ -293,7 +293,6 @@ def simple_vxlan_packet(eth_dst='00:01:02:03:04:05',
                 scapy.IP(src=ip_src, dst=ip_dst, tos=ip_tos, ttl=ip_ttl, ihl=ip_ihl, options=ip_options)/ \
                 scapy.UDP(sport=udp_sport, dport=udp_dport)
 
-
     #add vxlan header
     pkt = pkt/scapy.VXLAN(vni=vnid)
     #add innder payload
@@ -302,6 +301,49 @@ def simple_vxlan_packet(eth_dst='00:01:02:03:04:05',
 
     return pkt
 
+
+def simple_mpls_packet(eth_dst='00:01:02:03:04:05',
+                      eth_src='00:06:07:08:09:0a',
+                      dl_vlan_enable=False,
+                      vlan_vid=0,
+                      vlan_pcp=0,
+                      dl_vlan_cfi=0,
+                      label=None,
+                      inner_payload=None
+                      ):
+    """
+    Return a simple dataplane MPLS packet
+
+    Supports a few parameters:
+    @param len Length of packet in bytes w/o CRC
+    @param eth_dst Destination MAC
+    @param eth_src Source MAC
+    @param dl_vlan_enable True if the packet is with vlan, False otherwise
+    @param vlan_vid VLAN ID
+    @param vlan_pcp VLAN priority
+    @param inner_pyload inner pacekt content
+    Generates a simple MPLS packet. Users shouldn't assume anything about
+    this packet other than that it is a valid ethernet/IP/UDP frame.
+    """
+
+    # Note Dot1Q.id is really CFI
+    if (dl_vlan_enable):
+        pkt = scapy.Ether(dst=eth_dst, src=eth_src)/ \
+            scapy.Dot1Q(prio=vlan_pcp, id=dl_vlan_cfi, vlan=vlan_vid)
+    else:
+        pkt = scapy.Ether(dst=eth_dst, src=eth_src)
+
+    #add MPLS header
+    for i in range(len(label)):
+        l,c,s,t=label[i]    
+        pkt = pkt/scapy.MPLS(label=l, cos=c, s=s, ttl=t)
+
+    #add innder payload
+    if inner_payload!=None:
+        pkt=pkt/inner_payload
+
+    return pkt
+    
 def simple_udpv6_packet(pktlen=100,
                         eth_dst='00:01:02:03:04:05',
                         eth_src='00:06:07:08:09:0a',

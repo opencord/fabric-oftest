@@ -48,7 +48,56 @@ def getSwitchCpuMACFromDPID(dpid):
     switch_cpu_mac=[int(switch_cpu_mac[i],16) for i in range(0, len(switch_cpu_mac))]
 
     return switch_cpu_mac_str, switch_cpu_mac
+        
+def DumpGroup(stats, verify_group_stats, always_show=True):
+    if(len(stats) > len(verify_group_stats)):
+        min_len = len(verify_group_stats)
+        print "Stats Len is not the same, stats>verify_group_stats"
+    if(len(stats)< len(verify_group_stats)):
+        min_len = len(stats)    
+        print "Stats Len is not the same, stats<verify_group_stats"
+    else:   
+        min_len = len(stats)
 
+    print "\r\n"
+    for i in range(min_len):
+        gs = stats[i]
+        gv = verify_group_stats[i]        
+        print "FromSwtich:(GID=%lx, TYPE=%lx)\r\nVerify    :(GID=%lx, TYPE=%lx)"%(gs.group_id, gs.group_type, gv.group_id, gv.group_type)
+        if(len(gs.buckets) != len(gv.buckets)):
+            print "buckets len is not the same gs %lx, gv %lx",(len(gs.buckets), len(gv.buckets))
+
+        for j in range(len(gs.buckets)):
+           b1=gs.buckets[j]
+           b2=gv.buckets[j]           
+           if(len(b1.actions) != len(b2.actions)):
+               print "action len is not the same"
+
+           for k in range(len(b1.actions)):
+               a1=b1.actions[k]
+               a2=b2.actions[k]
+               if(always_show == True):
+                   print "a1:"+a1.show()
+                   print "a2:"+a2.show()               
+
+def AssertGroup(self, stats, verify_group_stats):
+    self.assertTrue(len(stats) ==len(verify_group_stats), "stats len is not the same")
+
+    for i in range(len(stats)):
+        gs = stats[i]
+        gv = verify_group_stats[i]        
+        self.assertTrue(len(gs.buckets) == len(gv.buckets), "buckets len is not the same")
+
+        for j in range(len(gs.buckets)):
+           b1=gs.buckets[j]
+           b2=gv.buckets[j]           
+           self.assertTrue(len(b1.actions) == len(b2.actions), "action len is not the same")
+
+           for k in range(len(b1.actions)):
+               a1=b1.actions[k]
+               a2=b2.actions[k]
+               self.assertEquals(a1, a2, "action is not the same")
+    
 def encode_l2_interface_group_id(vlan, id):
     return id + (vlan << OFDPA_VLAN_ID_SHIFT)
 
@@ -893,7 +942,175 @@ def get_edit_config(switch_ip, target='runing'):
     with manager.connect_ssh(host=switch_ip, port=830, username=NETCONF_ACCOUNT, password=NETCONF_PASSWD, hostkey_verify=False ) as m:
 	    return m.get_config(source='running').data_xml
 
-        
+
+"""
+MPLS
+"""
+
+OFDPA_MPLS_SUBTYPE_SHIFT=24
+OFDPA_MPLS_GROUP_SUBTYPE_L2_VPN_LABEL=1 
+OFDPA_MPLS_GROUP_SUBTYPE_L3_VPN_LABEL=2
+OFDPA_MPLS_GROUP_SUBTYPE_TUNNEL_LABEL1=3
+OFDPA_MPLS_GROUP_SUBTYPE_TUNNEL_LABEL2=4
+OFDPA_MPLS_GROUP_SUBTYPE_SWAP_LABEL=5
+OFDPA_MPLS_GROUP_SUBTYPE_FAST_FAILOVER_GROUP=6
+OFDPA_MPLS_GROUP_SUBTYPE_ECMP=8
+OFDPA_MPLS_GROUP_SUBTYPE_L2_TAG=10
+
+def encode_mpls_interface_group_id(subtype, index):
+    index=index&0x00ffffff
+    assert(subtype==0)
+    return index + (9 << OFDPA_GROUP_TYPE_SHIFT)+(subtype<<OFDPA_MPLS_SUBTYPE_SHIFT)
+
+def encode_mpls_label_group_id(subtype, index):
+    index=index&0x00ffffff
+    assert(subtype <=5 or subtype==0)
+    #1: l2 vpn label
+    #2: l3 vpn label
+    #3: mpls tunnel label 1
+    #4: mpls tunnel lable 2
+    #5: mpls swap label
+    return index + (9 << OFDPA_GROUP_TYPE_SHIFT)+(subtype<<OFDPA_MPLS_SUBTYPE_SHIFT)         
+
+def encode_mpls_forwarding_group_id(subtype, index):
+    index=index&0x00ffffff
+    assert(subtype==6 or subtype==8 or subtype==10)
+    return index + (10 << OFDPA_GROUP_TYPE_SHIFT)+(subtype<<OFDPA_MPLS_SUBTYPE_SHIFT)         
+
+
+def add_mpls_intf_group(ctrl, ref_gid, dst_mac, src_mac, vid, index, subtype=0):
+    action=[]
+    action.append(ofp.action.set_field(ofp.oxm.eth_src(src_mac)))
+    action.append(ofp.action.set_field(ofp.oxm.eth_dst(dst_mac)))
+    action.append(ofp.action.set_field(ofp.oxm.vlan_vid(vid)))    
+    action.append(ofp.action.group(ref_gid))
+    
+    buckets = [ofp.bucket(actions=action)]
+
+    mpls_group_id =encode_mpls_interface_group_id(subtype, index)
+    request = ofp.message.group_add(group_type=ofp.OFPGT_INDIRECT,
+                                    group_id=mpls_group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    return mpls_group_id, request
+
+def add_mpls_label_group(ctrl, subtype, index, ref_gid, 
+                         lmep_id=-1,
+                         qos_index=-1,
+                         push_l2_header=False,
+                         push_vlan=False,
+                         push_mpls_header=False,
+                         push_cw=False,
+                         set_mpls_label=None,
+                         set_bos=None,
+                         set_tc=None,
+                         set_tc_from_table=False,
+                         cpy_tc_outward=False,
+                         set_ttl=None,
+                         cpy_ttl_outward=False,
+                         oam_lm_tx_count=False,
+                         set_pri_from_table=False
+                         ):
+    """
+    @ref_gid: only can be mpls intf group or mpls tunnel label 1/2 group
+    """      
+    action=[]
+
+    if push_vlan== True:
+        action.append(ofp.action.push_vlan(0x8100))
+    if push_mpls_header== True:
+        action.append(ofp.action.push_mpls(0x8847))
+    if set_mpls_label != None:
+        action.append(ofp.action.set_field(ofp.oxm.mpls_label(set_mpls_label)))
+    if set_bos != None:
+        action.append(ofp.action.set_field(ofp.oxm.mpls_bos(set_bos)))
+    if set_tc != None:
+        assert(set_tc_from_table==False)
+        action.append(ofp.action.set_field(ofp.oxm.mpls_tc(set_tc)))
+    if set_ttl != None:
+        action.append(ofp.action.set_mpls_ttl(set_ttl))  
+    if cpy_ttl_outward == True:
+        action.append(ofp.action.copy_ttl_out())  
+    """
+    ofdpa experimenter
+    """    
+    if push_l2_header== True:
+        action.append(ofp.action.ofdpa_push_l2_header())          
+    if set_tc_from_table== True:
+        assert(qos_index>=0)
+        assert(set_tc == None)
+        action.append(ofp.action.ofdpa_set_tc_from_table(qos_index))        
+    if cpy_tc_outward == True:
+        action.append(ofp.action.ofdpa_copy_tc_out())	
+    if oam_lm_tx_count == True:
+        assert(qos_index>=0 and lmep_id>=0)	
+        action.append(ofp.action.ofdpa_oam_lm_tx_count(lmep_id, qos_index))  
+    if set_pri_from_table == True:
+        assert(qos_index>=0)	
+        action.append(ofp.action.ofdpa_set_qos_from_table(qos_index))  
+    if push_cw == True:
+        action.append(ofp.action.ofdpa_push_cw())
+       
+    action.append(ofp.action.group(ref_gid))    
+    buckets = [ofp.bucket(actions=action)]
+    
+    mpls_group_id = encode_mpls_label_group_id(subtype, index)
+    request = ofp.message.group_add(group_type=ofp.OFPGT_INDIRECT,
+                                    group_id=mpls_group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    
+    return mpls_group_id, request    
+    
+def add_mpls_forwarding_group(ctrl, subtype, index, ref_gids, 
+                              watch_port=None, 
+							  watch_group=None, 
+							  push_vlan=None,
+                              pop_van=None,
+                              set_vid=None):
+    assert(subtype == OFDPA_MPLS_GROUP_SUBTYPE_FAST_FAILOVER_GROUP
+	       or subtype == OFDPA_MPLS_GROUP_SUBTYPE_ECMP
+		   or subtype == OFDPA_MPLS_GROUP_SUBTYPE_L2_TAG)
+    action=[]
+    buckets=[]
+    if subtype == OFDPA_MPLS_GROUP_SUBTYPE_FAST_FAILOVER_GROUP:
+        group_type = ofp.OFPGT_FASTFAILOVER
+        for gid in ref_gids:
+            action.append(ofp.action.group(gid))    
+            buckets.append(ofp.bucket(actions=action))
+		
+    elif subtype == OFDPA_MPLS_GROUP_SUBTYPE_ECMP:
+        group_type = ofp.OFPGT_SELECT
+        for gid in ref_gids:
+            action.append(ofp.action.group(gid))    
+            buckets.append(ofp.bucket(actions=action))
+		    
+    elif subtype == OFDPA_MPLS_GROUP_SUBTYPE_L2_TAG:
+        group_type = ofp.OFPGT_INDIRECT
+        if set_vid!=None:
+            action.append(ofp.action.set_field(ofp.oxm.vlan_vid(set_vid)))
+        if push_vlan!=None:
+            action.append(ofp.action.push_vlan(push_vlan))		
+        if pop_vlan!=None:
+            action.append(ofp.action.pop_vlan(pop_vlan))		
+            action.append(ofp.action.group(ref_gids[0]))    
+            buckets.append(ofp.bucket(actions=action))
+		    
+    mpls_group_id = encode_mpls_label_group_id(subtype, index)
+    request = ofp.message.group_add(group_type=group_type,
+	                                watch_port=watch_port,
+									watch_group=watch_group,
+                                    group_id=mpls_group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    return mpls_group_id, request    
+    
+"""
+dislay
+"""   
 def print_current_table_flow_stat(ctrl, table_id=0xff):
     stat_req=ofp.message.flow_stats_request()
     response, pkt = ctrl.transact(stat_req)

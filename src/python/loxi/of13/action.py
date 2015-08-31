@@ -643,7 +643,7 @@ class group(action):
         q.text('}')
 
 action.subtypes[22] = group
-
+"""
 class nicira(experimenter):
     subtypes = {}
 
@@ -753,7 +753,7 @@ class nicira_dec_ttl(nicira):
         q.text('}')
 
 nicira.subtypes[18] = nicira_dec_ttl
-
+"""
 class output(action):
     type = 0
 

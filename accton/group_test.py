@@ -27,9 +27,10 @@ def getkey(type):
         return byGroupId
     elif type == "group_type":
         return byGroupType
-
+    else:
+         assert(0)
     return byGroupId        
-
+               
 class L2InterfaceGroupOne(base_tests.SimpleDataPlane):
     def runTest(self):    
         delete_all_flows(self.controller)
@@ -436,6 +437,266 @@ class L3McastGroup(base_tests.SimpleDataPlane):
                                   
         self.maxDiff=None
         self.assertEquals(stats, verify_group_stats)     
-
-
         
+        
+class mpls_intf_group(base_tests.SimpleDataPlane):
+    """
+	create mpls intf group 
+	1. ref l2_intf_group
+	2. ref l2_flood_group
+	"""
+    def runTest(self):
+        delete_all_flows(self.controller)    
+        delete_all_groups(self.controller)    
+
+        test_vid=1
+        
+        #ref l2_intf_group
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_grouop(self.controller, config["port_map"].keys()[0], test_vid,  False, False)
+        mpls_intf_gid, mpls_intf_msg=add_mpls_intf_group(self.controller, l2_intf_gid, [0x00,0x11,0x11,0x11,0x11,0x11], [0x00,0x22,0x22,0x22,0x22,0x22], vid=test_vid, index=1)
+            
+        stats = get_stats(self, ofp.message.group_desc_stats_request())
+        
+        verify_group_stats=[]
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=l2_intf_msg.group_type,
+                                  group_id=l2_intf_msg.group_id,
+                                  buckets=l2_intf_msg.buckets)
+                                  )
+        
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=mpls_intf_msg.group_type,
+                                  group_id=mpls_intf_msg.group_id,
+                                  buckets=mpls_intf_msg.buckets)
+                                  )
+        verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
+        stats=sorted(stats, key=getkey("group_id"))  
+        self.assertEquals(stats, verify_group_stats)       
+              
+
+class mpls_l2_vpn_group(base_tests.SimpleDataPlane):
+    """
+	create mpls intf group 
+	1. ref l2_intf_group
+	
+	"""
+    def runTest(self):
+        delete_all_flows(self.controller)    
+        delete_all_groups(self.controller)    
+
+        test_vid=1
+        test_port=config["port_map"].keys()[0]        
+        #ref l2_intf_group
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_grouop(self.controller, test_port, test_vid,  False, False)
+        mpls_intf_gid, mpls_intf_msg=add_mpls_intf_group(self.controller, l2_intf_gid, [0x00,0x11,0x11,0x11,0x11,0x11], [0x00,0x22,0x22,0x22,0x22,0x22], vid=test_vid, index=1)        
+        mpls_label_gid, mpls_label_msg=add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_L2_VPN_LABEL, 
+		                                                  index=1, 
+														  ref_gid=mpls_intf_gid, 
+                                                          push_l2_header=True,
+                                                          push_vlan=True,
+                                                          push_mpls_header=True,
+                                                          push_cw=False,
+                                                          set_mpls_label=10,
+                                                          set_bos=0,
+                                                          set_tc=7,
+                                                          set_tc_from_table=False,
+														  cpy_tc_outward=False,														  
+                                                          set_ttl=250,
+                                                          cpy_ttl_outward=False,
+                                                          oam_lm_tx_count=False,
+                                                          set_pri_from_table=False
+                                                          )
+                   
+        verify_group_stats=[]
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=l2_intf_msg.group_type,
+                                  group_id=l2_intf_msg.group_id,
+                                  buckets=l2_intf_msg.buckets)
+                                  )
+        
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=mpls_intf_msg.group_type,
+                                  group_id=mpls_intf_msg.group_id,
+                                  buckets=mpls_intf_msg.buckets)
+                                  )
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=mpls_label_msg.group_type,
+                                  group_id=mpls_label_msg.group_id,
+                                  buckets=mpls_label_msg.buckets)
+                                  )                                  
+        verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
+        stats= get_stats(self, ofp.message.group_desc_stats_request())        
+        stats=sorted(stats, key=getkey("group_id"))  
+        #DumpGroup(stats, verify_group_stats)
+        #AssertGroup(self, stats, verify_group_stats)
+        self.assertEquals(stats, verify_group_stats)       
+		
+
+class mpls_tunnel_lable1_group(base_tests.SimpleDataPlane):
+    """
+	create mpls intf group 
+	1. ref l2_intf_group
+	
+	"""
+    def runTest(self):
+        delete_all_flows(self.controller)    
+        delete_all_groups(self.controller)    
+
+        test_vid=1
+        test_port=config["port_map"].keys()[0]        
+        #ref l2_intf_group
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_grouop(self.controller, test_port, test_vid,  False, False)
+        mpls_intf_gid, mpls_intf_msg=add_mpls_intf_group(self.controller, l2_intf_gid, [0x00,0x11,0x11,0x11,0x11,0x11], [0x00,0x22,0x22,0x22,0x22,0x22], vid=test_vid, index=1)                
+        mpls_label_gid, mpls_label_msg=add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_TUNNEL_LABEL1, 
+		                                                  index=1, 
+														  ref_gid=mpls_intf_gid, 
+                                                          push_l2_header=True,
+                                                          push_vlan=True,
+                                                          push_mpls_header=True,
+                                                          push_cw=True,
+                                                          set_mpls_label=10,
+                                                          set_bos=0,
+                                                          set_tc=7,
+                                                          set_tc_from_table=False,
+														  cpy_tc_outward=False,														  
+                                                          set_ttl=250,
+                                                          cpy_ttl_outward=False,
+                                                          oam_lm_tx_count=False,
+                                                          set_pri_from_table=False
+                                                          )
+            
+        stats = get_stats(self, ofp.message.group_desc_stats_request())
+        
+        verify_group_stats=[]
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=l2_intf_msg.group_type,
+                                  group_id=l2_intf_msg.group_id,
+                                  buckets=l2_intf_msg.buckets)
+                                  )
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=mpls_intf_msg.group_type,
+                                  group_id=mpls_intf_msg.group_id,
+                                  buckets=mpls_intf_msg.buckets)
+                                  )        
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=mpls_label_msg.group_type,
+                                  group_id=mpls_label_msg.group_id,
+                                  buckets=mpls_label_msg.buckets)
+                                  )
+        verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
+        stats=sorted(stats, key=getkey("group_id"))  
+        self.assertEquals(stats, verify_group_stats)       
+		
+
+class mpls_tunnel_lable2_group(base_tests.SimpleDataPlane):
+    """
+	create mpls intf group 
+	1. ref l2_intf_group
+	
+	"""
+    def runTest(self):
+        delete_all_flows(self.controller)    
+        delete_all_groups(self.controller)    
+
+        test_vid=1
+        test_port=config["port_map"].keys()[0]        
+        #ref l2_intf_group
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_grouop(self.controller, test_port, test_vid,  False, False)
+        mpls_intf_gid, mpls_intf_msg=add_mpls_intf_group(self.controller, l2_intf_gid, [0x00,0x11,0x11,0x11,0x11,0x11], [0x00,0x22,0x22,0x22,0x22,0x22], vid=test_vid, index=1)                        
+        mpls_label_gid, mpls_label_msg=add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_TUNNEL_LABEL2, 
+		                                                  index=1, 
+														  ref_gid=mpls_intf_gid, 
+                                                          push_l2_header=True,
+                                                          push_vlan=True,
+                                                          push_mpls_header=True,
+                                                          push_cw=True,
+                                                          set_mpls_label=10,
+                                                          set_bos=0,
+                                                          set_tc=7,
+                                                          set_tc_from_table=False,
+														  cpy_tc_outward=False,														  
+                                                          set_ttl=250,
+                                                          cpy_ttl_outward=False,
+                                                          oam_lm_tx_count=False,
+                                                          set_pri_from_table=False
+                                                          )
+            
+        stats = get_stats(self, ofp.message.group_desc_stats_request())
+        
+        verify_group_stats=[]
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=l2_intf_msg.group_type,
+                                  group_id=l2_intf_msg.group_id,
+                                  buckets=l2_intf_msg.buckets)
+                                  )
+        
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=mpls_intf_msg.group_type,
+                                  group_id=mpls_intf_msg.group_id,
+                                  buckets=mpls_intf_msg.buckets)
+                                  )
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=mpls_label_msg.group_type,
+                                  group_id=mpls_label_msg.group_id,
+                                  buckets=mpls_label_msg.buckets)
+                                  )                                  
+        verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
+        stats=sorted(stats, key=getkey("group_id"))  
+        self.assertEquals(stats, verify_group_stats)       
+		
+class mpls_swap_label_group(base_tests.SimpleDataPlane):
+    """
+	create mpls intf group 
+	1. ref l2_intf_group
+	
+	"""
+    def runTest(self):
+        delete_all_flows(self.controller)    
+        delete_all_groups(self.controller)    
+
+        test_vid=1
+        test_port=config["port_map"].keys()[0]
+        #ref l2_intf_group
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_grouop(self.controller, test_port, test_vid,  False, False)
+        mpls_intf_gid, mpls_intf_msg=add_mpls_intf_group(self.controller, l2_intf_gid, [0x00,0x11,0x11,0x11,0x11,0x11], [0x00,0x22,0x22,0x22,0x22,0x22], vid=test_vid, index=1)                                
+        mpls_label_gid, mpls_label_msg=add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_SWAP_LABEL, 
+		                                                  index=1, 
+														  ref_gid=mpls_intf_gid, 
+                                                          push_l2_header=True,
+                                                          push_vlan=True,
+                                                          push_mpls_header=True,
+                                                          push_cw=True,
+                                                          set_mpls_label=10,
+                                                          set_bos=0,
+                                                          set_tc=7,
+                                                          set_tc_from_table=False,
+														  cpy_tc_outward=False,														  
+                                                          set_ttl=250,
+                                                          cpy_ttl_outward=False,
+                                                          oam_lm_tx_count=False,
+                                                          set_pri_from_table=False
+                                                          )
+            
+        stats = get_stats(self, ofp.message.group_desc_stats_request())
+        
+        verify_group_stats=[]
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=l2_intf_msg.group_type,
+                                  group_id=l2_intf_msg.group_id,
+                                  buckets=l2_intf_msg.buckets)
+                                  )
+        
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=mpls_intf_msg.group_type,
+                                  group_id=mpls_intf_msg.group_id,
+                                  buckets=mpls_intf_msg.buckets)
+                                  )
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=mpls_label_msg.group_type,
+                                  group_id=mpls_label_msg.group_id,
+                                  buckets=mpls_label_msg.buckets)
+                                  )                                    
+        verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
+        stats=sorted(stats, key=getkey("group_id"))  
+        self.assertEquals(stats, verify_group_stats)       
+		

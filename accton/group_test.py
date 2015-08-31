@@ -648,7 +648,6 @@ class mpls_swap_label_group(base_tests.SimpleDataPlane):
     """
 	create mpls intf group 
 	1. ref l2_intf_group
-	
 	"""
     def runTest(self):
         delete_all_flows(self.controller)    
@@ -699,4 +698,170 @@ class mpls_swap_label_group(base_tests.SimpleDataPlane):
         verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
         stats=sorted(stats, key=getkey("group_id"))  
         self.assertEquals(stats, verify_group_stats)       
-		
+
+
+class mpls_forwarding_group_fastfailover(base_tests.SimpleDataPlane):
+    def runTest(self):
+        delete_all_flows(self.controller)    
+        delete_all_groups(self.controller) 
+
+        test_vid=1
+        test_port=config["port_map"].keys()[0]
+        #ref l2_intf_group
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_grouop(self.controller, test_port, test_vid,  False, False)
+        mpls_intf_gid, mpls_intf_msg=add_mpls_intf_group(self.controller, l2_intf_gid, [0x00,0x11,0x11,0x11,0x11,0x11], [0x00,0x22,0x22,0x22,0x22,0x22], vid=test_vid, index=1)                                
+        mpls_label_gid, mpls_label_msg=add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_SWAP_LABEL, 
+		                                                  index=1, 
+														  ref_gid=mpls_intf_gid, 
+                                                          push_l2_header=True,
+                                                          push_vlan=True,
+                                                          push_mpls_header=True,
+                                                          push_cw=True,
+                                                          set_mpls_label=10,
+                                                          set_bos=0,
+                                                          set_tc=7,
+                                                          set_tc_from_table=False,
+														  cpy_tc_outward=False,														  
+                                                          set_ttl=250,
+                                                          cpy_ttl_outward=False,
+                                                          oam_lm_tx_count=False,
+                                                          set_pri_from_table=False
+                                                          )        
+        mpls_fwd_gid, mpls_fwd_msg=add_mpls_forwarding_group(self.controller, 
+                                                             subtype=OFDPA_MPLS_GROUP_SUBTYPE_FAST_FAILOVER_GROUP, 
+                                                             index=1, 
+                                                             ref_gids=[mpls_label_gid], 
+                                                             watch_port=test_port, 
+                                                             watch_group=ofp.OFPP_ANY, 
+                                                             push_vlan=None,
+                                                             pop_van=None,
+                                                             set_vid=None)
+            
+        stats = get_stats(self, ofp.message.group_desc_stats_request())
+        
+        verify_group_stats=[]
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=l2_intf_msg.group_type,
+                                  group_id=l2_intf_msg.group_id,
+                                  buckets=l2_intf_msg.buckets)
+                                  )
+        
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=mpls_intf_msg.group_type,
+                                  group_id=mpls_intf_msg.group_id,
+                                  buckets=mpls_intf_msg.buckets)
+                                  )
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=mpls_label_msg.group_type,
+                                  group_id=mpls_label_msg.group_id,
+                                  buckets=mpls_label_msg.buckets)
+                                  )
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=mpls_fwd_msg.group_type,
+                                  group_id=mpls_fwd_msg.group_id,
+                                  buckets=mpls_fwd_msg.buckets)
+                                  )                                    
+        verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
+        stats=sorted(stats, key=getkey("group_id"))  
+        self.assertEquals(stats, verify_group_stats)       
+
+
+class mpls_forwarding_group_ecmp(base_tests.SimpleDataPlane):
+    """chip not support to bind flow on trident2 
+    """
+    def runTest(self):
+        delete_all_flows(self.controller)    
+        delete_all_groups(self.controller) 
+
+        test_vid=1
+        mpls_intf_msgs=[]
+        mpls_intf_gids=[]
+        l2_intf_msgs=[]
+        index=1
+        #ref l2_intf_group
+        for port in config["port_map"].keys():
+            l2_intf_gid, l2_intf_msg = add_one_l2_interface_grouop(self.controller, port, test_vid,  False, False)
+            l2_intf_msgs.append(l2_intf_msg)            
+            mpls_intf_gid, mpls_intf_msg=add_mpls_intf_group(self.controller, l2_intf_gid, [0x00,0x11,0x11,0x11,0x11,0x11], [0x00,0x22,0x22,0x22,0x22,0x22], vid=test_vid, index=index)
+            index=index+1
+            mpls_intf_msgs.append(mpls_intf_msg)
+            mpls_intf_gids.append(mpls_intf_gid)
+            
+        mpls_fwd_gid, mpls_fwd_msg=add_mpls_forwarding_group(self.controller, 
+                                                             subtype=OFDPA_MPLS_GROUP_SUBTYPE_ECMP, 
+                                                             index=1, 
+                                                             ref_gids=mpls_intf_gids, 
+                                                             watch_port=None, 
+                                                             watch_group=None,
+                                                             push_vlan=None,
+                                                             pop_van=None,
+                                                             set_vid=None)
+            
+        stats = get_stats(self, ofp.message.group_desc_stats_request())
+        
+        verify_group_stats=[]
+        for msg in l2_intf_msgs:
+            verify_group_stats.append(ofp.group_desc_stats_entry(
+                                      group_type=msg.group_type,
+                                      group_id=msg.group_id,
+                                      buckets=msg.buckets)
+                                      )
+        
+        for msg in mpls_intf_msgs:
+            verify_group_stats.append(ofp.group_desc_stats_entry(
+                                      group_type=msg.group_type,
+                                      group_id=msg.group_id,
+                                      buckets=msg.buckets)
+                                      )
+
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=mpls_fwd_msg.group_type,
+                                  group_id=mpls_fwd_msg.group_id,
+                                  buckets=mpls_fwd_msg.buckets)
+                                  )                                    
+        verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
+        stats=sorted(stats, key=getkey("group_id"))  
+        self.assertEquals(stats, verify_group_stats)       
+
+
+class mpls_forwarding_group_l2tag(base_tests.SimpleDataPlane):
+    """chip not support
+    """
+    def runTest(self):
+        delete_all_flows(self.controller)    
+        delete_all_groups(self.controller) 
+
+        test_vid=1
+        test_port=config["port_map"].keys()[0]
+        index=1
+        #ref l2_intf_group        
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_grouop(self.controller, test_port, test_vid,  False, False)
+
+        mpls_fwd_gid, mpls_fwd_msg=add_mpls_forwarding_group(self.controller, 
+                                                             subtype=OFDPA_MPLS_GROUP_SUBTYPE_L2_TAG, 
+                                                             index=1, 
+                                                             ref_gids=l2_intf_gid, 
+                                                             watch_port=None, 
+                                                             watch_group=None,
+                                                             push_vlan=None,
+                                                             pop_vlan=None,
+                                                             set_vid=1)
+            
+        stats = get_stats(self, ofp.message.group_desc_stats_request())
+        
+        verify_group_stats=[]
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=l2_intf_msg.group_type,
+                                  group_id=l2_intf_msg.group_id,
+                                  buckets=l2_intf_msg.buckets)
+                                  )
+        
+        verify_group_stats.append(ofp.group_desc_stats_entry(
+                                  group_type=mpls_fwd_msg.group_type,
+                                  group_id=mpls_fwd_msg.group_id,
+                                  buckets=mpls_fwd_msg.buckets)
+                                  )                                    
+        verify_group_stats=sorted(verify_group_stats, key=getkey("group_id")) 
+        stats=sorted(stats, key=getkey("group_id"))  
+
+        self.assertEquals(stats, verify_group_stats)  

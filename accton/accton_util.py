@@ -1066,48 +1066,50 @@ def add_mpls_label_group(ctrl, subtype, index, ref_gid,
     
 def add_mpls_forwarding_group(ctrl, subtype, index, ref_gids, 
                               watch_port=None, 
-							  watch_group=None, 
+							  watch_group=ofp.OFPP_ANY, 
 							  push_vlan=None,
-                              pop_van=None,
+                              pop_vlan=None,
                               set_vid=None):
     assert(subtype == OFDPA_MPLS_GROUP_SUBTYPE_FAST_FAILOVER_GROUP
 	       or subtype == OFDPA_MPLS_GROUP_SUBTYPE_ECMP
 		   or subtype == OFDPA_MPLS_GROUP_SUBTYPE_L2_TAG)
-    action=[]
+
     buckets=[]
     if subtype == OFDPA_MPLS_GROUP_SUBTYPE_FAST_FAILOVER_GROUP:
-        group_type = ofp.OFPGT_FASTFAILOVER
+        group_type = ofp.OFPGT_FF
         for gid in ref_gids:
-            action.append(ofp.action.group(gid))    
-            buckets.append(ofp.bucket(actions=action))
-		
+            action=[]
+            action.append(ofp.action.group(gid)) 
+            buckets.append(ofp.bucket(watch_port=watch_port, watch_group=watch_group,actions=action))
+
     elif subtype == OFDPA_MPLS_GROUP_SUBTYPE_ECMP:
         group_type = ofp.OFPGT_SELECT
         for gid in ref_gids:
+            action=[]
             action.append(ofp.action.group(gid))    
             buckets.append(ofp.bucket(actions=action))
-		    
+
     elif subtype == OFDPA_MPLS_GROUP_SUBTYPE_L2_TAG:
         group_type = ofp.OFPGT_INDIRECT
+        action=[]
         if set_vid!=None:
             action.append(ofp.action.set_field(ofp.oxm.vlan_vid(set_vid)))
         if push_vlan!=None:
             action.append(ofp.action.push_vlan(push_vlan))		
         if pop_vlan!=None:
-            action.append(ofp.action.pop_vlan(pop_vlan))		
+            action.append(ofp.action.pop_vlan())		
             action.append(ofp.action.group(ref_gids[0]))    
             buckets.append(ofp.bucket(actions=action))
-		    
-    mpls_group_id = encode_mpls_label_group_id(subtype, index)
+
+    mpls_group_id = encode_mpls_forwarding_group_id(subtype, index)
     request = ofp.message.group_add(group_type=group_type,
-	                                watch_port=watch_port,
-									watch_group=watch_group,
                                     group_id=mpls_group_id,
                                     buckets=buckets
                                    )
     ctrl.message_send(request)
     return mpls_group_id, request    
-    
+
+
 """
 dislay
 """   

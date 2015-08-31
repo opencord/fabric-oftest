@@ -125,7 +125,7 @@ class experimenter(action):
         q.text('}')
 
 action.subtypes[65535] = experimenter
-
+"""
 class bsn(experimenter):
     subtypes = {}
 
@@ -435,6 +435,7 @@ class bsn_set_tunnel_dst(bsn):
         q.text('}')
 
 bsn.subtypes[2] = bsn_set_tunnel_dst
+"""
 
 class copy_ttl_in(action):
     type = 12
@@ -1282,4 +1283,823 @@ class set_queue(action):
 
 action.subtypes[21] = set_queue
 
+OFDPA_EXPERIMETER =0x00001018
 
+class ofdpa(experimenter):
+    subtypes = {}
+
+    type = 65535
+    experimenter = OFDPA_EXPERIMETER
+
+    def __init__(self, subtype=None):
+        if subtype != None:
+            self.subtype = subtype
+        else:
+            self.subtype = 0
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!H", self.type))
+        packed.append(struct.pack("!H", 0)) # placeholder for len at index 1
+        packed.append(struct.pack("!L", self.experimenter))
+        packed.append(struct.pack("!H", self.subtype))
+        packed.append('\x00' * 6)
+        length = sum([len(x) for x in packed])
+        packed[1] = struct.pack("!H", length)
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        #8 is offset, ref OFReader
+        subtype, = reader.peek('!H', 8)
+        subclass = ofdpa.subtypes.get(subtype)
+        if subclass:
+            return subclass.unpack(reader)
+
+        obj = ofdpa()
+        _type = reader.read("!H")[0]
+        assert(_type == 65535)
+        _len = reader.read("!H")[0]
+        orig_reader = reader
+        reader = orig_reader.slice(_len, 4)
+        _experimenter = reader.read("!L")[0]
+        assert(_experimenter == OFDPA_EXPERIMETER)
+        obj.subtype = reader.read("!H")[0]
+        reader.skip(6)
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        if self.subtype != other.subtype: return False
+        return True
+
+    def pretty_print(self, q):
+        q.text("ofdpa {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+            q.breakable()
+        q.text('}')
+
+experimenter.subtypes[OFDPA_EXPERIMETER] = ofdpa
+
+OFDPA_ACT_PUSH_L2_HEADER=1
+OFDPA_ACT_POP_L2_HEADER=2 
+OFDPA_ACT_PUSH_CW=3 
+OFDPA_ACT_POP_CW=4
+OFDPA_ACT_COPY_TC_IN=5
+OFDPA_ACT_COPY_TC_OUT=6
+OFDPA_ACT_SET_TC_FROM_TABLE=7
+OFDPA_ACT_SET_PCP_DFI_FROM_TABLE=9
+OFDPA_ACT_OAM_LM_RX_COUNT=10
+OFDPA_ACT_OAM_LM_TX_COUNT=11
+OFDPA_ACT_OAM_SET_COUNTER_FIELDS=12
+OFDPA_ACT_DEC_TTL_MTU=13
+OFDPA_ACT_CHECK_DROP_STATUS=14
+OFDPA_ACT_SET_QOS_FROM_TABLE=15
+
+
+class ofdpa_push_l2_header(ofdpa):
+    type = 65535
+    experimenter = OFDPA_EXPERIMETER
+    subtype = OFDPA_ACT_PUSH_L2_HEADER
+
+    def __init__(self):
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!H", self.type))
+        packed.append(struct.pack("!H", 0)) # placeholder for len at index 1
+        packed.append(struct.pack("!L", self.experimenter))
+        packed.append(struct.pack("!H", self.subtype))
+        packed.append('\x00' * 6)
+        length = sum([len(x) for x in packed])
+        packed[1] = struct.pack("!H", length)
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = ofdpa_push_l2_header()
+        _type = reader.read("!H")[0]
+        assert(_type == 65535)
+        _len = reader.read("!H")[0]
+        orig_reader = reader
+        reader = orig_reader.slice(_len, 4)
+        _experimenter = reader.read("!L")[0]
+        assert(_experimenter == OFDPA_EXPERIMETER)
+        _subtype = reader.read("!H")[0]
+        assert(_subtype == OFDPA_ACT_PUSH_L2_HEADER)   
+        reader.skip(6)
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        return True
+
+    def pretty_print(self, q):
+        q.text("ofdpa_push_l2_header {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("ofdpa_push_l2_header");
+            q.breakable()
+        q.text('}')
+
+ofdpa.subtypes[OFDPA_ACT_PUSH_L2_HEADER] = ofdpa_push_l2_header
+
+class ofdpa_pop_l2_header(ofdpa):
+    type = 65535
+    experimenter = OFDPA_EXPERIMETER
+    subtype = OFDPA_ACT_POP_L2_HEADER
+
+    def __init__(self):
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!H", self.type))
+        packed.append(struct.pack("!H", 0)) # placeholder for len at index 1
+        packed.append(struct.pack("!L", self.experimenter))
+        packed.append(struct.pack("!H", self.subtype))
+        packed.append('\x00' * 6)        
+        length = sum([len(x) for x in packed])
+        packed[1] = struct.pack("!H", length)
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = ofdpa_pop_l2_header()
+        _type = reader.read("!H")[0]
+        assert(_type == 65535)
+        _len = reader.read("!H")[0]
+        orig_reader = reader
+        reader = orig_reader.slice(_len, 4)
+        _experimenter = reader.read("!L")[0]
+        assert(_experimenter == OFDPA_EXPERIMETER)
+        _subtype = reader.read("!H")[0]
+        assert(_subtype == OFDPA_ACT_POP_L2_HEADER)          
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        return True
+
+    def pretty_print(self, q):
+        q.text("ofdpa_pop_l2_header {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("ofdpa_pop_l2_header");
+            q.breakable()
+        q.text('}')
+
+ofdpa.subtypes[OFDPA_ACT_POP_L2_HEADER] = ofdpa_pop_l2_header
+
+class ofdpa_push_cw(ofdpa):
+    type = 65535
+    experimenter = OFDPA_EXPERIMETER
+    subtype = OFDPA_ACT_PUSH_CW
+
+    def __init__(self):
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!H", self.type))
+        packed.append(struct.pack("!H", 0)) # placeholder for len at index 1
+        packed.append(struct.pack("!L", self.experimenter))
+        packed.append(struct.pack("!H", self.subtype))
+        packed.append('\x00' * 6)        
+        length = sum([len(x) for x in packed])
+        packed[1] = struct.pack("!H", length)
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = ofdpa_push_cw()
+        _type = reader.read("!H")[0]
+        assert(_type == 65535)
+        _len = reader.read("!H")[0]
+        orig_reader = reader
+        reader = orig_reader.slice(_len, 4)
+        _experimenter = reader.read("!L")[0]
+        assert(_experimenter == OFDPA_EXPERIMETER)
+        _subtype = reader.read("!H")[0]
+        assert(_subtype == OFDPA_ACT_PUSH_CW)          
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        return True
+
+    def pretty_print(self, q):
+        q.text("ofdpa_push_cw {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("ofdpa_push_cw");
+            q.breakable()
+        q.text('}')
+
+ofdpa.subtypes[OFDPA_ACT_PUSH_CW] = ofdpa_push_cw
+
+class ofdpa_pop_cw(ofdpa):
+    type = 65535
+    experimenter = OFDPA_EXPERIMETER
+    subtype = OFDPA_ACT_POP_CW
+
+    def __init__(self):
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!H", self.type))
+        packed.append(struct.pack("!H", 0)) # placeholder for len at index 1
+        packed.append(struct.pack("!L", self.experimenter))
+        packed.append(struct.pack("!H", self.subtype))
+        packed.append('\x00' * 6)        
+        length = sum([len(x) for x in packed])
+        packed[1] = struct.pack("!H", length)
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = ofdpa_pop_cw()
+        _type = reader.read("!H")[0]
+        assert(_type == 65535)
+        _len = reader.read("!H")[0]
+        orig_reader = reader
+        reader = orig_reader.slice(_len, 4)
+        _experimenter = reader.read("!L")[0]
+        assert(_experimenter == OFDPA_EXPERIMETER)
+        _subtype = reader.read("!H")[0]
+        assert(_subtype == OFDPA_ACT_POP_CW)          
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        return True
+
+    def pretty_print(self, q):
+        q.text("ofdpa_pop_cw {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("ofdpa_pop_cw");
+            q.breakable()
+        q.text('}')
+
+ofdpa.subtypes[OFDPA_ACT_POP_CW] = ofdpa_pop_cw
+
+class ofdpa_copy_tc_in(ofdpa):
+    type = 65535
+    experimenter = OFDPA_EXPERIMETER
+    subtype = OFDPA_ACT_COPY_TC_IN
+
+    def __init__(self):
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!H", self.type))
+        packed.append(struct.pack("!H", 0)) # placeholder for len at index 1
+        packed.append(struct.pack("!L", self.experimenter))
+        packed.append(struct.pack("!H", self.subtype))
+        packed.append('\x00' * 6)        
+        length = sum([len(x) for x in packed])
+        packed[1] = struct.pack("!H", length)
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = ofdpa_copy_tc_in()
+        _type = reader.read("!H")[0]
+        assert(_type == 65535)
+        _len = reader.read("!H")[0]
+        orig_reader = reader
+        reader = orig_reader.slice(_len, 4)
+        _experimenter = reader.read("!L")[0]
+        assert(_experimenter == OFDPA_EXPERIMETER)
+        _subtype = reader.read("!H")[0]
+        assert(_subtype == OFDPA_ACT_COPY_TC_IN)  
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        return True
+
+    def pretty_print(self, q):
+        q.text("ofdpa_copy_tc_in {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("ofdpa_copy_tc_in");
+            q.breakable()
+        q.text('}')
+
+ofdpa.subtypes[OFDPA_ACT_COPY_TC_IN] = ofdpa_copy_tc_in
+
+class ofdpa_copy_tc_out(ofdpa):
+    type = 65535
+    experimenter = OFDPA_EXPERIMETER
+    subtype = OFDPA_ACT_COPY_TC_OUT
+
+    def __init__(self):
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!H", self.type))
+        packed.append(struct.pack("!H", 0)) # placeholder for len at index 1
+        packed.append(struct.pack("!L", self.experimenter))
+        packed.append(struct.pack("!H", self.subtype))
+        packed.append('\x00' * 6)        
+        length = sum([len(x) for x in packed])
+        packed[1] = struct.pack("!H", length)
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = ofdpa_copy_tc_out()
+        _type = reader.read("!H")[0]
+        assert(_type == 65535)
+        _len = reader.read("!H")[0]
+        orig_reader = reader
+        reader = orig_reader.slice(_len, 4)
+        _experimenter = reader.read("!L")[0]
+        assert(_experimenter == OFDPA_EXPERIMETER)
+        _subtype = reader.read("!H")[0]
+        assert(_subtype == OFDPA_ACT_COPY_TC_OUT)        
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        return True
+
+    def pretty_print(self, q):
+        q.text("ofdpa_copy_tc_out {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("ofdpa_copy_tc_out");
+            q.breakable()
+        q.text('}')
+
+ofdpa.subtypes[OFDPA_ACT_COPY_TC_OUT] = ofdpa_copy_tc_out
+
+class ofdpa_dec_ttl_mtu(ofdpa):
+    type = 65535
+    experimenter = OFDPA_EXPERIMETER
+    subtype = OFDPA_ACT_DEC_TTL_MTU
+
+    def __init__(self):
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!H", self.type))
+        packed.append(struct.pack("!H", 0)) # placeholder for len at index 1
+        packed.append(struct.pack("!L", self.experimenter))
+        packed.append(struct.pack("!H", self.subtype))
+        packed.append('\x00' * 6)        
+        length = sum([len(x) for x in packed])
+        packed[1] = struct.pack("!H", length)
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = ofdpa_dec_ttl_mtu()
+        _type = reader.read("!H")[0]
+        assert(_type == 65535)
+        _len = reader.read("!H")[0]
+        orig_reader = reader
+        reader = orig_reader.slice(_len, 4)
+        _experimenter = reader.read("!L")[0]
+        assert(_experimenter == OFDPA_EXPERIMETER)
+        _subtype = reader.read("!H")[0]
+        assert(_subtype == OFDPA_ACT_DEC_TTL_MTU)        
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        return True
+
+    def pretty_print(self, q):
+        q.text("ofdpa_dec_ttl_mtu {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("ofdpa_dec_ttl_mtu");
+            q.breakable()
+        q.text('}')
+
+ofdpa.subtypes[OFDPA_ACT_DEC_TTL_MTU] = ofdpa_dec_ttl_mtu
+
+class ofdpa_set_tc_from_table(ofdpa):
+    type = 65535
+    experimenter = OFDPA_EXPERIMETER
+    subtype = OFDPA_ACT_SET_TC_FROM_TABLE
+
+    def __init__(self, qos_index=None):
+        if qos_index != None:
+            self.qos_index = qos_index
+        else:
+            self.qos_index = 0
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!H", self.type))
+        packed.append(struct.pack("!H", 0)) # placeholder for len at index 1
+        packed.append(struct.pack("!L", self.experimenter))
+        packed.append(struct.pack("!H", self.subtype))
+        packed.append(struct.pack("!B", self.qos_index))
+        packed.append('\x00' * 5)        
+        length = sum([len(x) for x in packed])
+        packed[1] = struct.pack("!H", length)
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = ofdpa_set_tc_from_table()
+        _type = reader.read("!H")[0]
+        assert(_type == 65535)
+        _len = reader.read("!H")[0]
+        orig_reader = reader
+        reader = orig_reader.slice(_len, 4)
+        _experimenter = reader.read("!L")[0]
+        assert(_experimenter == OFDPA_EXPERIMETER)
+        _subtype = reader.read("!H")[0]
+        assert(_subtype == OFDPA_ACT_SET_TC_FROM_TABLE)
+        obj.qos_index = reader.read("!B")[0]
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        if self.qos_index != other.qos_index: return False
+        return True
+
+    def pretty_print(self, q):
+        q.text("ofdpa_set_tc_from_table {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("ofdpa_set_tc_from_table");
+                q.pp(self.qos_index)
+            q.breakable()
+        q.text('}')
+
+ofdpa.subtypes[OFDPA_ACT_SET_TC_FROM_TABLE] = ofdpa_set_tc_from_table
+
+
+class ofdpa_set_pcp_dfi_from_table(ofdpa):
+    type = 65535
+    experimenter = OFDPA_EXPERIMETER
+    subtype = OFDPA_ACT_SET_PCP_DFI_FROM_TABLE
+
+    def __init__(self, qos_index=None):
+        if qos_index != None:
+            self.qos_index = qos_index
+        else:
+            self.qos_index = 0
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!H", self.type))
+        packed.append(struct.pack("!H", 0)) # placeholder for len at index 1
+        packed.append(struct.pack("!L", self.experimenter))
+        packed.append(struct.pack("!H", self.subtype))
+        packed.append(struct.pack("!B", self.qos_index))
+        packed.append('\x00' * 5)         
+        length = sum([len(x) for x in packed])
+        packed[1] = struct.pack("!H", length)
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = ofdpa_set_pcp_dfi_from_table()
+        _type = reader.read("!H")[0]
+        assert(_type == 65535)
+        _len = reader.read("!H")[0]
+        orig_reader = reader
+        reader = orig_reader.slice(_len, 4)
+        _experimenter = reader.read("!L")[0]
+        assert(_experimenter == OFDPA_EXPERIMETER)
+        _subtype = reader.read("!H")[0]
+        assert(_subtype == OFDPA_ACT_SET_PCP_DFI_FROM_TABLE)
+        obj.qos_index = reader.read("!B")[0]
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        if self.qos_index != other.qos_index: return False
+        return True
+
+    def pretty_print(self, q):
+        q.text("ofdpa_set_pcp_dfi_from_table {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("ofdpa_set_pcp_dfi_from_table");
+                q.pp(self.qos_index)
+            q.breakable()
+        q.text('}')
+
+ofdpa.subtypes[OFDPA_ACT_SET_PCP_DFI_FROM_TABLE] = ofdpa_set_pcp_dfi_from_table
+
+
+class ofdpa_check_drop_status(ofdpa):
+    type = 65535
+    experimenter = OFDPA_EXPERIMETER
+    subtype = OFDPA_ACT_CHECK_DROP_STATUS
+
+    def __init__(self, index, status_type):
+        self.index = index
+        self.status_type  = status_type
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!H", self.type))
+        packed.append(struct.pack("!H", 0)) # placeholder for len at index 1
+        packed.append(struct.pack("!L", self.experimenter))
+        packed.append(struct.pack("!H", self.subtype))
+        packed.append(struct.pack("!L", self.index))
+        packed.append(struct.pack("!B", self.status_type))  
+        packed.append('\x00' * 1)    
+        length = sum([len(x) for x in packed])
+        packed[1] = struct.pack("!H", length)
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = ofdpa_check_drop_status()
+        _type = reader.read("!H")[0]
+        assert(_type == 65535)
+        _len = reader.read("!H")[0]
+        orig_reader = reader
+        reader = orig_reader.slice(_len, 4)
+        _experimenter = reader.read("!L")[0]
+        assert(_experimenter == OFDPA_EXPERIMETER)
+        _subtype = reader.read("!H")[0]
+        assert(_subtype == OFDPA_ACT_CHECK_DROP_STATUS)
+        obj.status_type  = reader.read("!L")[0]
+        obj.index = reader.read("!B")[0]        
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        if self.index != other.index: return False
+        if self.status_type != other.status_type: return False        
+        return True
+
+    def pretty_print(self, q):
+        q.text("ofdpa_check_drop_status {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("ofdpa_check_drop_status = ");
+                q.pp(self.index)
+                q.pp(self.status_type)                
+            q.breakable()
+        q.text('}')
+
+ofdpa.subtypes[OFDPA_ACT_CHECK_DROP_STATUS] = ofdpa_check_drop_status
+
+
+class ofdpa_set_qos_from_table(ofdpa):
+    type = 65535
+    experimenter = OFDPA_EXPERIMETER
+    subtype = OFDPA_ACT_SET_QOS_FROM_TABLE
+
+    def __init__(self, qos_index, mpls_tc):
+        self.qos_index = qos_index
+        self.mpls_tc  = mpls_tc
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!H", self.type))
+        packed.append(struct.pack("!H", 0)) # placeholder for len at index 1
+        packed.append(struct.pack("!L", self.experimenter))
+        packed.append(struct.pack("!H", self.subtype))
+        packed.append(struct.pack("!B", self.qos_index))
+        packed.append(struct.pack("!B", self.mpls_tc))   
+        packed.append('\x00' * 4)           
+        length = sum([len(x) for x in packed])
+        packed[1] = struct.pack("!H", length)
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = ofdpa_check_drop_status()
+        _type = reader.read("!H")[0]
+        assert(_type == 65535)
+        _len = reader.read("!H")[0]
+        orig_reader = reader
+        reader = orig_reader.slice(_len, 4)
+        _experimenter = reader.read("!L")[0]
+        assert(_experimenter == OFDPA_EXPERIMETER)
+        _subtype = reader.read("!H")[0]
+        assert(_subtype == OFDPA_ACT_SET_QOS_FROM_TABLE)
+        obj.qos_index = reader.read("!B")[0]
+        obj.mpls_tc  = reader.read("!B")[0]
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        if self.qos_index != other.qos_index: return False
+        if self.mpls_tc != other.mpls_tc: return False        
+        return True
+
+    def pretty_print(self, q):
+        q.text("ofdpa_set_qos_from_table {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("ofdpa_set_qos_from_table = ");
+                q.pp(self.qos_index)
+                q.pp(self.mpls_tc)                
+            q.breakable()
+        q.text('}')
+
+ofdpa.subtypes[OFDPA_ACT_SET_QOS_FROM_TABLE] = ofdpa_set_qos_from_table
+
+
+class ofdpa_oam_lm_tx_count(ofdpa):
+    type = 65535
+    experimenter = OFDPA_EXPERIMETER
+    subtype = OFDPA_ACT_OAM_LM_TX_COUNT
+
+    def __init__(self, lmep_id, traffic_class):
+        self.lmep_id = lmep_id
+        self.traffic_class  = traffic_class
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!H", self.type))
+        packed.append(struct.pack("!H", 0)) # placeholder for len at index 1
+        packed.append(struct.pack("!L", self.experimenter))
+        packed.append(struct.pack("!H", self.subtype))
+        packed.append(struct.pack("!L", self.lmep_id))
+        packed.append(struct.pack("!B", self.traffic_class))   
+        packed.append('\x00' * 1)   
+        length = sum([len(x) for x in packed])
+        packed[1] = struct.pack("!H", length)
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = ofdpa_check_drop_status()
+        _type = reader.read("!H")[0]
+        assert(_type == 65535)
+        _len = reader.read("!H")[0]
+        orig_reader = reader
+        reader = orig_reader.slice(_len, 4)
+        _experimenter = reader.read("!L")[0]
+        assert(_experimenter == OFDPA_EXPERIMETER)
+        _subtype = reader.read("!H")[0]
+        assert(_subtype == OFDPA_ACT_OAM_LM_TX_COUNT)
+        obj.lmep_id = reader.read("!L")[0]
+        obj.traffic_class  = reader.read("!B")[0]
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        if self.lmep_id != other.lmep_id: return False
+        if self.traffic_class != other.traffic_class: return False        
+        return True
+
+    def pretty_print(self, q):
+        q.text("ofdpa_oam_lm_tx_count {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("ofdpa_oam_lm_tx_count = ");
+                q.pp(self.lmep_id)
+                q.pp(self.traffic_class)                
+            q.breakable()
+        q.text('}')
+
+ofdpa.subtypes[OFDPA_ACT_OAM_LM_TX_COUNT] = ofdpa_oam_lm_tx_count
+
+class ofdpa_oam_lm_rx_count(ofdpa):
+    type = 65535
+    experimenter = OFDPA_EXPERIMETER
+    subtype = OFDPA_ACT_OAM_LM_RX_COUNT
+
+    def __init__(self, lmep_id, traffic_class):
+        self.lmep_id = lmep_id
+        self.traffic_class  = traffic_class
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!H", self.type))
+        packed.append(struct.pack("!H", 0)) # placeholder for len at index 1
+        packed.append(struct.pack("!L", self.experimenter))
+        packed.append(struct.pack("!H", self.subtype))
+        packed.append(struct.pack("!L", self.lmep_id))
+        packed.append(struct.pack("!B", self.traffic_class))  
+        packed.append('\x00' * 1)   
+        length = sum([len(x) for x in packed])
+        packed[1] = struct.pack("!H", length)
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = ofdpa_check_drop_status()
+        _type = reader.read("!H")[0]
+        assert(_type == 65535)
+        _len = reader.read("!H")[0]
+        orig_reader = reader
+        reader = orig_reader.slice(_len, 4)
+        _experimenter = reader.read("!L")[0]
+        assert(_experimenter == OFDPA_EXPERIMETER)
+        _subtype = reader.read("!H")[0]
+        assert(_subtype == OFDPA_ACT_OAM_LM_RX_COUNT)
+        obj.lmep_id = reader.read("!L")[0]
+        obj.traffic_class  = reader.read("!B")[0]
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        if self.lmep_id != other.lmep_id: return False
+        if self.traffic_class != other.traffic_class: return False        
+        return True
+
+    def pretty_print(self, q):
+        q.text("ofdpa_oam_lm_rx_count {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("ofdpa_oam_lm_rx_count = ");
+                q.pp(self.lmep_id)
+                q.pp(self.traffic_class)                
+            q.breakable()
+        q.text('}')
+
+ofdpa.subtypes[OFDPA_ACT_OAM_LM_RX_COUNT] = ofdpa_oam_lm_rx_count
+
+
+class ofdpa_oam_set_counter_field(ofdpa):
+    type = 65535
+    experimenter = OFDPA_EXPERIMETER
+    subtype = OFDPA_ACT_OAM_SET_COUNTER_FIELDS
+
+    def __init__(self, lmep_id, traffic_class):
+        self.lmep_id = lmep_id
+        self.traffic_class  = traffic_class
+        return
+
+    def pack(self):
+        packed = []
+        packed.append(struct.pack("!H", self.type))
+        packed.append(struct.pack("!H", 0)) # placeholder for len at index 1
+        packed.append(struct.pack("!L", self.experimenter))
+        packed.append(struct.pack("!H", self.subtype))
+        packed.append(struct.pack("!L", self.lmep_id))
+        packed.append(struct.pack("!B", self.traffic_class))  
+        packed.append('\x00' * 1)   
+        length = sum([len(x) for x in packed])
+        packed[1] = struct.pack("!H", length)
+        return ''.join(packed)
+
+    @staticmethod
+    def unpack(reader):
+        obj = ofdpa_check_drop_status()
+        _type = reader.read("!H")[0]
+        assert(_type == 65535)
+        _len = reader.read("!H")[0]
+        orig_reader = reader
+        reader = orig_reader.slice(_len, 4)
+        _experimenter = reader.read("!L")[0]
+        assert(_experimenter == OFDPA_EXPERIMETER)
+        _subtype = reader.read("!H")[0]
+        assert(_subtype == OFDPA_ACT_OAM_SET_COUNTER_FIELDS)
+        obj.lmep_id = reader.read("!L")[0]
+        obj.traffic_class  = reader.read("!B")[0]
+        return obj
+
+    def __eq__(self, other):
+        if type(self) != type(other): return False
+        if self.lmep_id != other.lmep_id: return False
+        if self.traffic_class != other.traffic_class: return False        
+        return True
+
+    def pretty_print(self, q):
+        q.text("ofdpa_oam_set_counter_field {")
+        with q.group():
+            with q.indent(2):
+                q.breakable()
+                q.text("ofdpa_oam_set_counter_field = ");
+                q.pp(self.lmep_id)
+                q.pp(self.traffic_class)                
+            q.breakable()
+        q.text('}')
+
+ofdpa.subtypes[OFDPA_ACT_OAM_SET_COUNTER_FIELDS] = ofdpa_oam_set_counter_field

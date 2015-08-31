@@ -29,6 +29,7 @@ TCP = scapy.layers.inet.TCP
 UDP = scapy.layers.inet.UDP
 ICMP = scapy.layers.inet.ICMP
 
+
 from scapy.fields import *
 from scapy.packet import *
 
@@ -48,6 +49,16 @@ class VXLAN(Packet):
 
 bind_layers(UDP, VXLAN, dport=4789)
 bind_layers(VXLAN, Ether)
+
+
+class MPLS(Packet): 
+   name = "MPLS" 
+   fields_desc =  [ BitField("label", 3, 20), 
+                    BitField("cos", 0, 3), 
+                    BitField("s", 1, 1), 
+                    ByteField("ttl", 0)  ] 
+
+bind_layers(Ether, MPLS, type=0x8847)
 
 if not config["disable_ipv6"]:
     IPv6 = scapy.layers.inet6.IPv6

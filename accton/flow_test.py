@@ -800,7 +800,91 @@ class L3UcastECMP(base_tests.SimpleDataPlane):
         pkt=str(exp_pkt) 
         verify_packet(self, pkt, port1)
         verify_no_other_packets(self)    
-            
+
+                
+class L3UcastECMP2(base_tests.SimpleDataPlane):
+    """
+    Port1(vlan1, 0x00, 0x00, 0x00, 0x22, 0x22, 0x01, 192.168.1.1) , 
+    Port2(vlan2, 0x00, 0x00, 0x00, 0x22, 0x22, 0x02, 19.168.2.1)
+    Portn(vlann, 0x00, 0x00, 0x00, 0x22, 0x22, 0x0n, 19.168.n.1)    
+    """
+    
+    def runTest(self):          
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)
+
+        if len(config["port_map"]) <3:
+            logging.info("Port count less than 3, can't run this case")
+            return
+        
+        vlan_id=1
+        intf_src_mac=[0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc]
+        same_dst_mac=[0x00, 0x00, 0x00, 0x22, 0x22, 0x22]
+
+        l3_ucast_gips=[]        
+        tx_port = config["port_map"].keys()[0]        
+        for port in config["port_map"].keys():
+            #add l2 interface group
+            add_one_l2_interface_grouop(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)            
+            if tx_port != port:            
+                l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vlan_id, id=vlan_id, src_mac=intf_src_mac, dst_mac=same_dst_mac)            
+                l3_ucast_gips.append(l3_msg.group_id)
+            #add vlan flow table
+            add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_BOTH)
+            #add termination flow
+            add_termination_flow(self.controller, port, 0x0800, intf_src_mac, vlan_id)           
+            vlan_id += 1
+
+        tx_dip=0x0a0a0a0a
+        tx_sip=0x0b0a0a0a             
+        ecmp_msg=add_l3_ecmp_group(self.controller, vlan_id, l3_ucast_gips)            
+        #ECMP shall have prefix not 32
+        add_unicast_routing_flow(self.controller, 0x0800, tx_dip, 0xffffff00, ecmp_msg.group_id)            
+
+        do_barrier(self.controller)          
+
+        switch_mac = ':'.join(['%02X' % x for x in intf_src_mac])
+        packet_src_mac="00:00:33:44:55:66"
+        #from unknown src ip to unknown dst ip, to verify ecmp
+        parsed_pkt = simple_tcp_packet(pktlen=100, 
+                                       eth_dst=switch_mac,
+                                       eth_src=packet_src_mac,
+                                       ip_ttl=64,
+                                       ip_src=convertIP4toStr(tx_sip),
+                                       ip_dst=convertIP4toStr(tx_dip))
+        self.dataplane.send(tx_port, str(parsed_pkt))
+        #build expect packet
+        dst_mac=':'.join(['%02X' % x for x in same_dst_mac])
+        exp_pkt = simple_tcp_packet(pktlen=100, 
+                                   eth_dst=dst_mac,
+                                   eth_src=switch_mac,
+                                   ip_ttl=63,
+                                   ip_src=convertIP4toStr(tx_sip),
+                                   ip_dst=convertIP4toStr(tx_dip)) 
+                                       
+        verify_packet(self, exp_pkt, config["port_map"].keys()[2])
+        verify_no_other_packets(self)
+        tx_sip=tx_sip+0x01000000  
+        #from unknown scr ip to unknown dst ip, to verify ecmp
+        parsed_pkt = simple_tcp_packet(pktlen=100, 
+                                       eth_dst=switch_mac,
+                                       eth_src=packet_src_mac,
+                                       ip_ttl=64,
+                                       ip_src=convertIP4toStr(tx_sip),
+                                       ip_dst=convertIP4toStr(tx_dip))
+        self.dataplane.send(tx_port, str(parsed_pkt))
+        #build expect packet
+        dst_mac=':'.join(['%02X' % x for x in same_dst_mac])
+        exp_pkt = simple_tcp_packet(pktlen=100, 
+                                   eth_dst=dst_mac,
+                                   eth_src=switch_mac,
+                                   ip_ttl=63,
+                                   ip_src=convertIP4toStr(tx_sip),
+                                   ip_dst=convertIP4toStr(tx_dip)) 
+                                       
+        verify_packet(self, exp_pkt, config["port_map"].keys()[1])
+        verify_no_other_packets(self)
+
 class L3McastRoute1(base_tests.SimpleDataPlane):
     """
     Mcast routing, From VLAN 1 to VLAN 2

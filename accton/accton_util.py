@@ -233,6 +233,8 @@ def add_l2_rewrite_group(ctrl, port, vlanid, id, src_mac, dst_mac):
     if dst_mac is not None:
         action.append(ofp.action.set_field(ofp.oxm.eth_dst(dst_mac)))
 
+    action.append(ofp.action.set_field(ofp.oxm.vlan_vid(vlanid)))
+        
     action.append(ofp.action.group(group_id))
     
     buckets = [ofp.bucket(actions=action)]

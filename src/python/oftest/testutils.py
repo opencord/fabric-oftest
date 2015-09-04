@@ -239,6 +239,85 @@ def simple_udp_packet(pktlen=100,
 
     return pkt
 
+
+def simple_tcp_packet_two_vlan(pktlen=100, 
+                      eth_dst='00:01:02:03:04:05',
+                      eth_src='00:06:07:08:09:0a',
+                      out_dl_vlan_enable=False,
+                      in_dl_vlan_enable=False,
+                      out_vlan_vid=0,
+                      out_vlan_pcp=0,
+                      out_dl_vlan_cfi=0,                      
+                      in_vlan_vid=0,
+                      in_vlan_pcp=0,  
+                      in_dl_vlan_cfi=0,
+                      ip_src='192.168.0.1',
+                      ip_dst='192.168.0.2',
+                      ip_tos=0,
+                      ip_ttl=64,
+                      tcp_sport=1234,
+                      tcp_dport=80,
+                      tcp_flags="S",
+                      ip_ihl=None,
+                      ip_options=False
+                      ):
+    """
+    Return a simple dataplane TCP packet
+
+    Supports a few parameters:
+    @param len Length of packet in bytes w/o CRC
+    @param eth_dst Destinatino MAC
+    @param eth_src Source MAC
+    @param dl_vlan_enable True if the packet is with vlan, False otherwise
+    @param vlan_vid VLAN ID
+    @param vlan_pcp VLAN priority
+    @param ip_src IP source
+    @param ip_dst IP destination
+    @param ip_tos IP ToS
+    @param ip_ttl IP TTL
+    @param tcp_dport TCP destination port
+    @param tcp_sport TCP source port
+    @param tcp_flags TCP Control flags  	
+
+    Generates a simple TCP request.  Users
+    shouldn't assume anything about this packet other than that
+    it is a valid ethernet/IP/TCP frame.
+    """
+
+    if MINSIZE > pktlen:
+        pktlen = MINSIZE
+
+    # Note Dot1Q.id is really CFI
+    if (out_dl_vlan_enable and in_dl_vlan_enable):
+        pkt = scapy.Ether(dst=eth_dst, src=eth_src)/ \
+            scapy.Dot1Q(prio=out_vlan_pcp, id=out_dl_vlan_cfi, vlan=out_vlan_vid)
+
+        if in_dl_vlan_enable:
+            pkt = pkt/scapy.Dot1Q(prio=in_vlan_pcp, id=in_dl_vlan_cfi, vlan=in_vlan_vid)
+
+        pkt = pkt/scapy.IP(src=ip_src, dst=ip_dst, tos=ip_tos, ttl=ip_ttl, ihl=ip_ihl)/ \
+            scapy.TCP(sport=tcp_sport, dport=tcp_dport, flags=tcp_flags)
+    elif (out_dl_vlan_enable and (not in_dl_vlan_enable)):
+        pkt = scapy.Ether(dst=eth_dst, src=eth_src)/ \
+            scapy.Dot1Q(prio=out_vlan_pcp, id=out_dl_vlan_cfi, vlan=out_vlan_vid)/ \
+            scapy.IP(src=ip_src, dst=ip_dst, tos=ip_tos, ttl=ip_ttl, ihl=ip_ihl)/ \
+            scapy.TCP(sport=tcp_sport, dport=tcp_dport, flags=tcp_flags)
+    elif ((not out_dl_vlan_enable) and in_dl_vlan_enable):
+        assert(0) #shall not have this caes
+    else:
+        if not ip_options:
+            pkt = scapy.Ether(dst=eth_dst, src=eth_src)/ \
+                scapy.IP(src=ip_src, dst=ip_dst, tos=ip_tos, ttl=ip_ttl, ihl=ip_ihl)/ \
+                scapy.TCP(sport=tcp_sport, dport=tcp_dport, flags=tcp_flags)
+        else:
+            pkt = scapy.Ether(dst=eth_dst, src=eth_src)/ \
+                scapy.IP(src=ip_src, dst=ip_dst, tos=ip_tos, ttl=ip_ttl, ihl=ip_ihl, options=ip_options)/ \
+                scapy.TCP(sport=tcp_sport, dport=tcp_dport, flags=tcp_flags)
+
+    pkt = pkt/("D" * (pktlen - len(pkt)))
+
+    return pkt
+
 def simple_vxlan_packet(eth_dst='00:01:02:03:04:05',
                       eth_src='00:06:07:08:09:0a',
                       dl_vlan_enable=False,
@@ -301,6 +380,7 @@ def simple_vxlan_packet(eth_dst='00:01:02:03:04:05',
 
     return pkt
 
+    
 
 def simple_mpls_packet(eth_dst='00:01:02:03:04:05',
                       eth_src='00:06:07:08:09:0a',

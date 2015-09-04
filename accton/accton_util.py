@@ -413,7 +413,7 @@ def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, 
         if (flag == VLAN_TABLE_FLAG_ONLY_UNTAG) or (flag == VLAN_TABLE_FLAG_ONLY_BOTH):
             match = ofp.match()
             match.oxm_list.append(ofp.oxm.in_port(of_port))
-            match.oxm_list.append(ofp.oxm.vlan_vid(0))
+            match.oxm_list.append(ofp.oxm.vlan_vid_masked(0, 0xfff))
             request = ofp.message.flow_add(
                 table_id=10,
                 cookie=42,
@@ -436,6 +436,53 @@ def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, 
 
     return msgs
 
+def add_vlan_table_flow_pvid(ctrl, in_port, match_vid=None, pvid=1, send_barrier=False):
+    """it will tag pack as untagged packet wether it has tagg or not"""
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.in_port(in_port))
+    actions=[]
+    if match_vid == None:
+        match.oxm_list.append(ofp.oxm.vlan_vid(0))    
+        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+pvid)))
+        goto_table=20
+    else:
+        match.oxm_list.append(ofp.oxm.vlan_vid_masked(0x1000+match_vid, 0x1fff))
+        actions.append(ofp.action.push_vlan(0x8100))
+        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+pvid)))        
+        goto_table=20
+        
+    request = ofp.message.flow_add(
+        table_id=10,
+        cookie=42,
+        match=match,
+        instructions=[
+             ofp.instruction.apply_actions(actions=actions)
+            ,ofp.instruction.goto_table(goto_table)
+        ],
+        priority=0)
+    logging.info("Add PVID %d on port %d and go to table %ld" %( pvid, in_port, goto_table))
+    ctrl.message_send(request)   
+    
+    if send_barrier:
+        do_barrier(ctrl)
+
+def add_vlan_table_flow_allow_all_vlan(ctrl, in_port, send_barrier=False):
+    """it st flow allow all vlan tag on this port"""
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.in_port(in_port))
+    match.oxm_list.append(ofp.oxm.vlan_vid_masked(0x1000, 0x1000))
+    request = ofp.message.flow_add(
+        table_id=10,
+        cookie=42,
+        match=match,
+        instructions=[
+            ofp.instruction.goto_table(20) 
+        ],
+        priority=0)
+    logging.info("Add allow all vlan on port %d " %(in_port))
+    ctrl.message_send(request)    
+
+    
 def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
     # table 10: vlan
     # goto to table 20

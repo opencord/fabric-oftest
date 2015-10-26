@@ -42,7 +42,7 @@ class test1(base_tests.SimpleDataPlane):
                                       eth_src="00:00:00:11:22:33",
                                       ip_src=toIpV4Str(0xc0a80164),
                                       ip_dst=toIpV4Str(0xc0a80202))
-        
+
         output_pkt = simple_tcp_packet(eth_dst="00:00:04:22:44:66",
                                        eth_src="00:00:04:22:33:55",
                                        ip_src=toIpV4Str(0xc0a80164),

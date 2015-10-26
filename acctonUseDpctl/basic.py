@@ -12,7 +12,7 @@ class features(base_tests.SimpleDataPlane):
 		
         test_ports = sorted(config["port_map"].keys())	
       
-        json_result = apply_dpctl_cmd(self, config, "features")
+        json_result = apply_dpctl_get_cmd(self, config, "features")
         #pprint(json_result)
         result=json_result["RECEIVED"][1]
         self.assertTrue(result["tabs"]==64, "Table size is not correct")
@@ -24,7 +24,7 @@ class get_config(base_tests.SimpleDataPlane):
 		
         test_ports = sorted(config["port_map"].keys())	
       
-        json_result = apply_dpctl_cmd(self, config, "get-config")
+        json_result = apply_dpctl_get_cmd(self, config, "get-config")
         #pprint(json_result)
         result=json_result["RECEIVED"][1]
         self.assertNotEqual(result["conf"], {}, "Config reply nothing")        

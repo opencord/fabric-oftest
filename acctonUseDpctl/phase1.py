@@ -25,7 +25,6 @@ class l3ucast_route(base_tests.SimpleDataPlane):
     def runTest(self):
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
-
         test_ports = sorted(config["port_map"].keys())
 
         input_port = test_ports[0]

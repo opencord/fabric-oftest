@@ -98,7 +98,9 @@ class dnat_vrf(base_tests.SimpleDataPlane):
         self.dataplane.send(input_port, str(input_pkt))
         verify_packet(self, str(output_pkt), output_port)
 
-
+"""
+currently this case will fail, due to packet rx SRC IP problem
+"""
 class dnat_ecmp(base_tests.SimpleDataPlane):
     """
     [DNAT ECMP]
@@ -305,7 +307,9 @@ class snat_vrf(base_tests.SimpleDataPlane):
         self.dataplane.send(input_port, str(input_pkt))
         verify_packet(self, str(output_pkt), output_port)
 
-
+"""
+currently this case will fail, due to packet rx src IP problem
+"""
 class snat_ecmp(base_tests.SimpleDataPlane):
     """
     [SNAT ECMP]

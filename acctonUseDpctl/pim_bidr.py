@@ -44,7 +44,7 @@ class test_v4(base_tests.SimpleDataPlane):
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x3000"+str(input_port)+" group=any,port=any,weight=0 output="+str(input_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x58000001 group=any,port=any,weight=0 set_field=eth_src=00:00:01:22:33:55,set_field=vlan_vid=2,group=0x2000"+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x58000002 group=any,port=any,weight=0 set_field=eth_src=00:00:02:22:33:55,set_field=vlan_vid=3,group=0x3000"+str(input_port))
-        apply_dpctl_mod(self, config, "group-mod cmd=add,type=all,group=0x60058001 group=any,port=any,weight=1 group=0x58000001 group=any,port=any,weight=1 group=0x58000002")
+        apply_dpctl_mod(self, config, "group-mod cmd=add,type=all,group=0x60058001 group=any,port=any,weight=0 group=0x58000001 group=any,port=any,weight=0 group=0x58000002")
         apply_dpctl_mod(self, config, "flow-mod table=40,cmd=add,prio=401 eth_type=0x800,ip_dst=224.0.0.1 write:group=0x60058001 goto:60")
 
         input_pkt = simple_packet(
@@ -123,7 +123,7 @@ class test_v6(base_tests.SimpleDataPlane):
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x3000"+str(input_port)+" group=any,port=any,weight=0 output="+str(input_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x58000001 group=any,port=any,weight=0 set_field=eth_src=00:00:01:22:33:55,set_field=vlan_vid=2,group=0x2000"+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x58000002 group=any,port=any,weight=0 set_field=eth_src=00:00:02:22:33:55,set_field=vlan_vid=3,group=0x3000"+str(input_port))
-        apply_dpctl_mod(self, config, "group-mod cmd=add,type=all,group=0x60058001 group=any,port=any,weight=1 group=0x58000001 group=any,port=any,weight=1 group=0x58000002")
+        apply_dpctl_mod(self, config, "group-mod cmd=add,type=all,group=0x60058001 group=any,port=any,weight=0 group=0x58000001 group=any,port=any,weight=0 group=0x58000002")
         apply_dpctl_mod(self, config, "flow-mod table=40,cmd=add,prio=401 eth_type=0x86dd,ipv6_dst=ff01::2 write:group=0x60058001 goto:60")
 
         input_pkt = simple_packet(

@@ -67,6 +67,16 @@ def required_wildcards(parent):
     else:
         return 0
 
+def simple_packet(content='00 00 00 11 33 55 00 00 00 11 22 33 81 00 00 03 '
+                '08 00 45 00 00 2e 04 d2 00 00 7f 00 b2 47 c0 a8 '
+                '01 64 c0 a8 02 02 00 00 00 00 00 00 00 00 00 00 '
+                '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00'):
+    data = (content)
+    data_list = data.split(" ")
+    pkt = ''.join(data_list).decode('hex')
+
+    return pkt
+
 def simple_tcp_packet(pktlen=100, 
                       eth_dst='00:01:02:03:04:05',
                       eth_src='00:06:07:08:09:0a',

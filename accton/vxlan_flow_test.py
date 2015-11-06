@@ -620,7 +620,7 @@ class AccessToNetworkDLFUcast(base_tests.SimpleDataPlane):
 												  vlan=network_port_vlan, operation="delete")
         assert(send_edit_config(config["switch_ip"], next_hop_conf_xml) == True)
 
-class AccessWithAccess(base_tests.SimpleDataPlane):
+class AccessWithAccessDiffPortVlan(base_tests.SimpleDataPlane):
    def runTest(self):
         """
         first verify flood over unicast, 
@@ -761,6 +761,161 @@ class AccessWithAccess(base_tests.SimpleDataPlane):
 												  vlan=access_port3_vid, operation="delete")
         assert(send_edit_config(config["switch_ip"], next_hop_conf_xml) == True)
 
+        
+class AccessWithAccessSamePortDiffVlan(base_tests.SimpleDataPlane):
+   def runTest(self):
+        """
+        first verify flood over unicast, 
+        second verify flood over mcast
+        """
+        if 	config["switch_ip"] == None:
+            logging.error("Doesn't configure switch IP")		
+            return
+			
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)
+  
+        access_port1_vid=1
+        access_phy_port1=config["port_map"].keys()[0]
+        access_lport1=0x10001
+        access_port2_vid=0
+        access_phy_port2= access_phy_port1
+        access_lport2=0x10002
+        access_port3_vid=3
+        access_phy_port3=access_phy_port1
+        access_lport3=0x10003
+        vnid=10
+        next_hop_id_mcast=1
+        mcast_ipv4="224.1.1.1"
+        dst_mac_mcast="01:00:5e:01:01:01"
+        
+        feature_reply=get_featureReplay(self)	
+        
+        next_hop_conf_xml=get_next_hop_config_xml(next_hop_id=next_hop_id_mcast, 
+		                                          dst_mac=dst_mac_mcast, 
+												  phy_port=access_phy_port3, 
+												  vlan=access_port3_vid)        
+        logging.info("config NextHop %d, DST_MAC %s, PHY %d, VLAN %d", next_hop_id_mcast, dst_mac_mcast, access_phy_port3, access_port3_vid);
+        assert(send_edit_config(config["switch_ip"], next_hop_conf_xml)==True)
+
+        vni_config_xml=get_vni_config_xml(vni_id=vnid, mcast_ipv4=mcast_ipv4, next_hop_id=next_hop_id_mcast)
+        logging.info("config VNI %lx", vnid);
+        assert(send_edit_config(config["switch_ip"], vni_config_xml) == True)
+            
+        vtap_conf_xml=get_vtap_lport_config_xml(dp_id=feature_reply.datapath_id, 
+                                        lport=access_lport1, phy_port=access_phy_port1, 
+                                        vlan=access_port1_vid, vnid=vnid)
+        logging.info("config VTAP 0x%lx, PHY %d, VID %d, VNID %lx", access_lport1, access_phy_port1, access_port1_vid, vnid);
+        assert(send_edit_config(config["switch_ip"], vtap_conf_xml) == True)
+
+        vtap_conf_xml=get_vtap_lport_config_xml(dp_id=feature_reply.datapath_id, 
+                                        lport=access_lport2, phy_port=access_phy_port2, 
+                                        vlan=access_port2_vid, vnid=vnid)
+        logging.info("config VTAP 0x%lx, PHY %d, VID %d, VNID %lx", access_lport2, access_phy_port2, access_port2_vid, vnid);
+        assert(send_edit_config(config["switch_ip"], vtap_conf_xml) == True)            
+        
+        vtap_conf_xml=get_vtap_lport_config_xml(dp_id=feature_reply.datapath_id, 
+                                        lport=access_lport3, phy_port=access_phy_port3, 
+                                        vlan=access_port3_vid, vnid=vnid)
+        logging.info("config VTAP 0x%lx, PHY %d, VID %d, VNID %lx", access_lport3, access_phy_port3, access_port3_vid, vnid);
+        assert(send_edit_config(config["switch_ip"], vtap_conf_xml) == True)            
+
+        
+        #add port table to have vxlan ability
+        add_port_table_flow(self.controller)
+
+		#add DLF bridge flow
+        msg=add_l2_overlay_flood_over_mcast_tunnel_group(self.controller, vnid, [access_lport1, access_lport2, access_lport3], 1)        
+        add_overlay_bridge_flow(self.controller, None, vnid, msg.group_id, True, True)
+        
+        #send packet on access port
+        parsed_pkt = simple_udp_packet(pktlen=96, eth_dst='00:00:11:11:11:11',
+                                       dl_vlan_enable= True,
+                                       vlan_vid=access_port1_vid)
+        pkt = str(parsed_pkt)
+        self.dataplane.send(access_phy_port1, pkt)
+
+        #verify packet on access port 2, vid=0, so untag
+        parsed_pkt = simple_udp_packet(pktlen=92, eth_dst='00:00:11:11:11:11')
+        pkt = str(parsed_pkt) 
+        verify_packet(self, pkt, access_phy_port2)
+        #verify packet on access port 3
+        parsed_pkt = simple_udp_packet(pktlen=96, eth_dst='00:00:11:11:11:11',
+                                       dl_vlan_enable= True,
+                                       vlan_vid=access_port3_vid)
+        pkt = str(parsed_pkt)
+        verify_packet(self, pkt, access_phy_port3) 
+        verify_no_other_packets(self)
+        
+        add_overlay_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, 0x9a], vnid, access_lport2, False, True)        
+        parsed_pkt = simple_udp_packet(pktlen=96, eth_dst='00:12:34:56:78:9a',
+                                       dl_vlan_enable= True,
+                                       vlan_vid=access_port1_vid)
+        pkt = str(parsed_pkt)
+        self.dataplane.send(access_phy_port1, pkt)
+        #verify packet on access port		
+        parsed_pkt = simple_udp_packet(pktlen=92, eth_dst='00:12:34:56:78:9a')
+        pkt = str(parsed_pkt) 
+        verify_packet(self, pkt, access_phy_port2)        
+        verify_no_other_packets(self)
+
+
+        add_overlay_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, 0xaa], vnid, access_lport3, False, True)
+        parsed_pkt = simple_udp_packet(pktlen=96, eth_dst='00:12:34:56:78:aa',
+                                       dl_vlan_enable= True,
+                                       vlan_vid=access_port1_vid)
+        pkt = str(parsed_pkt)
+        self.dataplane.send(access_phy_port1, pkt)
+        #verify packet on access port		
+        parsed_pkt = simple_udp_packet(pktlen=96, eth_dst='00:12:34:56:78:aa',
+                                       dl_vlan_enable= True,
+                                       vlan_vid=access_port3_vid)
+        pkt = str(parsed_pkt) 
+        verify_packet(self, pkt, access_phy_port3)
+        verify_no_other_packets(self)
+
+        add_overlay_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, 0xbb], vnid, access_lport2, False, True)
+        parsed_pkt = simple_udp_packet(pktlen=96, eth_dst='00:12:34:56:78:aa',
+                                       dl_vlan_enable= True,
+                                       vlan_vid=access_port1_vid)
+        pkt = str(parsed_pkt)
+        self.dataplane.send(access_phy_port1, pkt)
+        #verify packet on access port		
+        parsed_pkt = simple_udp_packet(pktlen=96, eth_dst='00:12:34:56:78:bb',
+                                       dl_vlan_enable= True,
+                                       vlan_vid=access_port2_vid)
+        pkt = str(parsed_pkt) 
+        verify_packet(self, pkt, access_phy_port2)
+        verify_no_other_packets(self)        
+        
+		#exit verification so clear all configuration
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)
+
+        vtap_conf_xml=get_vtap_lport_config_xml(dp_id=feature_reply.datapath_id, 
+		                                        lport=access_lport1, phy_port=access_phy_port1, 
+												vlan=access_port1_vid, vnid=vnid, operation="delete")
+        assert(send_edit_config(config["switch_ip"], vtap_conf_xml) == True)
+        vtap_conf_xml=get_vtap_lport_config_xml(dp_id=feature_reply.datapath_id, 
+		                                        lport=access_lport2, phy_port=access_phy_port2, 
+												vlan=access_port2_vid, vnid=vnid, operation="delete")
+        assert(send_edit_config(config["switch_ip"], vtap_conf_xml) == True)            
+        vtap_conf_xml=get_vtap_lport_config_xml(dp_id=feature_reply.datapath_id, 
+                                        lport=access_lport3, phy_port=access_phy_port3, 
+                                        vlan=access_port3_vid, vnid=vnid, operation="delete")
+        logging.info("config VTAP 0x%lx, PHY %d, VID %d, VNID %lx", access_lport3, access_phy_port3, access_port3_vid, vnid);
+        assert(send_edit_config(config["switch_ip"], vtap_conf_xml) == True)   
+        
+        vni_config_xml=get_vni_config_xml(vni_id=vnid, mcast_ipv4=None, next_hop_id=None, operation="delete")
+        assert(send_edit_config(config["switch_ip"], vni_config_xml) == True)
+
+        next_hop_conf_xml=get_next_hop_config_xml(next_hop_id=next_hop_id_mcast, 
+		                                          dst_mac=dst_mac_mcast, 
+												  phy_port=access_phy_port3, 
+												  vlan=access_port3_vid, operation="delete")
+        assert(send_edit_config(config["switch_ip"], next_hop_conf_xml) == True)
+
+        
 class AccessWithNetwork(base_tests.SimpleDataPlane):
     def runTest(self):
         """

@@ -32,22 +32,23 @@ class single_tag_to_double_tag(base_tests.SimpleDataPlane):
 
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1003/0x1fff apply:push_vlan=0x8100,set_field=vlan_vid=5 goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 in_port="+str(input_port)+",vlan_vid=3/0xfff,eth_dst=00:00:00:11:33:55,eth_type=0x0800 goto:30")
-        apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x50001 group=any,port=any,weight=0 output=1"+str(output_port))
-        apply_dpctl_mod(self, config, "flow-mod table=60,cmd=add,prio=601 eth_type=0x0800,in_port="+str(input_port)+" write:group=0x50001")
-        apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x30003 group=any,port=any,weight=0 pop_vlan,output="+str(input_port))
-        apply_dpctl_mod(self, config, " flow-mod table=50,cmd=add,prio=501 vlan_vid=3,eth_dst=00:00:00:11:22:33 write:group=0x30003 goto:60")
+        apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x5000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
+        apply_dpctl_mod(self, config, "flow-mod table=60,cmd=add,prio=601 eth_type=0x0800,in_port="+str(input_port)+" write:group=0x5000"+str(output_port))
+        apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x3000"+str(input_port)+" group=any,port=any,weight=0 pop_vlan,output="+str(input_port))
+        apply_dpctl_mod(self, config, " flow-mod table=50,cmd=add,prio=501 vlan_vid=3,eth_dst=00:00:00:11:22:33 write:group=0x3000"+str(input_port)+" goto:60")
 
-        input_pkt = simple_tcp_packet(eth_dst="00:00:00:11:33:55",
-                                      eth_src="00:00:00:11:22:33",
-                                      dl_vlan_enable=True,
-                                      vlan_vid=3)
+        input_pkt = simple_packet(
+                '00 00 00 11 33 55 00 00 00 11 22 33 81 00 00 03 '
+                '08 00 45 00 00 2e 04 d2 00 00 7f 00 b2 47 c0 a8 '
+                '01 64 c0 a8 02 02 00 00 00 00 00 00 00 00 00 00 '
+                '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00')
 
-        output_pkt = simple_tcp_packet_two_vlan(eth_dst="00:00:00:11:33:55",
-                                      eth_src="00:00:00:11:22:33",
-                                      out_dl_vlan_enable=True,
-                                      in_dl_vlan_enable=True,
-                                      out_vlan_vid=5,
-                                      in_vlan_vid=3)
+        output_pkt = simple_packet(
+                '00 00 00 11 33 55 00 00 00 11 22 33 81 00 00 05 '
+                '81 00 00 03 08 00 45 00 00 2e 04 d2 00 00 7f 00 '
+                'b2 47 c0 a8 01 64 c0 a8 02 02 00 00 00 00 00 00 '
+                '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 '
+                '00 00 00 00')
         
         self.dataplane.send(input_port, str(input_pkt))
         verify_packet(self, str(output_pkt), output_port)
@@ -81,24 +82,24 @@ class double_tag_to_single_tag(base_tests.SimpleDataPlane):
         output_port = test_ports[1]
 
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1006/0x1fff apply:pop_vlan,set_field=ofdpa_ovid:6 goto:11")
-        apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 in_port="+str(input_port)+",vlan_vid=0x1003/0x1fff,ofdpa_ovid=0x1006 goto:20")
+        apply_dpctl_mod(self, config, "flow-mod table=11,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1003/0x1fff,ofdpa_ovid=0x1006 goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 in_port="+str(input_port)+",vlan_vid=6/0xfff,eth_dst=00:00:00:11:33:55,eth_type=0x0800 goto:30")        
-        apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x30001 group=any,port=any,weight=0 output="+str(output_port))
-        apply_dpctl_mod(self, config, "flow-mod table=60,cmd=add,prio=601 eth_type=0x0800,in_port="+str(input_port)+" write:group=0x30001")
-        apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x60003 group=any,port=any,weight=0 output="+str(input_port))
-        apply_dpctl_mod(self, config, "flow-mod table=50,cmd=add,prio=501 vlan_vid=6,eth_dst=00:00:00:11:22:33 write:group=0x60003 goto:60")
+        apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x3000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
+        apply_dpctl_mod(self, config, "flow-mod table=60,cmd=add,prio=601 eth_type=0x0800,in_port="+str(input_port)+" write:group=0x3000"+str(output_port))
+        apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x6000"+str(input_port)+" group=any,port=any,weight=0 output="+str(input_port))
+        apply_dpctl_mod(self, config, "flow-mod table=50,cmd=add,prio=501 vlan_vid=6,eth_dst=00:00:00:11:22:33 write:group=0x6000"+str(input_port)+" goto:60")
 
-        input_pkt = simple_tcp_packet_two_vlan(eth_dst="00:00:00:11:33:55",
-                                      eth_src="00:00:00:11:22:33",
-                                      out_dl_vlan_enable=True,
-                                      in_dl_vlan_enable=True,
-                                      out_vlan_vid=6,
-                                      in_vlan_vid=3)
+        input_pkt = simple_packet(
+                '00 00 00 11 33 55 00 00 00 11 22 33 81 00 00 06 '
+                '81 00 00 03 08 00 45 00 00 2a 04 d2 00 00 7f 00 '
+                'b2 4b c0 a8 01 64 c0 a8 02 02 00 00 00 00 00 00 '
+                '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00')
 
-        output_pkt = simple_tcp_packet(eth_dst="00:00:04:22:44:66",
-                                       eth_src="00:00:04:22:33:55",
-                                       dl_vlan_enable=True,
-                                       vlan_vid=5)
+        output_pkt = simple_packet(
+                '00 00 00 11 33 55 00 00 00 11 22 33 81 00 00 03 '
+                '08 00 45 00 00 2a 04 d2 00 00 7f 00 b2 4b c0 a8 '
+                '01 64 c0 a8 02 02 00 00 00 00 00 00 00 00 00 00 '
+                '00 00 00 00 00 00 00 00 00 00 00 00')
         
         self.dataplane.send(input_port, str(input_pkt))
         verify_packet(self, str(output_pkt), output_port)
@@ -106,7 +107,7 @@ class double_tag_to_single_tag(base_tests.SimpleDataPlane):
         
 
 
-class vlan_translate(base_tests.SimpleDataPlane):
+class double2single_vlan_translate(base_tests.SimpleDataPlane):
     """																					 
 	[Double tag to single tag and modify inner tag]																				
 		Pop outter tag of incoming double tagged packet and modify inner tag																			
@@ -134,24 +135,22 @@ class vlan_translate(base_tests.SimpleDataPlane):
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1006/0x1fff apply:pop_vlan,set_field=ofdpa_ovid:6 goto:11")
         apply_dpctl_mod(self, config, "flow-mod table=11,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1003/0x1fff,ofdpa_ovid=0x1006 apply:set_field=vlan_vid=4 goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 in_port="+str(input_port)+",vlan_vid=6/0xfff,eth_dst=00:00:00:11:33:55,eth_type=0x0800 goto:30")        
-        apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x40001 group=any,port=any,weight=0 output="+str(output_port))
-        apply_dpctl_mod(self, config, "flow-mod table=60,cmd=add,prio=601 eth_type=0x0800,in_port="+str(input_port)+" write:group=0x40001")
+        apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x4000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
+        apply_dpctl_mod(self, config, "flow-mod table=60,cmd=add,prio=601 eth_type=0x0800,in_port="+str(input_port)+" write:group=0x4000"+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x60003 group=any,port=any,weight=0 output="+str(input_port))
-        apply_dpctl_mod(self, config, "flow-mod table=50,cmd=add,prio=501 vlan_vid=6,eth_dst=00:00:00:11:22:33 write:group=0x60003 goto:60")
+        apply_dpctl_mod(self, config, "flow-mod table=50,cmd=add,prio=501 vlan_vid=6,eth_dst=00:00:00:11:22:33 write:group=0x6000"+str(input_port)+" goto:60")
 
-        input_pkt = simple_tcp_packet_two_vlan(eth_dst="00:00:00:11:33:55",
-                                      eth_src="00:00:00:11:22:33",
-                                      out_dl_vlan_enable=True,
-                                      in_dl_vlan_enable=True,
-                                      out_vlan_vid=6,
-                                      in_vlan_vid=3)
+        input_pkt = simple_packet(
+                '00 00 00 11 33 55 00 00 00 11 22 33 81 00 00 06 '
+                '81 00 00 03 08 00 45 00 00 2a 04 d2 00 00 7f 00 '
+                'b2 4b c0 a8 01 64 c0 a8 02 02 00 00 00 00 00 00 '
+                '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00')
 
-        output_pkt = simple_tcp_packet_two_vlan(eth_dst="00:00:00:11:33:55",
-                                      eth_src="00:00:00:11:22:33",
-                                      out_dl_vlan_enable=True,
-                                      in_dl_vlan_enable=True,
-                                      out_vlan_vid=6,
-                                      in_vlan_vid=4)
+        output_pkt = simple_packet(
+                '00 00 00 11 33 55 00 00 00 11 22 33 81 00 00 04 '
+                '08 00 45 00 00 2a 04 d2 00 00 7f 00 b2 4b c0 a8 '
+                '01 64 c0 a8 02 02 00 00 00 00 00 00 00 00 00 00 '
+                '00 00 00 00 00 00 00 00 00 00 00 00')
 
         self.dataplane.send(input_port, str(input_pkt))
         verify_packet(self, str(output_pkt), output_port)   
@@ -184,20 +183,22 @@ class vlan_translate(base_tests.SimpleDataPlane):
 
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1003/0x1fff apply:set_field=vlan_vid=5 goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 in_port="+str(input_port)+",vlan_vid=3/0xfff,eth_dst=00:00:00:11:33:55,eth_type=0x0800 goto:30")
-        apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x50001 group=any,port=any,weight=0 output="+str(output_port))
-        apply_dpctl_mod(self, config, "flow-mod table=60,cmd=add,prio=601 eth_type=0x0800,in_port="+str(input_port)+" write:group=0x50001")
-        apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x30003 group=any,port=any,weight=0 pop_vlan,output="+str(input_port))
-        apply_dpctl_mod(self, config, "flow-mod table=50,cmd=add,prio=501 vlan_vid=3,eth_dst=00:00:00:11:22:33 write:group=0x30003 goto:60")
+        apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x5000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
+        apply_dpctl_mod(self, config, "flow-mod table=60,cmd=add,prio=601 eth_type=0x0800,in_port="+str(input_port)+" write:group=0x5000"+str(output_port))
+        apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x3000"+str(input_port)+" group=any,port=any,weight=0 pop_vlan,output="+str(input_port))
+        apply_dpctl_mod(self, config, "flow-mod table=50,cmd=add,prio=501 vlan_vid=3,eth_dst=00:00:00:11:22:33 write:group=0x3000"+str(input_port)+" goto:60")
 
-        input_pkt = simple_tcp_packet(eth_dst="00:00:00:11:33:55",
-                                      eth_src="00:00:00:11:22:33",
-                                      dl_vlan_enable=True,
-                                      vlan_vid=3)
+        input_pkt = simple_packet(
+                '00 00 00 11 33 55 00 00 00 11 22 33 81 00 00 03 '
+                '08 00 45 00 00 2e 04 d2 00 00 7f 00 b2 47 c0 a8 '
+                '01 64 c0 a8 02 02 00 00 00 00 00 00 00 00 00 00 '
+                '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00')
 
-        output_pkt = simple_tcp_packet(eth_dst="00:00:00:11:33:55",
-                                       eth_src="00:00:00:11:22:33",
-                                       dl_vlan_enable=True,
-                                       vlan_vid=5)
-        
+        output_pkt = simple_packet(
+                '00 00 00 11 33 55 00 00 00 11 22 33 81 00 00 05 '
+                '08 00 45 00 00 2e 04 d2 00 00 7f 00 b2 47 c0 a8 '
+                '01 64 c0 a8 02 02 00 00 00 00 00 00 00 00 00 00 '
+                '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00')
+
         self.dataplane.send(input_port, str(input_pkt))
         verify_packet(self, str(output_pkt), output_port)        

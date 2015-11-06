@@ -2,6 +2,7 @@ import subprocess
 import json
 import os
 from pprint import pprint
+import time
 
 test_tmp_file=os.getcwd()+os.sep+"dpctloutputtmp.tmp"
 
@@ -12,8 +13,9 @@ def apply_dpctl(test, config, cmd):
         assert(0)
 
     #apply dpctl command     
-    subprocess.call("dpctl tcp:"+switch_ip+":6633 "+cmd+" > "+test_tmp_file, shell=True)
-
+    subprocess.call(os.getcwd()+"/dpctl tcp:"+switch_ip+":6633 "+cmd+" > "+test_tmp_file, shell=True)
+#    subprocess.call("dpctl tcp:"+switch_ip+":6633 "+cmd+" > "+test_tmp_file, shell=True)
+    time.sleep(0.2)
     
 def apply_dpctl_get_cmd(test, config, cmd):
 
@@ -23,7 +25,7 @@ def apply_dpctl_get_cmd(test, config, cmd):
         subprocess.call(["sudo", "chmod", "a+w", test_tmp_file])
 
     apply_dpctl(test, config, cmd)
-    
+
     #parse result
     with open(test_tmp_file) as tmp_file:
         try:

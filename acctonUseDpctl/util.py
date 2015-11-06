@@ -13,8 +13,8 @@ def apply_dpctl(test, config, cmd):
         assert(0)
 
     #apply dpctl command     
-    subprocess.call(os.getcwd()+"/dpctl tcp:"+switch_ip+":6633 "+cmd+" > "+test_tmp_file, shell=True)
-#    subprocess.call("dpctl tcp:"+switch_ip+":6633 "+cmd+" > "+test_tmp_file, shell=True)
+    #subprocess.call(os.getcwd()+"/dpctl tcp:"+switch_ip+":6633 "+cmd+" > "+test_tmp_file, shell=True)
+    subprocess.call("dpctl tcp:"+switch_ip+":6633 "+cmd+" > "+test_tmp_file, shell=True)
     time.sleep(0.2)
     
 def apply_dpctl_get_cmd(test, config, cmd):

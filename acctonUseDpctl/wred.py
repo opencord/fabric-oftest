@@ -36,6 +36,7 @@ class wred(base_tests.SimpleDataPlane):
         input_port2 = test_ports[1]
         output_port = test_ports[2]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1000/0xfff apply:set_field=vlan_vid=2 goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port2)+",vlan_vid=0x1000/0xfff apply:set_field=vlan_vid=2 goto:20")

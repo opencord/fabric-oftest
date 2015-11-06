@@ -30,6 +30,7 @@ class dnat(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x10c8/0x1fff goto:20")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x64000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x23000001 group=any,port=any,weight=0 set_field=eth_src=00:00:00:00:01:00,set_field=eth_dst=00:00:00:00:01:01,set_field=vlan_vid=100,group=0x64000"+str(output_port))
@@ -76,6 +77,7 @@ class dnat_vrf(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x10c8/0x1fff goto:20 apply:set_field=ofdpa_vrf:3")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(output_port)+",vlan_vid=0x1064/0x1fff goto:20 apply:set_field=ofdpa_vrf:3")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x64000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
@@ -129,6 +131,7 @@ class dnat_ecmp(base_tests.SimpleDataPlane):
         output_port = test_ports[1]
         output_port2 = test_ports[2]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x10c8/0x1fff goto:20 apply:set_field=ofdpa_vrf:3")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x64000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x23000001 group=any,port=any,weight=0 set_field=eth_src=00:00:00:00:01:00,set_field=eth_dst=00:00:00:00:01:01,set_field=vlan_vid=100,group=0x64000"+str(output_port))
@@ -161,6 +164,7 @@ class dnat_ecmp(base_tests.SimpleDataPlane):
 
         self.dataplane.send(input_port, str(input_pkt))
         verify_packet(self, str(output_pkt), output_port)
+        self.dataplane.send(input_port, str(input_pkt))
         verify_packet(self, str(output_pkt2), output_port2)
 
 
@@ -188,6 +192,7 @@ class dnat_decap_mpls(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x64000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x23000001 group=any,port=any,weight=0 set_field=eth_src=00:00:00:00:01:00,set_field=eth_dst=00:00:00:00:01:01,set_field=vlan_vid=100,group=0x64000"+str(output_port))
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x100c/0x1fff apply:set_field=ofdpa_vrf:1 goto:20")
@@ -236,6 +241,7 @@ class snat(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1064/0x1fff goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 vlan_vid=100/0xfff,eth_dst=00:00:00:00:01:00,eth_type=0x0800 goto:29")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0xC8000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
@@ -284,6 +290,7 @@ class snat_vrf(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1064/0x1fff goto:20 apply:set_field=ofdpa_vrf:3")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x10c8/0x1fff goto:20 apply:set_field=ofdpa_vrf:3")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 vlan_vid=100/0xfff,eth_dst=00:00:00:00:01:00,eth_type=0x0800 goto:29")
@@ -339,6 +346,7 @@ class snat_ecmp(base_tests.SimpleDataPlane):
         output_port = test_ports[1]
         output_port2 = test_ports[2]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1064/0x1fff goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 vlan_vid=100/0xfff,eth_dst=00:00:00:00:01:00,eth_type=0x0800 goto:29")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0xC8000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
@@ -372,4 +380,5 @@ class snat_ecmp(base_tests.SimpleDataPlane):
 
         self.dataplane.send(input_port, str(input_pkt))
         verify_packet(self, str(output_pkt), output_port)
+        self.dataplane.send(input_port, str(input_pkt))
         verify_packet(self, str(output_pkt2), output_port2)

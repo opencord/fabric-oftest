@@ -25,11 +25,13 @@ class l3ucast_route(base_tests.SimpleDataPlane):
     def runTest(self):
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
+
         test_ports = sorted(config["port_map"].keys())
 
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=0,cmd=add,prio=1 in_port=0/0xffff0000 goto:10")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1002/0x1fff goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 in_port="+str(input_port)+",eth_dst=70:72:cf:7c:f3:a3,eth_type=0x0800 goto:30")
@@ -81,6 +83,7 @@ class l3ucast_route6(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=0,cmd=add,prio=1 in_port=0/0xffff0000 goto:10")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1002/0x1fff goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 in_port="+str(input_port)+",eth_dst=70:72:cf:7c:f3:a3,eth_type=0x86dd goto:30")
@@ -132,6 +135,7 @@ class l3mcast_route(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=0,cmd=add,prio=1 in_port=0/0xffff0000 goto:10")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1002/0x1fff goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 eth_dst=01:00:5e:40:44:77/ff:ff:ff:80:00:00,eth_type=0x0800 goto:40")
@@ -187,6 +191,7 @@ class l3mcast_route6(base_tests.SimpleDataPlane):
         output_port = test_ports[1]
         output_port2 = test_ports[2]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=0,cmd=add,prio=1 in_port=0/0xffff0000 goto:10")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1002/0x1fff goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 eth_dst=33:33:00:22:44:77/ff:ff:00:00:00:00,eth_type=0x86dd goto:40")
@@ -247,6 +252,7 @@ class bridge_ucast(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=0,cmd=add,prio=1 in_port=0/0xffff0000 goto:10")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1002/0x1fff goto:20")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 pop_vlan,output="+str(output_port))
@@ -298,6 +304,7 @@ class bridge_mcast(base_tests.SimpleDataPlane):
         output_port = test_ports[1]
         output_port2 = test_ports[2]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=0,cmd=add,prio=1 in_port=0/0xffff0000 goto:10")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1002/0x1fff goto:20")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
@@ -360,6 +367,7 @@ class bridge_dlf(base_tests.SimpleDataPlane):
         output_port = test_ports[1]
         output_port2 = test_ports[2]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=0,cmd=add,prio=1 in_port=0/0xffff0000 goto:10")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1002/0x1fff goto:20")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))

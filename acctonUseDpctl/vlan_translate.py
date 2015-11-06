@@ -30,6 +30,7 @@ class single_tag_to_double_tag(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1003/0x1fff apply:push_vlan=0x8100,set_field=vlan_vid=5 goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 in_port="+str(input_port)+",vlan_vid=3/0xfff,eth_dst=00:00:00:11:33:55,eth_type=0x0800 goto:30")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x5000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
@@ -81,6 +82,7 @@ class double_tag_to_single_tag(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1006/0x1fff apply:pop_vlan,set_field=ofdpa_ovid:6 goto:11")
         apply_dpctl_mod(self, config, "flow-mod table=11,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1003/0x1fff,ofdpa_ovid=0x1006 goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 in_port="+str(input_port)+",vlan_vid=6/0xfff,eth_dst=00:00:00:11:33:55,eth_type=0x0800 goto:30")        
@@ -132,6 +134,7 @@ class double2single_vlan_translate(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1006/0x1fff apply:pop_vlan,set_field=ofdpa_ovid:6 goto:11")
         apply_dpctl_mod(self, config, "flow-mod table=11,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1003/0x1fff,ofdpa_ovid=0x1006 apply:set_field=vlan_vid=4 goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 in_port="+str(input_port)+",vlan_vid=6/0xfff,eth_dst=00:00:00:11:33:55,eth_type=0x0800 goto:30")        
@@ -181,6 +184,7 @@ class vlan_translate(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1003/0x1fff apply:set_field=vlan_vid=5 goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 in_port="+str(input_port)+",vlan_vid=3/0xfff,eth_dst=00:00:00:11:33:55,eth_type=0x0800 goto:30")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x5000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))

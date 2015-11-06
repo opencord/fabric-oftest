@@ -33,6 +33,7 @@ class encap_mpls(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "flow-mod table=24,cmd=add,prio=204 eth_type=0x8847,mpls_label=0x901,mpls_bos=1 apply:pop_mpls=0x8847,mpls_dec,ofdpa_pop_l2hdr,ofdpa_pop_cw,set_field=ofdpa_mpls_l2_port:0x20100,set_field=tunn_id:0x10001 write:group=0x2000"+str(output_port)+" goto:60")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x90000001 group=any,port=any,weight=0 set_field=eth_src=00:00:04:22:33:55,set_field=eth_dst=00:00:04:22:44:66,set_field=vlan_vid=2,group=0x2000"+str(output_port))
@@ -86,6 +87,7 @@ class decap_mpls(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(input_port)+" group=any,port=any,weight=0 output="+str(input_port))
         apply_dpctl_mod(self, config, "flow-mod table=24,cmd=add,prio=204 eth_type=0x8847,mpls_label=0x901,mpls_bos=1 apply:pop_mpls=0x8847,mpls_dec,ofdpa_pop_l2hdr,ofdpa_pop_cw,set_field=ofdpa_mpls_l2_port:0x20100,set_field=tunn_id:0x10001 write:group=0x2000"+str(input_port)+" goto:60")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x90000001 group=any,port=any,weight=0 set_field=eth_src=00:00:04:22:33:55,set_field=eth_dst=00:00:04:22:44:66,set_field=vlan_vid=2,group=0x2000"+str(input_port))
@@ -139,6 +141,7 @@ class encap_2mpls(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "flow-mod table=24,cmd=add,prio=204 eth_type=0x8847,mpls_label=0x901,mpls_bos=1 apply:pop_mpls=0x8847,mpls_dec,ofdpa_pop_l2hdr,ofdpa_pop_cw,set_field=ofdpa_mpls_l2_port:0x20100,set_field=tunn_id:0x10001 write:group=0x2000"+str(output_port)+" goto:60")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x90000001 group=any,port=any,weight=0 set_field=eth_src=00:00:04:22:33:55,set_field=eth_dst=00:00:04:22:44:66,set_field=vlan_vid=2,group=0x2000"+str(output_port))
@@ -191,6 +194,7 @@ class encap_3mpls(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "flow-mod table=24,cmd=add,prio=204 eth_type=0x8847,mpls_label=0x901,mpls_bos=1 apply:pop_mpls=0x8847,mpls_dec,ofdpa_pop_l2hdr,ofdpa_pop_cw,set_field=ofdpa_mpls_l2_port:0x20100,set_field=tunn_id:0x10001 write:group=0x2000"+str(output_port)+" goto:60")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x90000001 group=any,port=any,weight=0 set_field=eth_src=00:00:04:22:33:55,set_field=eth_dst=00:00:04:22:44:66,set_field=vlan_vid=2,group=0x2000"+str(output_port))
@@ -242,6 +246,7 @@ class decap_penultimate_mpls(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x90000001 group=any,port=any,weight=0 set_field=eth_src=00:00:04:22:33:55,set_field=eth_dst=00:00:04:22:44:66,set_field=vlan_vid=2,group=0x2000"+str(output_port))
         apply_dpctl_mod(self, config, "flow-mod table=24,cmd=add,prio=204 eth_type=0x8847,mpls_label=0x901 apply:pop_mpls=0x8847,mpls_dec write:group=0x90000001 goto:60")
@@ -296,6 +301,7 @@ class decap_2mpls(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(input_port)+" group=any,port=any,weight=0 output="+str(input_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x90000001 group=any,port=any,weight=0 set_field=eth_src=00:00:04:22:33:55,set_field=eth_dst=00:00:04:22:44:66,set_field=vlan_vid=2,group=0x2000"+str(input_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x93000001 group=any,port=any,weight=0 set_field=mpls_label:0x903,push_mpls=0x8847,group=0x90000001")
@@ -352,6 +358,7 @@ class decap_penultimate_swap_mpls(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x90000001 group=any,port=any,weight=0 set_field=eth_src=00:00:04:22:33:55,set_field=eth_dst=00:00:04:22:44:66,set_field=vlan_vid=2,group=0x2000"+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x91000001 group=any,port=any,weight=0 set_field=mpls_label:0x901,set_field=mpls_tc:7,set_field=ofdpa_mpls_ttl:250,ofdpa_push_l2hdr,push_vlan=0x8100,push_mpls=0x8847,ofdpa_push_cw,group=0x90000001")
@@ -407,6 +414,7 @@ class swap_out_mpls(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x90000001 group=any,port=any,weight=0 set_field=eth_src=00:00:04:22:33:57,set_field=eth_dst=00:00:04:22:44:67,set_field=vlan_vid=2,group=0x2000"+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x95000001 group=any,port=any,weight=0 set_field=mpls_label:0x9051,group=0x90000001")
@@ -459,6 +467,7 @@ class swap_encap_mpls(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x90000001 group=any,port=any,weight=0 set_field=eth_src=00:00:04:22:33:58,set_field=eth_dst=00:00:04:22:44:68,set_field=vlan_vid=2,group=0x2000"+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x95000001 group=any,port=any,weight=0 set_field=mpls_label:0x9052,group=0x90000001")
@@ -512,6 +521,7 @@ class swap_encap_2mpls(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x90000001 group=any,port=any,weight=0 set_field=eth_src=00:00:04:22:33:58,set_field=eth_dst=00:00:04:22:44:68,set_field=vlan_vid=2,group=0x2000"+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x94000001 group=any,port=any,weight=0 push_mpls=0x8847,set_field=mpls_label:0x904,group=0x90000001")
@@ -565,6 +575,7 @@ class decap_1mpls_of3(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x90000001 group=any,port=any,weight=0 set_field=eth_src=00:00:04:22:33:55,set_field=eth_dst=00:00:04:22:44:66,set_field=vlan_vid=2,group=0x2000"+str(output_port))
         apply_dpctl_mod(self, config, "flow-mod table=24,cmd=add,prio=204 eth_type=0x8847,mpls_label=0x904 apply:pop_mpls=0x8847,mpls_dec write:group=0x90000001 goto:60")
@@ -616,6 +627,7 @@ class decap_2mpls_of3(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x90000001 group=any,port=any,weight=0 set_field=eth_src=00:00:04:22:33:55,set_field=eth_dst=00:00:04:22:44:66,set_field=vlan_vid=2,group=0x2000"+str(output_port))
         apply_dpctl_mod(self, config, "flow-mod table=23,cmd=add,prio=203 eth_type=0x8847,mpls_label=0x904 apply:pop_mpls=0x8847,mpls_dec goto:24")
@@ -679,6 +691,7 @@ class encap_2mpls_ff(base_tests.SimpleDataPlane):
         output_port = test_ports[1]
         output_port2 = test_ports[2]
         
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x90000001 group=any,port=any,weight=0 set_field=eth_src=00:00:04:22:33:51,set_field=eth_dst=00:00:04:22:44:61,set_field=vlan_vid=2,group=0x2000"+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x93000001 group=any,port=any,weight=0 push_mpls=0x8847,set_field=mpls_label:0x931,group=0x90000001")
@@ -764,6 +777,7 @@ class decap_mpls_acl(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(input_port)+" group=any,port=any,weight=0 output="+str(input_port))
         apply_dpctl_mod(self, config, "flow-mod table=24,cmd=add,prio=204 eth_type=0x8847,mpls_label=0x901,mpls_bos=1 apply:pop_mpls=0x8847,mpls_dec,ofdpa_pop_l2hdr,ofdpa_pop_cw,set_field=ofdpa_mpls_l2_port:0x20100,set_field=tunn_id:0x10001 write:group=0x2000"+str(input_port)+" goto:60")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x90000001 group=any,port=any,weight=0 set_field=eth_src=00:00:04:22:33:55,set_field=eth_dst=00:00:04:22:44:66,set_field=vlan_vid=2,group=0x2000"+str(input_port))
@@ -819,6 +833,7 @@ class encap_mpls_l3(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=0,cmd=add,prio=1 in_port=0/0xffff0000 goto:10")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1002/0x1fff goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 in_port="+str(input_port)+",vlan_vid=2/0xfff,eth_dst=00:00:00:11:33:55,eth_type=0x0800 goto:30")
@@ -872,6 +887,7 @@ class decap_mpls_l3(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x100c/0x1fff apply:set_field=ofdpa_vrf:1 goto:20")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0xa000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x20000001 group=any,port=any,weight=0 set_field=eth_src=00:00:06:22:33:55,set_field=eth_dst=00:00:06:22:44:66,set_field=vlan_vid=10,group=0xa000"+str(output_port))
@@ -922,6 +938,7 @@ class encap_2mpls_l3(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=0,cmd=add,prio=1 in_port=0/0xffff0000 goto:10")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1002/0x1fff goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 in_port="+str(input_port)+",vlan_vid=2/0xfff,eth_dst=00:00:00:11:33:55,eth_type=0x0800 goto:30")
@@ -977,6 +994,7 @@ class decap_2mpls_l3(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x20000003 group=any,port=any,weight=0 set_field=eth_src=00:00:06:22:33:55,set_field=eth_dst=00:00:06:22:44:66,set_field=vlan_vid=2,group=0x2000"+str(output_port))
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1002/0x1fff apply:set_field=ofdpa_vrf:1 goto:20")
@@ -1033,6 +1051,7 @@ class encap_3mpls_l3(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=0,cmd=add,prio=1 in_port=0/0xffff0000 goto:10")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1002/0x1fff goto:20")
         apply_dpctl_mod(self, config, "flow-mod table=20,cmd=add,prio=201 in_port="+str(input_port)+",vlan_vid=2/0xfff,eth_dst=00:00:00:11:33:55,eth_type=0x0800 goto:30")

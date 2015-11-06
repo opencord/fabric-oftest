@@ -35,6 +35,7 @@ class dscp(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1002/0x1fff goto:20")
         apply_dpctl_mod(self, config, "meter-mod cmd=add,flags=0x06,meter=1 dscp_remark:rate=5,prec_level=2,burst=5")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
@@ -75,6 +76,7 @@ class drop(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1002/0x1fff goto:20")
         apply_dpctl_mod(self, config, "meter-mod cmd=add,flags=0x01,meter=1 drop:rate=8")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
@@ -118,6 +120,7 @@ class trtcm(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1002/0x1fff goto:20")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "meter-mod cmd=add,flags=0x6,meter=1 set_color:rate=10,burst=5,exp_id=0x1018,exp_type=3,mode=1,color_aware=0,color=1 set_color:rate=20,burst=10,exp_id=0x1018,exp_type=3,mode=1,color_aware=0,color=2")
@@ -174,6 +177,7 @@ class srtcm(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1002/0x1fff goto:20")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "meter-mod cmd=add,flags=0x6,meter=1 set_color:rate=10,exp_id=0x1018,exp_type=3,mode=2,color_aware=0,color=1,burst=10 set_color:rate=20,exp_id=0x1018,exp_type=3,mode=2,color_aware=0,color=2,burst=20")
@@ -227,6 +231,7 @@ class mod_trtcm(base_tests.SimpleDataPlane):
         input_port = test_ports[0]
         output_port = test_ports[1]
 
+        apply_dpctl_mod(self, config, "meter-mod cmd=del,meter=0xffffffff")
         apply_dpctl_mod(self, config, "flow-mod table=10,cmd=add,prio=101 in_port="+str(input_port)+",vlan_vid=0x1002/0x1fff goto:20")
         apply_dpctl_mod(self, config, "group-mod cmd=add,type=ind,group=0x2000"+str(output_port)+" group=any,port=any,weight=0 output="+str(output_port))
         apply_dpctl_mod(self, config, "meter-mod cmd=add,flags=0x6,meter=1 set_color:rate=10,burst=5,exp_id=0x1018,exp_type=3,mode=3,color_aware=0,color=1 set_color:rate=20,burst=10,exp_id=0x1018,exp_type=3,mode=3,color_aware=0,color=2")

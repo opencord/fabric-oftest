@@ -71,10 +71,12 @@ def simple_packet(content='00 00 00 11 33 55 00 00 00 11 22 33 81 00 00 03 '
                 '08 00 45 00 00 2e 04 d2 00 00 7f 00 b2 47 c0 a8 '
                 '01 64 c0 a8 02 02 00 00 00 00 00 00 00 00 00 00 '
                 '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00'):
-    data = (content)
-    data_list = data.split(" ")
-    pkt = ''.join(data_list).decode('hex')
-
+             
+    pkt = ''.join(content.split(" ")).decode('hex')
+    
+    if len(pkt) < 64:
+        pkt = pkt/("D" * (64 - len(pkt)))
+        
     return pkt
 
 def simple_tcp_packet(pktlen=100, 

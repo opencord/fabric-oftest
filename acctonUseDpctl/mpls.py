@@ -735,18 +735,18 @@ class encap_2mpls_ff(base_tests.SimpleDataPlane):
         self.dataplane.send(input_port, str(input_pkt))
         verify_packet(self, str(output_pkt2), output_port2)
         apply_dpctl_mod(self, config, "port-mod port="+str(output_port)+",conf=0x0,mask=0x1")
-        time.sleep(1)
-        #make sure port link up
-        json_result = apply_dpctl_get_cmd(self, config, "port-desc")
-        result=json_result["RECEIVED"][1]
+        #make sure port link up        
         port_up = 0
         while port_up == 0:
+            time.sleep(1)
+            #apply_dpctl_mod(self, config, "port-mod port="+str(output_port)+",conf=0x0,mask=0x1")
+            json_result = apply_dpctl_get_cmd(self, config, "port-desc")
+            result=json_result["RECEIVED"][1]
             for p_desc in result["port"]:
                 if p_desc["no"] == output_port:
-                    if p_desc["config"] != 0x01 : #up
-                        port_up = 1 
-                        time.sleep(1)
-        
+                    if p_desc["config"] != 0x01 : #up                        
+                        port_up = 1
+                                
 
 
 class decap_mpls_acl(base_tests.SimpleDataPlane):

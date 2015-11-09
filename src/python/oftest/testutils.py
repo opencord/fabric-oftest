@@ -73,10 +73,10 @@ def simple_packet(content='00 00 00 11 33 55 00 00 00 11 22 33 81 00 00 03 '
                 '00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00'):
              
     pkt = ''.join(content.split(" ")).decode('hex')
-    
+    pkt = scapy.Ether(pkt)
     if len(pkt) < 64:
         pkt = pkt/("D" * (64 - len(pkt)))
-        
+    #scapy.hexdump(pkt)
     return pkt
 
 def simple_tcp_packet(pktlen=100, 

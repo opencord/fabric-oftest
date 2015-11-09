@@ -696,7 +696,7 @@ def add_mcast4_routing_flow(ctrl, vlan_id, src_ip, src_ip_mask, dst_ip, action_g
     return request            
 
 #dpctl tcp:192.168.1.1:6633 flow-mod table=28,cmd=add,prio=281 eth_type=0x800,ip_dst=100.0.0.1,ip_proto=6,tcp_dst=5000 write:set_field=ip_dst:10.0.0.1,set_field=tcp_dst:2000,group=0x71000001 goto:60
-def add_nat_flow(ctrl, eth_type, ip_dst, ip_proto, tcp_dst, set_ip_dst, set_tcp_dst, action_group_id):
+def add_dnat_flow(ctrl, eth_type, ip_dst, ip_proto, tcp_dst, set_ip_dst, set_tcp_dst, action_group_id):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(eth_type))
     match.oxm_list.append(ofp.oxm.ipv4_dst(ip_dst))
@@ -717,6 +717,30 @@ def add_nat_flow(ctrl, eth_type, ip_dst, ip_proto, tcp_dst, set_ip_dst, set_tcp_
             buffer_id=ofp.OFP_NO_BUFFER,
             priority=1) 
     logging.info("Inserting DNAT flow eth_type %lx, dip %lx, ip_proto %ld, tcp_dst %ld, SetFeild: Dip %lx, tcp_dst %ld, action_gorup=%lx",eth_type, ip_dst, ip_proto, tcp_dst, set_ip_dst, set_tcp_dst, action_group_id)
+    ctrl.message_send(request)
+    return request
+
+#dpctl tcp:192.168.1.1:6633 flow-mod table=29,cmd=add,prio=291 eth_type=0x800,ip_src=10.0.0.1,ip_proto=6,tcp_src=2000 write:set_field=ip_src:100.0.0.1,set_field=tcp_src:5000 goto:30
+def add_snat_flow(ctrl, eth_type, ip_src, ip_proto, tcp_src, set_ip_src, set_tcp_src):
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.eth_type(eth_type))
+    match.oxm_list.append(ofp.oxm.ipv4_src(ip_src))
+    match.oxm_list.append(ofp.oxm.ip_proto(ip_proto))
+    match.oxm_list.append(ofp.oxm.tcp_src(tcp_src))
+    
+    request = ofp.message.flow_add(
+            table_id=29,
+            cookie=42,
+            match=match,
+            instructions=[
+                    ofp.instruction.write_actions(
+                        actions=[ofp.action.set_field(ofp.oxm.ipv4_src(set_ip_src)),
+                                 ofp.action.set_field(ofp.oxm.tcp_src(set_tcp_src))]),
+                    ofp.instruction.goto_table(30)
+                ],
+            buffer_id=ofp.OFP_NO_BUFFER,
+            priority=1) 
+    logging.info("Inserting DNAT flow eth_type %lx, sip %lx, ip_proto %ld, tcp_src %ld, SetFeild: sip %lx, tcp_src %ld",eth_type, ip_src, ip_proto, tcp_src, set_ip_src, set_tcp_src)
     ctrl.message_send(request)
     return request
     

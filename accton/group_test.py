@@ -734,7 +734,7 @@ class mpls_forwarding_group_fastfailover(base_tests.SimpleDataPlane):
                                                              watch_port=test_port, 
                                                              watch_group=ofp.OFPP_ANY, 
                                                              push_vlan=None,
-                                                             pop_van=None,
+                                                             pop_vlan=None,
                                                              set_vid=None)
             
         stats = get_stats(self, ofp.message.group_desc_stats_request())
@@ -794,7 +794,7 @@ class mpls_forwarding_group_ecmp(base_tests.SimpleDataPlane):
                                                              watch_port=None, 
                                                              watch_group=None,
                                                              push_vlan=None,
-                                                             pop_van=None,
+                                                             pop_vlan=None,
                                                              set_vid=None)
             
         stats = get_stats(self, ofp.message.group_desc_stats_request())

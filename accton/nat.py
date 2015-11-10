@@ -40,7 +40,7 @@ class dnat(base_tests.SimpleDataPlane):
         
         add_one_l2_interface_grouop(self.controller, port=output_port, vlan_id=100, is_tagged=True, send_barrier=False)
         msg1=add_l3_unicast_group(self.controller, port=output_port, vlanid=100, id=0x3000001, src_mac=[0x00,0x00,0x00,0x00,0x01,0x00], dst_mac=[0x00,0x00,0x00,0x00,0x01,0x01])
-        add_nat_flow(self.controller, eth_type=0x0800, ip_dst=0x64000001, ip_proto=6, tcp_dst=5000, set_ip_dst=0x0a000001, set_tcp_dst=2000, action_group_id=msg1.group_id)
+        add_dnat_flow(self.controller, eth_type=0x0800, ip_dst=0x64000001, ip_proto=6, tcp_dst=5000, set_ip_dst=0x0a000001, set_tcp_dst=2000, action_group_id=msg1.group_id)
 
         input_pkt = simple_tcp_packet(pktlen=100, 
                                        eth_dst="00:00:00:00:02:00",

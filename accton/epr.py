@@ -80,7 +80,7 @@ class pvidClear(base_tests.SimpleDataPlane):
         #send packet and verify packet
         parsed_pkt = simple_tcp_packet()
         self.dataplane.send(port1, str(parsed_pkt))
-        verify_packet(self, str(parsed_pkt), port2)
+        verify_no_packet(self, str(parsed_pkt), port2)
         self.dataplane.send(port2, str(parsed_pkt))
         verify_no_packet(self, str(parsed_pkt), port1)
         

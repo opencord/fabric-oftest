@@ -34,6 +34,10 @@ class L3UcastRoute(base_tests.SimpleDataPlane):
             #add l2 interface group
             add_one_l2_interface_grouop(self.controller, port, vlan_id=vlan_id, is_tagged=True, send_barrier=False)
             dst_mac[5]=vlan_id
+
+            group_id = encode_l2_interface_group_id(vlan_id, port)
+            add_bridge_flow(self.controller, dst_mac,vlan_id, group_id, True)
+
             l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vlan_id, id=vlan_id, src_mac=intf_src_mac, dst_mac=dst_mac)
             #add vlan flow table
             add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_BOTH)
@@ -52,7 +56,7 @@ class L3UcastRoute(base_tests.SimpleDataPlane):
         switch_mac = ':'.join(['%02X' % x for x in intf_src_mac])
         dst_mac[5]=1
         port1_mac=':'.join(['%02X' % x for x in dst_mac])
-
+        
         parsed_pkt = simple_tcp_packet(pktlen=100, 
                                        dl_vlan_enable=True,
                                        vlan_vid=1,
@@ -108,6 +112,11 @@ class L3UcastRoute(base_tests.SimpleDataPlane):
         verify_packet(self, pkt, port1)
         verify_no_other_packets(self)    
 
+class L2Unicast(base_tests.SimpleProtocol):
+    def runTest(self):
+        ports = sorted(config["port_map"].keys())
+        add_vlan_table_flow(self.controller, config["port_map"].keys(), 1)
+        add_l2_interface_grouop(self.controller, config["port_map"].keys(), 1,  False, 1)
 
 class qinq(base_tests.SimpleDataPlane):
     def runTest(self):
@@ -145,6 +154,9 @@ class qinq(base_tests.SimpleDataPlane):
                                                 in_dl_vlan_enable=True, in_vlan_vid=1)
         verify_packet(self, str(parsed_pkt), out_port)
 
+class VlanFlow(base_tests.SimpleProtocol): 
+    def runTest(self):
+        logging.info("Installing ACL rule")
 
 class FlowStats(base_tests.SimpleProtocol):
     """
@@ -204,3 +216,5 @@ class ACLStats(base_tests.SimpleProtocol):
 )]
         self.assertEquals(stats, verify_flow_stats)
 
+
+#class LearningPacketIn()git 

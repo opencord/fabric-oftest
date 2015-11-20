@@ -43,6 +43,46 @@ class PacketInSrcMacMiss(base_tests.SimpleDataPlane):
 
             verify_no_other_packets(self)
 
+class L2FloodTagged(base_tests.SimpleDataPlane):
+    """
+    Test L2 flood to a vlan
+    Send a packet with unknown dst_mac and check if the packet is flooded to all ports except inport
+    #todo take in account unknown src 
+    """
+    def runTest(self):
+        ports = sorted(config["port_map"].keys())
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)
+
+        add_vlan_table_flow(self.controller, ports, 1)
+
+        # set up tagged groups for each port
+        add_l2_interface_grouop(self.controller, ports, 1,  True, 1)
+
+        msg=add_l2_flood_group(self.controller, ports, 1, 1)
+        add_bridge_flow(self.controller, None, 1, msg.group_id, True)
+        # Installing flows to avoid packet-in
+        for port in ports:
+            group_id = encode_l2_interface_group_id(1, port)
+            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
+        do_barrier(self.controller)
+
+        #verify flood
+        for ofport in ports:
+            # change dest based on port number
+            mac_src= '00:12:34:56:78:%02X' % ofport
+            parsed_pkt = simple_tcp_packet(dl_vlan_enable=True, vlan_vid=1, eth_dst='00:12:34:56:78:9a', eth_src=mac_src)
+            pkt = str(parsed_pkt)
+            self.dataplane.send(ofport, pkt)
+            #self won't rx packet
+            verify_no_packet(self, pkt, ofport)
+            #others will rx packet
+            tmp_ports=list(ports)
+            tmp_ports.remove(ofport)
+            verify_packets(self, pkt, tmp_ports)
+
+        verify_no_other_packets(self)
+
 class L2FloodTaggedUnknownSrc(base_tests.SimpleDataPlane):
     """
     Test L2 flood to a vlan
@@ -75,7 +115,6 @@ class L2FloodTaggedUnknownSrc(base_tests.SimpleDataPlane):
             verify_packets(self, pkt, tmp_ports)
 
         verify_no_other_packets(self)
-
 
 class L2UnicastTagged(base_tests.SimpleDataPlane):
     """

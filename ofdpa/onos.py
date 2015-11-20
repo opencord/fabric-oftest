@@ -161,6 +161,126 @@ class L2UnicastTagged(base_tests.SimpleDataPlane):
                 verify_no_other_packets(self)
 
 
+class Mtu4500(base_tests.SimpleDataPlane):
+
+    def runTest(self):
+        ports = sorted(config["port_map"].keys())
+
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)
+
+        add_vlan_table_flow(self.controller, config["port_map"].keys())
+
+        # set up tag groups for each port
+        add_l2_interface_grouop(self.controller, config["port_map"].keys(), 1, True, 1)
+
+        for port in ports:
+            group_id = encode_l2_interface_group_id(1, port)
+            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
+        do_barrier(self.controller)
+
+        for out_port in ports:
+            # change dest based on port number
+            mac_dst= '00:12:34:56:78:%02X' % out_port
+            for in_port in ports:
+                if in_port == out_port:
+                    continue
+                # change source based on port number to avoid packet-ins from learning
+                mac_src= '00:12:34:56:78:%02X' % in_port
+                parsed_pkt = simple_tcp_packet(pktlen=4500,dl_vlan_enable=True, vlan_vid=1, eth_dst=mac_dst, eth_src=mac_src)
+                pkt = str(parsed_pkt)
+                self.dataplane.send(in_port, pkt)
+
+                for ofport in ports:
+                    if ofport in [out_port]:
+                        verify_packet(self, pkt, ofport)
+                    else:
+                        verify_no_packet(self, pkt, ofport)
+
+                verify_no_other_packets(self)
+
+
+class Mtu1500(base_tests.SimpleDataPlane):
+
+    def runTest(self):
+        ports = sorted(config["port_map"].keys())
+
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)
+
+        add_vlan_table_flow(self.controller, config["port_map"].keys())
+
+        # set up tag groups for each port
+        add_l2_interface_grouop(self.controller, config["port_map"].keys(), 1, True, 1)
+
+        for port in ports:
+            group_id = encode_l2_interface_group_id(1, port)
+            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
+        do_barrier(self.controller)
+
+        for out_port in ports:
+            # change dest based on port number
+            mac_dst= '00:12:34:56:78:%02X' % out_port
+            for in_port in ports:
+                if in_port == out_port:
+                    continue
+                # change source based on port number to avoid packet-ins from learning
+                mac_src= '00:12:34:56:78:%02X' % in_port
+                parsed_pkt = simple_tcp_packet(pktlen=1500,dl_vlan_enable=True, vlan_vid=1, eth_dst=mac_dst, eth_src=mac_src)
+                pkt = str(parsed_pkt)
+                self.dataplane.send(in_port, pkt)
+
+                for ofport in ports:
+                    if ofport in [out_port]:
+                        verify_packet(self, pkt, ofport)
+                    else:
+                        verify_no_packet(self, pkt, ofport)
+
+                verify_no_other_packets(self)
+
+
+class Mtu4000(base_tests.SimpleDataPlane):
+    """
+    Test output function for an exact-match flow
+    For each port A, adds a flow directing matching packets to that port.
+    Then, for all other ports B != A, verifies that sending a matching packet
+    to B results in an output to A.
+    """
+    def runTest(self):
+        ports = sorted(config["port_map"].keys())
+
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)
+
+        add_vlan_table_flow(self.controller, config["port_map"].keys())
+
+        # set up tag groups for each port
+        add_l2_interface_grouop(self.controller, config["port_map"].keys(), 1, True, 1)
+
+        for port in ports:
+            group_id = encode_l2_interface_group_id(1, port)
+            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
+        do_barrier(self.controller)
+
+        for out_port in ports:
+            # change dest based on port number
+            mac_dst= '00:12:34:56:78:%02X' % out_port
+            for in_port in ports:
+                if in_port == out_port:
+                    continue
+                # change source based on port number to avoid packet-ins from learning
+                mac_src= '00:12:34:56:78:%02X' % in_port
+                parsed_pkt = simple_tcp_packet(pktlen=4000,dl_vlan_enable=True, vlan_vid=1, eth_dst=mac_dst, eth_src=mac_src)
+                pkt = str(parsed_pkt)
+                self.dataplane.send(in_port, pkt)
+
+                for ofport in ports:
+                    if ofport in [out_port]:
+                        verify_packet(self, pkt, ofport)
+                    else:
+                        verify_no_packet(self, pkt, ofport)
+
+                verify_no_other_packets(self)
 
 class L3UcastTagged(base_tests.SimpleDataPlane):
     """

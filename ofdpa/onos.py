@@ -1,8 +1,13 @@
 """
 Flow Test
-Test each flow table can set entry, and packet rx correctly.
-1) L3UcastRoute
-2) QinQ
+1) PacketInSrcMacMiss
+2) L2FloodTagged
+3) L2Flood Tagged Unknown Src
+4) L2 Unicast Tagged
+5) L3 Unicast Tagged
+6) MTU 1500
+7) MTU 4100
+8) MTU 4500
 """
 
 import logging

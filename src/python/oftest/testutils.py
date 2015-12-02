@@ -392,7 +392,47 @@ def simple_vxlan_packet(eth_dst='00:01:02:03:04:05',
 
     return pkt
 
-    
+def mpls_packet(pktlen=100, 
+                      eth_dst='00:01:02:03:04:05',
+                      eth_src='00:06:07:08:09:0a',
+                      dl_vlan_enable=False,
+                      vlan_vid=0,
+                      vlan_pcp=0,
+                      dl_vlan_cfi=0,
+                      ip_src='192.168.0.1',
+                      ip_dst='192.168.0.2',
+                      ip_tos=0,
+                      ip_ttl=64,
+                      tcp_sport=1234,
+                      tcp_dport=80,
+                      tcp_flags="S",
+                      ip_ihl=None,
+                      ip_options=False,
+                      label=None,
+                      inner_payload=None
+                      ):
+    if MINSIZE > pktlen:
+        pktlen = MINSIZE
+
+    # Note Dot1Q.id is really CFI
+    if (dl_vlan_enable):
+        pkt = scapy.Ether(dst=eth_dst, src=eth_src)/ \
+            scapy.Dot1Q(prio=vlan_pcp, id=dl_vlan_cfi, vlan=vlan_vid)
+    else:
+        pkt = scapy.Ether(dst=eth_dst, src=eth_src)
+
+    #add MPLS header
+    for i in range(len(label)):
+        l,c,s,t=label[i]    
+        pkt = pkt/scapy.MPLS(label=l, cos=c, s=s, ttl=t)
+
+    #add innder payload
+    if inner_payload!=None:
+        pkt=pkt / \
+            scapy.IP(src=ip_src, dst=ip_dst, tos=ip_tos, ttl=ip_ttl, ihl=ip_ihl)/ \
+            scapy.TCP(sport=tcp_sport, dport=tcp_dport, flags=tcp_flags)
+
+    return pkt
 
 def simple_mpls_packet(eth_dst='00:01:02:03:04:05',
                       eth_src='00:06:07:08:09:0a',

@@ -388,7 +388,33 @@ def add_port_table_flow(ctrl, is_overlay=True):
     logging.info("Add port table, match port %lx" % 0x10000)
     ctrl.message_send(request)
     
-    
+
+def pop_vlan_flow(ctrl, ports, vlan_id=1):
+    # table 10: vlan
+    # goto to table 20
+    msgs=[]
+    for of_port in ports:
+            match = ofp.match()
+            match.oxm_list.append(ofp.oxm.in_port(of_port))
+            match.oxm_list.append(ofp.oxm.vlan_vid(0x1000+vlan_id))
+            request = ofp.message.flow_add(
+                table_id=10,
+                cookie=42,
+                match=match,
+                instructions=[
+                  ofp.instruction.apply_actions(
+                    actions=[
+                      ofp.action.pop_vlan()
+                    ]
+                  ),
+                  ofp.instruction.goto_table(20)
+                ],
+                priority=0)
+            logging.info("Add vlan %d tagged packets on port %d and go to table 20" %( vlan_id, of_port))
+            ctrl.message_send(request)
+
+
+    return msgs
 
 def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
     # table 10: vlan
@@ -404,6 +430,11 @@ def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, 
                 cookie=42,
                 match=match,
                 instructions=[
+                  ofp.instruction.apply_actions(
+                    actions=[
+                      ofp.action.pop_vlan()
+                    ]
+                  ),
                   ofp.instruction.goto_table(20)
                 ],
                 priority=0)
@@ -698,7 +729,39 @@ def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=
         do_barrier(ctrl)   
 
     return request        
-        
+
+def add_mpls_flow(ctrl, action_group_id, label=100 ,ethertype=0x0800, bos=True, send_barrier=False):
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.eth_type(0x8847))
+    match.oxm_list.append(ofp.oxm.mpls_label(label))
+    match.oxm_list.append(ofp.oxm.mpls_bos(bos))
+    actions = [ofp.action.dec_mpls_ttl(),
+               ofp.action.copy_ttl_in(),
+               ofp.action.pop_mpls(ethertype)]
+    request = ofp.message.flow_add(
+            table_id=24,
+            cookie=43,
+            match=match,
+            instructions=[
+                    ofp.instruction.apply_actions(
+                        actions=actions
+                    ),
+                    ofp.instruction.write_actions(
+                        actions=[ofp.action.group(action_group_id)]),
+                    ofp.instruction.goto_table(60)
+                ],
+            buffer_id=ofp.OFP_NO_BUFFER,
+            priority=1)
+
+    logging.info("Inserting MPLS flow , label %ld", label)
+    ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
+
+    return request
+
+
 def add_mcast4_routing_flow(ctrl, vlan_id, src_ip, src_ip_mask, dst_ip, action_group_id, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(0x0800))

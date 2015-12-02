@@ -620,7 +620,7 @@ class mpls_tunnel_lable2_group(base_tests.SimpleDataPlane):
                                                           oam_lm_tx_count=False,
                                                           set_pri_from_table=False
                                                           )
-            
+        mpls_intf_msg.group_id
         stats = get_stats(self, ofp.message.group_desc_stats_request())
         
         verify_group_stats=[]

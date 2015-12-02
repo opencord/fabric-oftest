@@ -289,9 +289,8 @@ class Mtu4000(base_tests.SimpleDataPlane):
 
 class L3UcastTagged(base_tests.SimpleDataPlane):
     """
-    Explain better
-    Port1(vlan1, 0x00, 0x00, 0x00, 0x22, 0x22, 0x01, 192.168.1.1) , 
-    Port2(vlan2, 0x00, 0x00, 0x00, 0x22, 0x22, 0x02, 19.168.2.1)
+    Port1(vid=in_port, src=00:00:00:22:22:in_port, 192.168.outport.1) , 
+    Port2(vid=outport, dst=00:00:00:22:22:outport, 192.168.outport.1)
     """
     def runTest(self):          
         delete_all_flows(self.controller)
@@ -347,6 +346,10 @@ class L3UcastTagged(base_tests.SimpleDataPlane):
                 verify_no_other_packets(self)
 
 class L3VPNMPLS(base_tests.SimpleDataPlane): 
+	'''
+	Insert IP packet
+	Receive MPLS packet
+	'''
     def runTest(self):
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
@@ -365,17 +368,18 @@ class L3VPNMPLS(base_tests.SimpleDataPlane):
             vlan_id=port
             l2_gid, l2_msg = add_one_l2_interface_grouop(self.controller, port, vlan_id, True, False)
             dst_mac[5]=vlan_id
+            #add MPLS interface group
             mpls_gid, mpls_msg = add_mpls_intf_group(self.controller, l2_gid, dst_mac, intf_src_mac, vlan_id, port)
+            #add MPLS L3 VPN group
             mpls_label_gid, mpls_label_msg = add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_L3_VPN_LABEL, 
 		     index=port, ref_gid= mpls_gid, push_mpls_header=True, set_mpls_label=port, set_bos=1, set_ttl=32)
             #add vlan flow table
             add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_BOTH)
             #add termination flow
             add_termination_flow(self.controller, port, 0x0800, intf_src_mac, vlan_id)
-            #add unicast routing flow
+            #add routing flow
             dst_ip = dip + (vlan_id<<8)
             add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0, mpls_label_gid)
-
             #add entries in the Bridging table to avoid packet-in from mac learning
             group_id = encode_l2_interface_group_id(vlan_id, port)
             add_bridge_flow(self.controller, dst_mac, vlan_id, group_id, True)
@@ -403,5 +407,3 @@ class L3VPNMPLS(base_tests.SimpleDataPlane):
                 pkt=str(exp_pkt)
                 verify_packet(self, pkt, out_port)
                 verify_no_other_packets(self)
-
-

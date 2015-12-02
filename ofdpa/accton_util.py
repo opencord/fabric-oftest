@@ -388,7 +388,29 @@ def add_port_table_flow(ctrl, is_overlay=True):
     logging.info("Add port table, match port %lx" % 0x10000)
     ctrl.message_send(request)
     
-    
+def pop_vlan_flow(ctrl, ports, vlan_id=1):
+    msgs=[]
+    for of_port in ports:
+            match = ofp.match()
+            match.oxm_list.append(ofp.oxm.in_port(of_port))
+            match.oxm_list.append(ofp.oxm.vlan_vid(0x1000+vlan_id))
+            request = ofp.message.flow_add(
+                table_id=10,
+                cookie=42,
+                match=match,
+                instructions=[
+                  ofp.instruction.apply_actions(
+                    actions=[
+                      ofp.action.pop_vlan()
+                    ]
+                  ),
+                  ofp.instruction.goto_table(11)
+                ],
+                priority=0)
+            logging.info("Add vlan %d tagged packets on port %d and go to table 20" %( vlan_id, of_port))
+            ctrl.message_send(request)
+
+    return msgs    
 
 def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
     # table 10: vlan

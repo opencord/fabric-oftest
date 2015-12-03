@@ -11,21 +11,11 @@ Flow Test
 """
 
 from oftest import config
+import logging
+import oftest.base_tests as base_tests
 import ofp
 from oftest.testutils import *
-from accton.accton_util import add_mpls_flow
 from accton_util import *
-import src.python.oftest.testutils
-from src.python.oftest.testutils import do_barrier
-from src.python.oftest.testutils import delete_all_flows
-from src.python.oftest.testutils import delete_all_groups
-from src.python.oftest.testutils import simple_tcp_packet
-from src.python.oftest.testutils import verify_packet_in
-from src.python.oftest.testutils import verify_no_other_packets
-from src.python.oftest.testutils import verify_no_packet
-from src.python.oftest.testutils import verify_packets
-from src.python.oftest.testutils import verify_packet
-from src.python.oftest.testutils import mpls_packet
 
 
 class PacketInSrcMacMiss(base_tests.SimpleDataPlane):
@@ -443,13 +433,15 @@ class MplsTermination(base_tests.SimpleDataPlane):
             dst_mac[5]=vlan_id
             #add L3 Unicast  group
             l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vlan_id, id=vlan_id, src_mac=intf_src_mac, dst_mac=dst_mac)
+            #add L3 ecmp group
+            ecmp_msg = add_l3_ecmp_group(self.controller, port, [l3_msg.group_id])
             #add vlan flow table
             add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_BOTH)
             #add termination flow
-            add_termination_flow(self.controller, port, 0x0800, intf_src_mac, vlan_id)
+            add_termination_flow(self.controller, port, 0x8847, intf_src_mac, vlan_id, goto_table=24)
             #add routing flow
             dst_ip = dip + (vlan_id<<8)
-            add_mpls_flow(self.controller, l3_msg.group_id, port)
+            add_mpls_flow(self.controller, ecmp_msg.group_id, port)
             #add entries in the Bridging table to avoid packet-in from mac learning
             group_id = encode_l2_interface_group_id(vlan_id, port)
             add_bridge_flow(self.controller, dst_mac, vlan_id, group_id, True)
@@ -464,16 +456,18 @@ class MplsTermination(base_tests.SimpleDataPlane):
                 if in_port == out_port:
                      continue
                 ip_dst='192.168.%02d.1' % out_port
-                parsed_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=in_port,
-                    eth_dst=switch_mac, eth_src=mac_src, ip_ttl=64, ip_src=ip_src,
-                    ip_dst=ip_dst)
+
+                label = (out_port, 0, 1, 32)
+                parsed_pkt = mpls_packet(pktlen=104, dl_vlan_enable=True, vlan_vid=in_port, ip_src=ip_src,
+                             ip_dst=ip_dst, eth_dst=switch_mac, eth_src=mac_src, label=[label])
                 pkt=str(parsed_pkt)
                 self.dataplane.send(in_port, pkt)
+
                 #build expect packet
                 mac_dst='00:00:00:22:22:%02X' % out_port
-                label = (out_port, 0, 1, 32)
-                exp_pkt = mpls_packet(dl_vlan_enable=True, vlan_vid=out_port, ip_ttl=64, ip_src=ip_src,
-                            ip_dst=ip_dst, eth_dst=mac_dst, eth_src=switch_mac, label=[label])
+                exp_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=out_port,
+                    eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=31, ip_src=ip_src, ip_dst=ip_dst) 
                 pkt=str(exp_pkt)
                 verify_packet(self, pkt, out_port)
                 verify_no_other_packets(self)
+

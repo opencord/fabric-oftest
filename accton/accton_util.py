@@ -730,7 +730,7 @@ def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=
 
     return request        
 
-def add_mpls_flow(ctrl, action_group_id, label=100 ,ethertype=0x0800, bos=True, send_barrier=False):
+def add_mpls_flow(ctrl, action_group_id, label=100 ,ethertype=0x0800, bos=1, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(0x8847))
     match.oxm_list.append(ofp.oxm.mpls_label(label))

@@ -409,7 +409,7 @@ def mpls_packet(pktlen=100,
                       ip_ihl=None,
                       ip_options=False,
                       label=None,
-                      inner_payload=None
+                      inner_payload=True
                       ):
     if MINSIZE > pktlen:
         pktlen = MINSIZE
@@ -431,6 +431,8 @@ def mpls_packet(pktlen=100,
         pkt=pkt / \
             scapy.IP(src=ip_src, dst=ip_dst, tos=ip_tos, ttl=ip_ttl, ihl=ip_ihl)/ \
             scapy.TCP(sport=tcp_sport, dport=tcp_dport, flags=tcp_flags)
+    
+    pkt = pkt/("D" * (pktlen - len(pkt)))
 
     return pkt
 

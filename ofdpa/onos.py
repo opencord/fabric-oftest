@@ -53,9 +53,9 @@ class PacketInSrcMacMiss(base_tests.SimpleDataPlane):
 
 class VlanSupport(base_tests.SimpleDataPlane):
     """
-    Test L2 forwarding of both, untagged and tagged packets
+    Test L2 forwarding of both, untagged and double-tagged packets
     Sends a packet and expects the same packet on the other port
-    Repeats for tagged
+    Repeats for double tagged
     """
    def runTest(self):
         delete_all_flows(self.controller)
@@ -64,16 +64,15 @@ class VlanSupport(base_tests.SimpleDataPlane):
         # group table
         # set up untag groups for each port
         add_l2_interface_grouop(self.controller, config["port_map"].keys(), 4093, False, 1)
-        #set up tagged groups
-        add_l2_interface_grouop(self.controller, config["port_map"].keys(), 300, True, 1)
         for port in ports:
             add_one_vlan_table_flow(self.controller, port, 4093, flag=VLAN_TABLE_FLAG_ONLY_BOTH)
             group_id = encode_l2_interface_group_id(4093, port)
             add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 4093, group_id, True)
             #add flow match for vlan 300
+            add_one_l2_interface_group(self.controller, port, 300, True, False)
             add_one_vlan_table_flow(self.controller, port, 300, flag=VLAN_TABLE_FLAG_ONLY_TAG)
-            group_id = encode_l2_interface_group_id(300, port)
-            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 300, group_id, True)
+        msg=add_l2_flood_group(self.controller, ports, 300, 1)
+        add_bridge_flow(self.controller, None, 300, msg.group_id, True)
         do_barrier(self.controller)
 
         for out_port in ports:
@@ -98,8 +97,9 @@ class VlanSupport(base_tests.SimpleDataPlane):
                         verify_no_packet(self, pkt, ofport)
 
                 verify_no_other_packets(self)
-                # sends a tagged packet
-                parsed_pkt = simple_tcp_packet(dl_vlan_enable=True, vlan_vid=300, eth_dst=mac_dst, eth_src=mac_src)
+                # sends a double tagged packet
+                parsed_pkt = simple_tcp_packet_two_vlan(pktlen=108, out_dl_vlan_enable=True, out_vlan_vid=300,
+                                                in_dl_vlan_enable=True, in_vlan_vid=10, eth_dst='00:12:34:56:78:9a', eth_src=mac_src)
                 pkt = str(parsed_pkt)
                 logging.info("OutputExact test, ports %d to %d", in_port, out_port)
                 self.dataplane.send(in_port, pkt)

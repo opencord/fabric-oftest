@@ -8,13 +8,17 @@ The onos filename was chosen because these tests are being made to guarantee con
 
 The following test cases are implemented:
 
-Flow Test
-1) PacketInSrcMacMiss
-2) L2FloodTagged
-3) L2Flood Tagged Unknown Src
-4) L2 Unicast Tagged
-5) L3 Unicast Tagged
-6) MTU 1500
-7) MTU 4100
-8) MTU 4500
+The following tests are being done here
+1. PacketInSrcMacMiss
+2. VlanSupport
+3. L2FloodQinQ
+4. L2FloodTagged
+5. L2Flood Tagged Unknown Src
+6. L2 Unicast Tagged
+7. MTU 1500
+8. MTU 4100
+9. MTU 4500
+10. L3UnicastTagged
+11. L3VPNMPLS
+12. MPLS Termination
 

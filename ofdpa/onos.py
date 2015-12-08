@@ -73,6 +73,8 @@ class VlanSupport(base_tests.SimpleDataPlane):
             add_one_vlan_table_flow(self.controller, port, 300, flag=VLAN_TABLE_FLAG_ONLY_TAG)
         msg=add_l2_flood_group(self.controller, ports, 300, 1)
         add_bridge_flow(self.controller, None, 300, msg.group_id, True)
+        msg=add_l2_flood_group(self.controller, ports, 4093, 1)
+        add_bridge_flow(self.controller, None, 4093, msg.group_id, True)
         do_barrier(self.controller)
 
         for out_port in ports:

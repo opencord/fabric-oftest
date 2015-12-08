@@ -609,7 +609,9 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
     
 def add_bridge_flow(ctrl, dst_mac, vlanid, group_id, send_barrier=False):
     match = ofp.match()
+    priority=500
     if dst_mac!=None:
+        priority=1000
         match.oxm_list.append(ofp.oxm.eth_dst(dst_mac))
 
     match.oxm_list.append(ofp.oxm.vlan_vid(0x1000+vlanid))
@@ -625,7 +627,7 @@ def add_bridge_flow(ctrl, dst_mac, vlanid, group_id, send_barrier=False):
                     ofp.instruction.goto_table(60)
                 ],
             buffer_id=ofp.OFP_NO_BUFFER,
-            priority=1000) 
+            priority=priority)
 
     logging.info("Inserting Brdige flow vlan %d, mac %s", vlanid, dst_mac)
     ctrl.message_send(request)

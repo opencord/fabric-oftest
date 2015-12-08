@@ -177,9 +177,9 @@ class vrouterSameVNIRouting(base_tests.SimpleDataPlane):
         #add port table to have vxlan ability
         add_port_table_flow(self.controller)
         #add l2 interface group
-        add_one_l2_interface_grouop(self.controller, NETWORK_PORT, vlan_id=SWITCH_VLAN, is_tagged=True, send_barrier=False)
+        add_one_l2_interface_group(self.controller, NETWORK_PORT, vlan_id=SWITCH_VLAN, is_tagged=True, send_barrier=False)
         for i in range(len(NW_VLAN)):        
-            add_one_l2_interface_grouop(self.controller, LOOPBACK_PORT, vlan_id=NW_VLAN[i], is_tagged=True, send_barrier=False)
+            add_one_l2_interface_group(self.controller, LOOPBACK_PORT, vlan_id=NW_VLAN[i], is_tagged=True, send_barrier=False)
 
 		#add vlan flow table
         add_one_vlan_table_flow(self.controller, NETWORK_PORT, SWITCH_VLAN, vrf=SWITCH_VRF, flag=VLAN_TABLE_FLAG_ONLY_BOTH)
@@ -533,9 +533,9 @@ class vrouterDiffVnidRouting(base_tests.SimpleDataPlane):
         #add port table to have vxlan ability
         add_port_table_flow(self.controller)
         #add l2 interface group
-        add_one_l2_interface_grouop(self.controller, NETWORK_PORT, vlan_id=SWITCH_VLAN, is_tagged=True, send_barrier=False)
+        add_one_l2_interface_group(self.controller, NETWORK_PORT, vlan_id=SWITCH_VLAN, is_tagged=True, send_barrier=False)
         for i in range(len(TNW_VLAN)):        
-            add_one_l2_interface_grouop(self.controller, LOOPBACK_PORT, vlan_id=TNW_VLAN[i], is_tagged=True, send_barrier=False)
+            add_one_l2_interface_group(self.controller, LOOPBACK_PORT, vlan_id=TNW_VLAN[i], is_tagged=True, send_barrier=False)
 
 		#add vlan flow table
         add_one_vlan_table_flow(self.controller, NETWORK_PORT, SWITCH_VLAN, vrf=SWITCH_VRF, flag=VLAN_TABLE_FLAG_ONLY_BOTH)

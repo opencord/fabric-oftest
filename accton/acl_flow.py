@@ -19,7 +19,7 @@ class NoVlanOnlyAclOutputPort(base_tests.SimpleDataPlane):
         output_port=ports[1]
         vlan_id = 10
         dmac = [0x00, 0x12, 0x34, 0x56, 0x78, 0x9a]
-        gid, req_msg = add_one_l2_interface_grouop(self.controller, port=output_port, vlan_id=vlan_id, is_tagged=True, send_barrier=False)
+        gid, req_msg = add_one_l2_interface_group(self.controller, port=output_port, vlan_id=vlan_id, is_tagged=True, send_barrier=False)
         #add ACL flow to output port
         match = ofp.match()
         match.oxm_list.append(ofp.oxm.in_port(input_port))

@@ -22,7 +22,7 @@ class qinq(base_tests.SimpleDataPlane):
         out_vlan=10
         add_vlan_table_flow_pvid(self.controller, in_port, None, out_vlan, False)
         add_vlan_table_flow_pvid(self.controller, in_port, 1,out_vlan, False)        
-        group_id, msg=add_one_l2_interface_grouop(self.controller, out_port, out_vlan,  True, False) 
+        group_id, msg=add_one_l2_interface_group(self.controller, out_port, out_vlan,  True, False)
         #add acl 
         match = ofp.match()
         match.oxm_list.append(ofp.oxm.in_port(in_port))    

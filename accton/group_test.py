@@ -36,7 +36,7 @@ class L2InterfaceGroupOne(base_tests.SimpleDataPlane):
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)    
 
-        group_list1, msg1 = add_one_l2_interface_grouop(self.controller, config["port_map"].keys()[0], 1,  False, False)
+        group_list1, msg1 = add_one_l2_interface_group(self.controller, config["port_map"].keys()[0], 1,  False, False)
         stats = get_stats(self, ofp.message.group_desc_stats_request())
  
         verify_group_stats=[ofp.group_desc_stats_entry(
@@ -452,7 +452,7 @@ class mpls_intf_group(base_tests.SimpleDataPlane):
         test_vid=1
         
         #ref l2_intf_group
-        l2_intf_gid, l2_intf_msg = add_one_l2_interface_grouop(self.controller, config["port_map"].keys()[0], test_vid,  False, False)
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_group(self.controller, config["port_map"].keys()[0], test_vid,  False, False)
         mpls_intf_gid, mpls_intf_msg=add_mpls_intf_group(self.controller, l2_intf_gid, [0x00,0x11,0x11,0x11,0x11,0x11], [0x00,0x22,0x22,0x22,0x22,0x22], vid=test_vid, index=1)
             
         stats = get_stats(self, ofp.message.group_desc_stats_request())
@@ -487,7 +487,7 @@ class mpls_l2_vpn_group(base_tests.SimpleDataPlane):
         test_vid=1
         test_port=config["port_map"].keys()[0]        
         #ref l2_intf_group
-        l2_intf_gid, l2_intf_msg = add_one_l2_interface_grouop(self.controller, test_port, test_vid,  False, False)
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_group(self.controller, test_port, test_vid,  False, False)
         mpls_intf_gid, mpls_intf_msg=add_mpls_intf_group(self.controller, l2_intf_gid, [0x00,0x11,0x11,0x11,0x11,0x11], [0x00,0x22,0x22,0x22,0x22,0x22], vid=test_vid, index=1)        
         mpls_label_gid, mpls_label_msg=add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_L2_VPN_LABEL, 
 		                                                  index=1, 
@@ -545,7 +545,7 @@ class mpls_tunnel_lable1_group(base_tests.SimpleDataPlane):
         test_vid=1
         test_port=config["port_map"].keys()[0]        
         #ref l2_intf_group
-        l2_intf_gid, l2_intf_msg = add_one_l2_interface_grouop(self.controller, test_port, test_vid,  False, False)
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_group(self.controller, test_port, test_vid,  False, False)
         mpls_intf_gid, mpls_intf_msg=add_mpls_intf_group(self.controller, l2_intf_gid, [0x00,0x11,0x11,0x11,0x11,0x11], [0x00,0x22,0x22,0x22,0x22,0x22], vid=test_vid, index=1)                
         mpls_label_gid, mpls_label_msg=add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_TUNNEL_LABEL1, 
 		                                                  index=1, 
@@ -601,7 +601,7 @@ class mpls_tunnel_lable2_group(base_tests.SimpleDataPlane):
         test_vid=1
         test_port=config["port_map"].keys()[0]        
         #ref l2_intf_group
-        l2_intf_gid, l2_intf_msg = add_one_l2_interface_grouop(self.controller, test_port, test_vid,  False, False)
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_group(self.controller, test_port, test_vid,  False, False)
         mpls_intf_gid, mpls_intf_msg=add_mpls_intf_group(self.controller, l2_intf_gid, [0x00,0x11,0x11,0x11,0x11,0x11], [0x00,0x22,0x22,0x22,0x22,0x22], vid=test_vid, index=1)                        
         mpls_label_gid, mpls_label_msg=add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_TUNNEL_LABEL2, 
 		                                                  index=1, 
@@ -656,7 +656,7 @@ class mpls_swap_label_group(base_tests.SimpleDataPlane):
         test_vid=1
         test_port=config["port_map"].keys()[0]
         #ref l2_intf_group
-        l2_intf_gid, l2_intf_msg = add_one_l2_interface_grouop(self.controller, test_port, test_vid,  False, False)
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_group(self.controller, test_port, test_vid,  False, False)
         mpls_intf_gid, mpls_intf_msg=add_mpls_intf_group(self.controller, l2_intf_gid, [0x00,0x11,0x11,0x11,0x11,0x11], [0x00,0x22,0x22,0x22,0x22,0x22], vid=test_vid, index=1)                                
         mpls_label_gid, mpls_label_msg=add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_SWAP_LABEL, 
 		                                                  index=1, 
@@ -708,7 +708,7 @@ class mpls_forwarding_group_fastfailover(base_tests.SimpleDataPlane):
         test_vid=1
         test_port=config["port_map"].keys()[0]
         #ref l2_intf_group
-        l2_intf_gid, l2_intf_msg = add_one_l2_interface_grouop(self.controller, test_port, test_vid,  False, False)
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_group(self.controller, test_port, test_vid,  False, False)
         mpls_intf_gid, mpls_intf_msg=add_mpls_intf_group(self.controller, l2_intf_gid, [0x00,0x11,0x11,0x11,0x11,0x11], [0x00,0x22,0x22,0x22,0x22,0x22], vid=test_vid, index=1)                                
         mpls_label_gid, mpls_label_msg=add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_SWAP_LABEL, 
 		                                                  index=1, 
@@ -780,7 +780,7 @@ class mpls_forwarding_group_ecmp(base_tests.SimpleDataPlane):
         index=1
         #ref l2_intf_group
         for port in config["port_map"].keys():
-            l2_intf_gid, l2_intf_msg = add_one_l2_interface_grouop(self.controller, port, test_vid,  False, False)
+            l2_intf_gid, l2_intf_msg = add_one_l2_interface_group(self.controller, port, test_vid,  False, False)
             l2_intf_msgs.append(l2_intf_msg)            
             mpls_intf_gid, mpls_intf_msg=add_mpls_intf_group(self.controller, l2_intf_gid, [0x00,0x11,0x11,0x11,0x11,0x11], [0x00,0x22,0x22,0x22,0x22,0x22], vid=test_vid, index=index)
             index=index+1
@@ -835,7 +835,7 @@ class mpls_forwarding_group_l2tag(base_tests.SimpleDataPlane):
         test_port=config["port_map"].keys()[0]
         index=1
         #ref l2_intf_group        
-        l2_intf_gid, l2_intf_msg = add_one_l2_interface_grouop(self.controller, test_port, test_vid,  False, False)
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_group(self.controller, test_port, test_vid,  False, False)
 
         mpls_fwd_gid, mpls_fwd_msg=add_mpls_forwarding_group(self.controller, 
                                                              subtype=OFDPA_MPLS_GROUP_SUBTYPE_L2_TAG, 

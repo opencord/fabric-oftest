@@ -415,7 +415,7 @@ class AccessToNetworkDLFMcast(base_tests.SimpleDataPlane):
         add_port_table_flow(self.controller)
 
         #for network port need l2 interface group to decide vlan tag or not
-        add_one_l2_interface_grouop(self.controller, network_port_phy_port, vlan_id=network_port_vlan)        
+        add_one_l2_interface_group(self.controller, network_port_phy_port, vlan_id=network_port_vlan)
 
 		#add DLF bridge flow
         msg=add_l2_overlay_flood_over_mcast_tunnel_group(self.controller, vnid, [access_lport1, access_lport2, network_lport], 1)        
@@ -558,7 +558,7 @@ class AccessToNetworkDLFUcast(base_tests.SimpleDataPlane):
         add_port_table_flow(self.controller)
 
         #for network port need l2 interface group to decide vlan tag or not
-        add_one_l2_interface_grouop(self.controller, network_port_phy_port, vlan_id=network_port_vlan)        
+        add_one_l2_interface_group(self.controller, network_port_phy_port, vlan_id=network_port_vlan)
 
 		#add DLF bridge flow
         msg=add_l2_overlay_flood_over_unicast_tunnel_group(self.controller, vnid, [access_lport1, access_lport2, network_lport], 1)        
@@ -1017,7 +1017,7 @@ class AccessWithNetwork(base_tests.SimpleDataPlane):
         add_port_table_flow(self.controller, is_overlay=False)
         
         #for network port need l2 interface group to decide vlan tag or not
-        add_one_l2_interface_grouop(self.controller, network_port_phy_port, vlan_id=network_port_vlan)                
+        add_one_l2_interface_group(self.controller, network_port_phy_port, vlan_id=network_port_vlan)
         #add network mac
         add_overlay_bridge_flow(self.controller, network_lport_mac, vnid, network_lport, False, True)
         add_overlay_bridge_flow(self.controller, access_lport1_mac, vnid, access_lport1, False, True)
@@ -1192,8 +1192,8 @@ class NetworkToNetwork(base_tests.SimpleDataPlane):
         add_port_table_flow(self.controller)
 
         #for network port need l2 interface group to decide vlan tag or not
-        add_one_l2_interface_grouop(self.controller, network_port1_phy_port, vlan_id=network_port1_vlan)        
-        add_one_l2_interface_grouop(self.controller, network_port2_phy_port, vlan_id=network_port2_vlan)                
+        add_one_l2_interface_group(self.controller, network_port1_phy_port, vlan_id=network_port1_vlan)
+        add_one_l2_interface_group(self.controller, network_port2_phy_port, vlan_id=network_port2_vlan)
         #add network mac
         add_overlay_bridge_flow(self.controller, network_lport1_mac, vnid, network_lport1, False, True)
         add_overlay_bridge_flow(self.controller, network_lport2_mac, vnid, network_lport2, False, True)

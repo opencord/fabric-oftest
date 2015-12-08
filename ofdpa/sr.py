@@ -15,7 +15,7 @@ class Leaf1(base_tests.SimpleDataPlane):
      #Add L3Unicast to Host
      port, vlan_id = 33, 10
      ##add L2 Interface Group
-     add_one_l2_interface_grouop(self.controller, port, vlan_id=vlan_id, is_tagged=True, send_barrier=False)
+     add_one_l2_interface_group(self.controller, port, vlan_id=vlan_id, is_tagged=True, send_barrier=False)
      ##add L3 Unicast Group
      l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vlan_id, id=vlan_id, src_mac=switch_mac, 
                                 dst_mac=dst_mac)
@@ -32,7 +32,7 @@ class Leaf1(base_tests.SimpleDataPlane):
      add_bridge_flow(self.controller, dst_mac, vlan_id, group_id, True)
 
      port = 32
-     add_one_l2_interface_grouop(self.controller, port, vlan_id=vlan_id, is_tagged=True, send_barrier=False)
+     add_one_l2_interface_group(self.controller, port, vlan_id=vlan_id, is_tagged=True, send_barrier=False)
      add_one_vlan_table_flow(self.controller, port, vlan_id, vrf=vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG)
      add_termination_flow(self.controller, port, 0x0800, switch_mac, vlan_id)
      do_barrier(self.controller)
@@ -41,7 +41,7 @@ class Leaf1(base_tests.SimpleDataPlane):
      dst_mac = [0x00, 0x00, 0x00, 0x55, 0x55, 0x55]
      vlan_id = 100
      ##add L2 Interface Group
-     l2_gid, l2_msg = add_one_l2_interface_grouop(self.controller, port, vlan_id=vlan_id, is_tagged=True, send_barrier=False) 
+     l2_gid, l2_msg = add_one_l2_interface_group(self.controller, port, vlan_id=vlan_id, is_tagged=True, send_barrier=False)
      #add MPLS interface group
      mpls_gid, mpls_msg = add_mpls_intf_group(self.controller, l2_gid, dst_mac, switch_mac, vlan_id, port)
      ##add L3VPN interface
@@ -66,7 +66,7 @@ class Leaf2(base_tests.SimpleDataPlane):
      #Add L3Unicast to Host
      port, vlan_id=33, 20
      ##add L2 Interface Group
-     add_one_l2_interface_grouop(self.controller, port,  vlan_id=vlan_id, is_tagged=True, send_barrier=False) 
+     add_one_l2_interface_group(self.controller, port,  vlan_id=vlan_id, is_tagged=True, send_barrier=False)
      ##add L3 Unicast Group
      l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vlan_id, id=vlan_id, src_mac=switch_mac,
                                 dst_mac=dst_mac)
@@ -82,7 +82,7 @@ class Leaf2(base_tests.SimpleDataPlane):
      add_bridge_flow(self.controller, dst_mac, vlan_id, group_id, True)
 
      port = 32
-     add_one_l2_interface_grouop(self.controller, port,  vlan_id=vlan_id, is_tagged=True, send_barrier=False) 
+     add_one_l2_interface_group(self.controller, port,  vlan_id=vlan_id, is_tagged=True, send_barrier=False)
      add_one_vlan_table_flow(self.controller, port, vlan_id, vrf=vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG)
      add_termination_flow(self.controller, port, 0x0800, switch_mac, vlan_id)
      do_barrier(self.controller)
@@ -91,7 +91,7 @@ class Leaf2(base_tests.SimpleDataPlane):
      dst_mac= [0x00, 0x00, 0x00, 0x55, 0x55, 0x55]
      vlan_id = 100
      ##add L2 Interface Group
-     l2_gid, l2_msg = add_one_l2_interface_grouop(self.controller, port,  vlan_id=vlan_id, is_tagged=True, send_barrier=False) 
+     l2_gid, l2_msg = add_one_l2_interface_group(self.controller, port,  vlan_id=vlan_id, is_tagged=True, send_barrier=False)
      #add MPLS interface group
      mpls_gid, mpls_msg = add_mpls_intf_group(self.controller, l2_gid, dst_mac, switch_mac, vlan_id, port)
      ##add L3VPN interface
@@ -113,7 +113,7 @@ class Spine(base_tests.SimpleDataPlane):
      #Add MPLS termination 
      port, vlan_id=31, 10 
      ##add L2 Interface Group
-     add_one_l2_interface_grouop(self.controller, port,  vlan_id=vlan_id, is_tagged=True, send_barrier=False) 
+     add_one_l2_interface_group(self.controller, port,  vlan_id=vlan_id, is_tagged=True, send_barrier=False)
      ##add L3 Unicast Group
      l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vlan_id, id=vlan_id, src_mac=switch_mac,
                                 dst_mac=dst_mac)
@@ -130,7 +130,7 @@ class Spine(base_tests.SimpleDataPlane):
      #Add MPLS termination
      port, vlan_id=32, 20
      ##add L2 Interface Group
-     add_one_l2_interface_grouop(self.controller, port,  vlan_id=vlan_id, is_tagged=True, send_barrier=False) 
+     add_one_l2_interface_group(self.controller, port,  vlan_id=vlan_id, is_tagged=True, send_barrier=False)
      ##add L3 Unicast Group
      l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vlan_id, id=vlan_id, src_mac=switch_mac,
                                 dst_mac=dst_mac)

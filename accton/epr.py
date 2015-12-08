@@ -23,8 +23,8 @@ class pvidClear(base_tests.SimpleDataPlane):
         
         vlan_id = 10
 
-        gid_p1, req_msg_p1 = add_one_l2_interface_grouop(self.controller, port=port1, vlan_id=vlan_id, is_tagged=False, send_barrier=False)
-        gid_p2, req_msg_p2 = add_one_l2_interface_grouop(self.controller, port=port2, vlan_id=vlan_id, is_tagged=False, send_barrier=False)        
+        gid_p1, req_msg_p1 = add_one_l2_interface_group(self.controller, port=port1, vlan_id=vlan_id, is_tagged=False, send_barrier=False)
+        gid_p2, req_msg_p2 = add_one_l2_interface_group(self.controller, port=port2, vlan_id=vlan_id, is_tagged=False, send_barrier=False)
         #add ACL flow, in port1 out port2
         match = ofp.match()
         match.oxm_list.append(ofp.oxm.in_port(port1))

@@ -38,7 +38,7 @@ class dnat(base_tests.SimpleDataPlane):
         add_one_vlan_table_flow(self.controller, input_port, vlan_id=200, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False)           
         add_termination_flow(self.controller, input_port, 0x0800, [0x00,0x00,0x00,0x00,0x02,0x00], 200, goto_table=28, send_barrier=False)        
         
-        add_one_l2_interface_grouop(self.controller, port=output_port, vlan_id=100, is_tagged=True, send_barrier=False)
+        add_one_l2_interface_group(self.controller, port=output_port, vlan_id=100, is_tagged=True, send_barrier=False)
         msg1=add_l3_unicast_group(self.controller, port=output_port, vlanid=100, id=0x3000001, src_mac=[0x00,0x00,0x00,0x00,0x01,0x00], dst_mac=[0x00,0x00,0x00,0x00,0x01,0x01])
         add_dnat_flow(self.controller, eth_type=0x0800, ip_dst=0x64000001, ip_proto=6, tcp_dst=5000, set_ip_dst=0x0a000001, set_tcp_dst=2000, action_group_id=msg1.group_id)
 
@@ -95,10 +95,10 @@ class dnatEcmp(base_tests.SimpleDataPlane):
         output_port2 = test_ports[2]
 
         add_one_vlan_table_flow(self.controller, input_port, vlan_id=200, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_TAG, send_barrier=False)   
-        add_one_l2_interface_grouop(self.controller, port=output_port, vlan_id=100, is_tagged=True, send_barrier=False)
+        add_one_l2_interface_group(self.controller, port=output_port, vlan_id=100, is_tagged=True, send_barrier=False)
         #Bits 27:24 is for realm id, so unicast group id give 0x3000001
         msg1=add_l3_unicast_group(self.controller, port=output_port, vlanid=100, id=0x3000001, src_mac=[0x00,0x00,0x00,0x00,0x01,0x00], dst_mac=[0x00,0x00,0x00,0x00,0x01,0x01])
-        add_one_l2_interface_grouop(self.controller, port=output_port2, vlan_id=2, is_tagged=True, send_barrier=False)
+        add_one_l2_interface_group(self.controller, port=output_port2, vlan_id=2, is_tagged=True, send_barrier=False)
         #Bits 27:24 is for realm id, so unicast group id give 0x3000005
         msg2=add_l3_unicast_group(self.controller, port=output_port2, vlanid=2, id=0x3000005, src_mac=[0x00,0x00,0x05,0x22,0x33,0x55], dst_mac=[0x00,0x00,0x05,0x22,0x44,0x66])
         ecmp=add_l3_ecmp_group(self.controller, id=0x1000001, l3_ucast_groups=[msg1.group_id, msg2.group_id])
@@ -171,11 +171,11 @@ class snat_ecmp(base_tests.SimpleDataPlane):
         
         add_one_vlan_table_flow(self.controller, input_port, vlan_id=100, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_TAG, send_barrier=False)   
         add_termination_flow(self.controller, 0, 0x0800, [0x00,0x00,0x00,0x00,0x01,0x00], 100, goto_table=29, send_barrier=False)
-        add_one_l2_interface_grouop(self.controller, port=output_port, vlan_id=200, is_tagged=True, send_barrier=False)
+        add_one_l2_interface_group(self.controller, port=output_port, vlan_id=200, is_tagged=True, send_barrier=False)
         #Bits 27:24 is for realm id, so unicast group id give 0x2000002
         msg1=add_l3_unicast_group(self.controller, port=output_port, vlanid=200, id=0x2000002, src_mac=[0x00,0x00,0x00,0x00,0x02,0x00], dst_mac=[0x00,0x00,0x00,0x00,0x02,0x01])
         
-        add_one_l2_interface_grouop(self.controller, port=output_port2, vlan_id=5, is_tagged=True, send_barrier=False)
+        add_one_l2_interface_group(self.controller, port=output_port2, vlan_id=5, is_tagged=True, send_barrier=False)
         #Bits 27:24 is for realm id, so unicast group id give 0x2000002
         msg2=add_l3_unicast_group(self.controller, port=output_port2, vlanid=5, id=0x2000005, src_mac=[0x00,0x00,0x00,0x00,0x05,0x00], dst_mac=[0x00,0x00,0x00,0x00,0x05,0x01])
 
@@ -244,7 +244,7 @@ class l3Route(base_tests.SimpleDataPlane):
         add_port_table_flow(self.controller, is_overlay=False)
         add_one_vlan_table_flow(self.controller, input_port, vlan_id=2, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_TAG, send_barrier=False)   
         add_termination_flow(self.controller, input_port, 0x0800, [0x70, 0x72, 0xcf, 0x7c, 0xf3, 0xa3], 2, send_barrier=False)
-        add_one_l2_interface_grouop(self.controller, port=output_port, vlan_id=3, is_tagged=True, send_barrier=False)
+        add_one_l2_interface_group(self.controller, port=output_port, vlan_id=3, is_tagged=True, send_barrier=False)
         msg=add_l3_unicast_group(self.controller, port=output_port, vlanid=3, id=3, src_mac=[0x00,0x00,0x04,0x22,0x33,0x55], dst_mac=[0x00,0x00,0x04,0x22,0x44,0x66])
         add_unicast_routing_flow(self.controller, 0x0800, 0xc0a80202, 0xffffff00, msg.group_id)
 

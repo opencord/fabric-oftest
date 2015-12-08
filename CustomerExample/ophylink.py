@@ -25,7 +25,7 @@ class case1(base_tests.SimpleDataPlane):
         out_port=config["port_map"].keys()[1]
 
         add_one_vlan_table_flow(self.controller, in_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False)
-        add_one_l2_interface_grouop(self.controller, out_port, 10,  True, False)        
+        add_one_l2_interface_group(self.controller, out_port, 10,  True, False)
         msg=add_l2_rewrite_group(self.controller, out_port, 10, 1, None, None)        
         
         match = ofp.match()

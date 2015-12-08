@@ -314,7 +314,7 @@ class L3UcastRoute(base_tests.SimpleDataPlane):
         dip=0xc0a80001
         for port in config["port_map"].keys():
             #add l2 interface group
-            add_one_l2_interface_grouop(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)
+            add_one_l2_interface_group(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)
             dst_mac[5]=vlan_id
             l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vlan_id, id=vlan_id, src_mac=intf_src_mac, dst_mac=dst_mac)
             #add vlan flow table
@@ -401,7 +401,7 @@ class L3UcastRouteOnSamVLANSamPort(base_tests.SimpleDataPlane):
         port_ip2=0xc0a80201
         port_ip2_str=convertIP4toStr(port_ip2)
 		#add l2 interface group
-        add_one_l2_interface_grouop(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)
+        add_one_l2_interface_group(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)
 		#add vlan flow table
         add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_BOTH)
 		#add termination flow
@@ -482,8 +482,8 @@ class L3UcastRouteOnDiffVLANSamPort(base_tests.SimpleDataPlane):
         port_ip2=0xc0a80201
         port_ip2_str=convertIP4toStr(port_ip2)
 		#add l2 interface group
-        add_one_l2_interface_grouop(self.controller, port, vlan_id=port_vlan_id1, is_tagged=True, send_barrier=False)
-        add_one_l2_interface_grouop(self.controller, port, vlan_id=port_vlan_id2, is_tagged=True, send_barrier=False)		
+        add_one_l2_interface_group(self.controller, port, vlan_id=port_vlan_id1, is_tagged=True, send_barrier=False)
+        add_one_l2_interface_group(self.controller, port, vlan_id=port_vlan_id2, is_tagged=True, send_barrier=False)
 		#add vlan flow table
         add_one_vlan_table_flow(self.controller, port, port_vlan_id1, flag=VLAN_TABLE_FLAG_ONLY_BOTH)
         add_one_vlan_table_flow(self.controller, port, port_vlan_id2, flag=VLAN_TABLE_FLAG_ONLY_BOTH)		
@@ -582,8 +582,8 @@ class L3UcastVrfRouteOnSamVLANSamPort(base_tests.SimpleDataPlane):
         port_ip2=0xc0a80201
         port_ip2_str=convertIP4toStr(port_ip2)
 		#add l2 interface group
-        add_one_l2_interface_grouop(self.controller, port, vlan_id=vrf1_vlan_id, is_tagged=True, send_barrier=False)
-        add_one_l2_interface_grouop(self.controller, port, vlan_id=vrf2_vlan_id, is_tagged=True, send_barrier=False)        
+        add_one_l2_interface_group(self.controller, port, vlan_id=vrf1_vlan_id, is_tagged=True, send_barrier=False)
+        add_one_l2_interface_group(self.controller, port, vlan_id=vrf2_vlan_id, is_tagged=True, send_barrier=False)
 		#add vlan flow table
         add_one_vlan_table_flow(self.controller, port, vrf1_vlan_id, vrf=vrf1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
         add_one_vlan_table_flow(self.controller, port, vrf2_vlan_id, vrf=vrf2, flag=VLAN_TABLE_FLAG_ONLY_TAG)
@@ -737,7 +737,7 @@ class L3UcastECMP(base_tests.SimpleDataPlane):
         dip=0xc0a80001
         for port in config["port_map"].keys():
             #add l2 interface group
-            add_one_l2_interface_grouop(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)
+            add_one_l2_interface_group(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)
             dst_mac[5]=vlan_id
             l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vlan_id, id=vlan_id, src_mac=intf_src_mac, dst_mac=dst_mac)            
             ecmp_msg=add_l3_ecmp_group(self.controller, vlan_id, [l3_msg.group_id])
@@ -831,7 +831,7 @@ class L3UcastECMP2(base_tests.SimpleDataPlane):
         tx_port = config["port_map"].keys()[0]        
         for port in config["port_map"].keys():
             #add l2 interface group
-            add_one_l2_interface_grouop(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)            
+            add_one_l2_interface_group(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)
             if tx_port != port:            
                 l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vlan_id, id=vlan_id, src_mac=intf_src_mac, dst_mac=same_dst_mac)            
                 l3_ucast_gips.append(l3_msg.group_id)
@@ -927,7 +927,7 @@ class L3McastRoute1(base_tests.SimpleDataPlane):
 
         #add l2 interface group
         for port in config["port_map"].keys():        
-            add_one_l2_interface_grouop(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)           
+            add_one_l2_interface_group(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)
             #add vlan flow table
             add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_BOTH)            
             vlan_id +=1            
@@ -996,7 +996,7 @@ class L3McastRoute2(base_tests.SimpleDataPlane):
         for port in config["port_map"].keys():
             if port != port1 and port !=port2:
                 continue
-            l2_intf_gid, msg=add_one_l2_interface_grouop(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)           
+            l2_intf_gid, msg=add_one_l2_interface_group(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)
             l2_intf_group_list.append(l2_intf_gid)
             #add vlan flow table
             add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_BOTH)            

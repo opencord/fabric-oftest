@@ -163,7 +163,7 @@ def add_l2_interface_grouop(ctrl, ports, vlan_id=1, is_tagged=False, send_barrie
  
     return group_id_list, msgs
 
-def add_one_l2_interface_grouop(ctrl, port, vlan_id=1, is_tagged=False, send_barrier=False):
+def add_one_l2_interface_group(ctrl, port, vlan_id=1, is_tagged=False, send_barrier=False):
     # group table
     # set up untag groups for each port
     group_id = encode_l2_interface_group_id(vlan_id, port)

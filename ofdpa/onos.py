@@ -1,5 +1,5 @@
 """
-Flow Test
+The following tests are being done here
 1) PacketInSrcMacMiss
 2) L2FloodTagged
 3) L2Flood Tagged Unknown Src
@@ -48,6 +48,11 @@ class PacketInSrcMacMiss(base_tests.SimpleDataPlane):
             verify_no_other_packets(self)
 
 class VlanSupport(base_tests.SimpleDataPlane):
+    """
+    Test L2 forwarding of both, untagged and tagged packets
+    Sends a packet and expects the same packet on the other port
+    Repeats for tagged
+    """
    def runTest(self):
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
@@ -76,6 +81,7 @@ class VlanSupport(base_tests.SimpleDataPlane):
                     continue
                 # change source based on port number to avoid packet-ins from learning
                 mac_src= '00:12:34:56:78:%02X' % in_port
+                #sends an untagged packet
                 parsed_pkt = simple_tcp_packet(dl_vlan_enable=False, vlan_vid=4093, eth_dst=mac_dst, eth_src=mac_src)
                 pkt = str(parsed_pkt)
                 logging.info("OutputExact test, ports %d to %d", in_port, out_port)
@@ -88,7 +94,7 @@ class VlanSupport(base_tests.SimpleDataPlane):
                         verify_no_packet(self, pkt, ofport)
 
                 verify_no_other_packets(self)
-                mac_src= '00:12:34:56:78:%02X' % in_port
+                # sends a tagged packet
                 parsed_pkt = simple_tcp_packet(dl_vlan_enable=True, vlan_vid=300, eth_dst=mac_dst, eth_src=mac_src)
                 pkt = str(parsed_pkt)
                 logging.info("OutputExact test, ports %d to %d", in_port, out_port)
@@ -104,9 +110,8 @@ class VlanSupport(base_tests.SimpleDataPlane):
 
 class L2FloodQinQ(base_tests.SimpleDataPlane):
     """
-    Test L2 flood to a vlan
-    Send a packet with unknown dst_mac and check if the packet is flooded to all ports except inport
-    #todo take in account unknown src
+    Test L2 flood of double tagged vlan packets (802.1Q)
+    Sends a double tagged packet and verifies flooding behavior according to outer vlan
     """
     def runTest(self):
         ports = sorted(config["port_map"].keys())

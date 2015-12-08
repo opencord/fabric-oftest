@@ -421,11 +421,15 @@ def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, 
             match = ofp.match()
             match.oxm_list.append(ofp.oxm.in_port(of_port))
             match.oxm_list.append(ofp.oxm.vlan_vid(0x1000+vlan_id))
+            actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(value=vlan_id)))
             request = ofp.message.flow_add(
                 table_id=10,
                 cookie=42,
                 match=match,
                 instructions=[
+                  ofp.instruction.apply_actions(
+                     actions=actions
+                  ),
                   ofp.instruction.goto_table(20)
                 ],
                 priority=0)

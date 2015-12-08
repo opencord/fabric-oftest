@@ -30,15 +30,14 @@ class PacketInSrcMacMiss(base_tests.SimpleDataPlane):
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
 
+        ports = sorted(config["port_map"].keys())
+        for port in ports:
+            add_one_l2_interface_grouop(self.controller, port, 1, True, False)
+            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
+
         parsed_vlan_pkt = simple_tcp_packet(pktlen=104,
                       vlan_vid=0x1001, dl_vlan_enable=True)
         vlan_pkt = str(parsed_vlan_pkt)
-
-        add_vlan_table_flow(self.controller, config["port_map"].keys(), 1)
-
-        # group table
-        # set up untag groups for each port
-        add_l2_interface_grouop(self.controller, config["port_map"].keys(), 1,  True, 1)
 
         for of_port in config["port_map"].keys():
             logging.info("PacketInMiss test, port %d", of_port)
@@ -56,20 +55,19 @@ class L2FloodTagged(base_tests.SimpleDataPlane):
     """
     def runTest(self):
         ports = sorted(config["port_map"].keys())
+
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
 
-        add_vlan_table_flow(self.controller, ports, 1)
-
-        # set up tagged groups for each port
-        add_l2_interface_grouop(self.controller, ports, 1,  True, 1)
-
-        msg=add_l2_flood_group(self.controller, ports, 1, 1)
-        add_bridge_flow(self.controller, None, 1, msg.group_id, True)
         # Installing flows to avoid packet-in
         for port in ports:
+            add_one_l2_interface_grouop(self.controller, port, 1, True, False)
+            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
+
             group_id = encode_l2_interface_group_id(1, port)
             add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
+        msg=add_l2_flood_group(self.controller, ports, 1, 1)
+        add_bridge_flow(self.controller, None, 1, msg.group_id, True)  
         do_barrier(self.controller)
 
         #verify flood
@@ -95,14 +93,13 @@ class L2FloodTaggedUnknownSrc(base_tests.SimpleDataPlane):
     #todo take in account unknown src 
     """
     def runTest(self):
-        ports = sorted(config["port_map"].keys())
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
 
-        add_vlan_table_flow(self.controller, ports, 1)
-
-        # set up tagged groups for each port
-        add_l2_interface_grouop(self.controller, ports, 1,  True, 1)
+        ports = sorted(config["port_map"].keys())
+        for port in ports:
+            add_one_l2_interface_grouop(self.controller, port, 1, True, False)
+            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
 
         msg=add_l2_flood_group(self.controller, ports, 1, 1)
         add_bridge_flow(self.controller, None, 1, msg.group_id, True)
@@ -135,12 +132,9 @@ class L2UnicastTagged(base_tests.SimpleDataPlane):
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
 
-        add_vlan_table_flow(self.controller, config["port_map"].keys())
-
-        # set up tag groups for each port
-        add_l2_interface_grouop(self.controller, config["port_map"].keys(), 1, True, 1)
-
         for port in ports:
+            add_one_l2_interface_grouop(self.controller, port, 1, True, False)
+            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)  
             group_id = encode_l2_interface_group_id(1, port)
             add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
         do_barrier(self.controller)
@@ -174,12 +168,9 @@ class Mtu4500(base_tests.SimpleDataPlane):
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
 
-        add_vlan_table_flow(self.controller, config["port_map"].keys())
-
-        # set up tag groups for each port
-        add_l2_interface_grouop(self.controller, config["port_map"].keys(), 1, True, 1)
-
         for port in ports:
+            add_one_l2_interface_grouop(self.controller, port, 1, True, False)
+            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
             group_id = encode_l2_interface_group_id(1, port)
             add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
         do_barrier(self.controller)
@@ -213,12 +204,14 @@ class Mtu1500(base_tests.SimpleDataPlane):
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
 
-        add_vlan_table_flow(self.controller, config["port_map"].keys())
+       # set up tag groups for each port
+        add_l2_interface_grouop(self.controller, ports, 1, True, 1)
 
-        # set up tag groups for each port
-        add_l2_interface_grouop(self.controller, config["port_map"].keys(), 1, True, 1)
+        add_vlan_table_flow(self.controller, ports)
 
         for port in ports:
+            add_one_l2_interface_grouop(self.controller, port, 1, True, False)
+            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
             group_id = encode_l2_interface_group_id(1, port)
             add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
         do_barrier(self.controller)
@@ -263,6 +256,8 @@ class Mtu4000(base_tests.SimpleDataPlane):
         add_l2_interface_grouop(self.controller, config["port_map"].keys(), 1, True, 1)
 
         for port in ports:
+            add_one_l2_interface_grouop(self.controller, port, 1, True, False)
+            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
             group_id = encode_l2_interface_group_id(1, port)
             add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
         do_barrier(self.controller)
@@ -311,7 +306,7 @@ class L3UcastTagged(base_tests.SimpleDataPlane):
             dst_mac[5]=vlan_id
             l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vlan_id, id=vlan_id, src_mac=intf_src_mac, dst_mac=dst_mac)
             #add vlan flow table
-            add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_BOTH)
+            add_one_vlan_table_flow(self.controller, port, vlan_id,  flag=VLAN_TABLE_FLAG_ONLY_TAG)
             #add termination flow
             add_termination_flow(self.controller, port, 0x0800, intf_src_mac, vlan_id)
             #add unicast routing flow
@@ -366,7 +361,7 @@ class L3VPNMPLS(base_tests.SimpleDataPlane):
         for port in ports:
             #add l2 interface group
             vlan_id=port
-            l2_gid, l2_msg = add_one_l2_interface_grouop(self.controller, port, vlan_id, True, False)
+            l2_gid, l2_msg = add_one_l2_interface_grouop(self.controller, port, vlan_id, True, True)
             dst_mac[5]=vlan_id
             #add MPLS interface group
             mpls_gid, mpls_msg = add_mpls_intf_group(self.controller, l2_gid, dst_mac, intf_src_mac, vlan_id, port)
@@ -374,12 +369,12 @@ class L3VPNMPLS(base_tests.SimpleDataPlane):
             mpls_label_gid, mpls_label_msg = add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_L3_VPN_LABEL,
 		     index=port, ref_gid= mpls_gid, push_mpls_header=True, set_mpls_label=port, set_bos=1, set_ttl=32)
             #add vlan flow table
-            add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_BOTH)
+            add_one_vlan_table_flow(self.controller, port, vlan_id, vrf=2, flag=VLAN_TABLE_FLAG_ONLY_BOTH)
             #add termination flow
             add_termination_flow(self.controller, port, 0x0800, intf_src_mac, vlan_id)
             #add routing flow
             dst_ip = dip + (vlan_id<<8)
-            add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0, mpls_label_gid)
+            add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0, mpls_label_gid, vrf=2)
             #add entries in the Bridging table to avoid packet-in from mac learning
             group_id = encode_l2_interface_group_id(vlan_id, port)
             add_bridge_flow(self.controller, dst_mac, vlan_id, group_id, True)
@@ -402,17 +397,17 @@ class L3VPNMPLS(base_tests.SimpleDataPlane):
                 #build expect packet
                 mac_dst='00:00:00:22:22:%02X' % out_port
                 label = (out_port, 0, 1, 32)
-                exp_pkt = mpls_packet(dl_vlan_enable=True, vlan_vid=out_port, ip_ttl=64, ip_src=ip_src,
+                exp_pkt = mpls_packet(pktlen=104, dl_vlan_enable=True, vlan_vid=out_port, ip_ttl=63, ip_src=ip_src,
                             ip_dst=ip_dst, eth_dst=mac_dst, eth_src=switch_mac, label=[label])
                 pkt=str(exp_pkt)
                 verify_packet(self, pkt, out_port)
                 verify_no_other_packets(self)
 
 class MplsTermination(base_tests.SimpleDataPlane):
-    '''
+    """
 	Insert IP packet
 	Receive MPLS packet
-    '''
+    """
     def runTest(self):
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
@@ -470,4 +465,5 @@ class MplsTermination(base_tests.SimpleDataPlane):
                 pkt=str(exp_pkt)
                 verify_packet(self, pkt, out_port)
                 verify_no_other_packets(self)
+
 

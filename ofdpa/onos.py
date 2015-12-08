@@ -47,6 +47,102 @@ class PacketInSrcMacMiss(base_tests.SimpleDataPlane):
 
             verify_no_other_packets(self)
 
+class VlanSupport(base_tests.SimpleDataPlane):
+   def runTest(self):
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)
+        ports = sorted(config["port_map"].keys())
+        # group table
+        # set up untag groups for each port
+        add_l2_interface_grouop(self.controller, config["port_map"].keys(), 4093, False, 1)
+        #set up tagged groups
+        add_l2_interface_grouop(self.controller, config["port_map"].keys(), 300, True, 1)
+        for port in ports:
+            add_one_vlan_table_flow(self.controller, port, 4093, flag=VLAN_TABLE_FLAG_ONLY_BOTH)
+            group_id = encode_l2_interface_group_id(4093, port)
+            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 4093, group_id, True)
+            #add flow match for vlan 300
+            add_one_vlan_table_flow(self.controller, port, 300, flag=VLAN_TABLE_FLAG_ONLY_TAG)
+            group_id = encode_l2_interface_group_id(300, port)
+            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 300, group_id, True)
+        do_barrier(self.controller)
+
+        for out_port in ports:
+            # change dest based on port number
+            mac_dst= '00:12:34:56:78:%02X' % out_port
+
+            for in_port in ports:
+                if in_port == out_port:
+                    continue
+                # change source based on port number to avoid packet-ins from learning
+                mac_src= '00:12:34:56:78:%02X' % in_port
+                parsed_pkt = simple_tcp_packet(dl_vlan_enable=False, vlan_vid=4093, eth_dst=mac_dst, eth_src=mac_src)
+                pkt = str(parsed_pkt)
+                logging.info("OutputExact test, ports %d to %d", in_port, out_port)
+                self.dataplane.send(in_port, pkt)
+
+                for ofport in ports:
+                    if ofport in [out_port]:
+                        verify_packet(self, pkt, ofport)
+                    else:
+                        verify_no_packet(self, pkt, ofport)
+
+                verify_no_other_packets(self)
+                mac_src= '00:12:34:56:78:%02X' % in_port
+                parsed_pkt = simple_tcp_packet(dl_vlan_enable=True, vlan_vid=300, eth_dst=mac_dst, eth_src=mac_src)
+                pkt = str(parsed_pkt)
+                logging.info("OutputExact test, ports %d to %d", in_port, out_port)
+                self.dataplane.send(in_port, pkt)
+
+                for ofport in ports:
+                    if ofport in [out_port]:
+                        verify_packet(self, pkt, ofport)
+                    else:
+                        verify_no_packet(self, pkt, ofport)
+
+                verify_no_other_packets(self)
+
+class L2FloodQinQ(base_tests.SimpleDataPlane):
+    """
+    Test L2 flood to a vlan
+    Send a packet with unknown dst_mac and check if the packet is flooded to all ports except inport
+    #todo take in account unknown src
+    """
+    def runTest(self):
+        ports = sorted(config["port_map"].keys())
+
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)
+
+        # Installing flows to avoid packet-in
+        for port in ports:
+            add_one_l2_interface_grouop(self.controller, port, 1, True, False)
+            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
+
+            group_id = encode_l2_interface_group_id(1, port)
+            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
+        msg=add_l2_flood_group(self.controller, ports, 1, 1)
+        add_bridge_flow(self.controller, None, 1, msg.group_id, True)
+        do_barrier(self.controller)
+
+        #verify flood
+        for ofport in ports:
+            # change dest based on port number
+            mac_src= '00:12:34:56:78:%02X' % ofport
+            parsed_pkt = simple_tcp_packet_two_vlan(pktlen=108, out_dl_vlan_enable=True, out_vlan_vid=1,
+                                                in_dl_vlan_enable=True, in_vlan_vid=10, eth_dst='00:12:34:56:78:9a', eth_src=mac_src)
+            pkt = str(parsed_pkt)
+            self.dataplane.send(ofport, pkt)
+            #self won't rx packet
+            verify_no_packet(self, pkt, ofport)
+            #others will rx packet
+            tmp_ports=list(ports)
+            tmp_ports.remove(ofport)
+            verify_packets(self, pkt, tmp_ports)
+
+        verify_no_other_packets(self)
+
+
 class L2FloodTagged(base_tests.SimpleDataPlane):
     """
     Test L2 flood to a vlan

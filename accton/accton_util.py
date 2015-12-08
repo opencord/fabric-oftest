@@ -128,7 +128,7 @@ def encode_l2_overlay_group_id(tunnel_id, subtype, index):
     index = index & 0x3f       #10 bits
     return index + (tunnel_id << OFDPA_TUNNEL_ID_SHIFT)+ (subtype<<OFDPA_TUNNEL_SUBTYPE_SHIFT)+(8 << OFDPA_GROUP_TYPE_SHIFT)
 
-def add_l2_interface_grouop(ctrl, ports, vlan_id=1, is_tagged=False, send_barrier=False):
+def add_l2_interface_group(ctrl, ports, vlan_id=1, is_tagged=False, send_barrier=False):
     # group table
     # set up untag groups for each port
     group_id_list=[]
@@ -163,7 +163,7 @@ def add_l2_interface_grouop(ctrl, ports, vlan_id=1, is_tagged=False, send_barrie
  
     return group_id_list, msgs
 
-def add_one_l2_interface_grouop(ctrl, port, vlan_id=1, is_tagged=False, send_barrier=False):
+def add_one_l2_interface_group(ctrl, port, vlan_id=1, is_tagged=False, send_barrier=False):
     # group table
     # set up untag groups for each port
     group_id = encode_l2_interface_group_id(vlan_id, port)

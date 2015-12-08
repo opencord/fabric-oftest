@@ -57,13 +57,13 @@ class VlanSupport(base_tests.SimpleDataPlane):
     Sends a packet and expects the same packet on the other port
     Repeats for double tagged
     """
-   def runTest(self):
+    def runTest(self):
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
         ports = sorted(config["port_map"].keys())
         # group table
         # set up untag groups for each port
-        add_l2_interface_grouop(self.controller, config["port_map"].keys(), 4093, False, 1)
+        add_l2_interface_group(self.controller, config["port_map"].keys(), 4093, False, 1)
         for port in ports:
             add_one_vlan_table_flow(self.controller, port, 4093, flag=VLAN_TABLE_FLAG_ONLY_BOTH)
             group_id = encode_l2_interface_group_id(4093, port)
@@ -310,7 +310,7 @@ class Mtu1500(base_tests.SimpleDataPlane):
         delete_all_groups(self.controller)
 
        # set up tag groups for each port
-        add_l2_interface_grouop(self.controller, ports, 1, True, 1)
+        add_l2_interface_group(self.controller, ports, 1, True, 1)
 
         add_vlan_table_flow(self.controller, ports)
 
@@ -358,7 +358,7 @@ class Mtu4000(base_tests.SimpleDataPlane):
         add_vlan_table_flow(self.controller, config["port_map"].keys())
 
         # set up tag groups for each port
-        add_l2_interface_grouop(self.controller, config["port_map"].keys(), 1, True, 1)
+        add_l2_interface_group(self.controller, config["port_map"].keys(), 1, True, 1)
 
         for port in ports:
             add_one_l2_interface_group(self.controller, port, 1, True, False)

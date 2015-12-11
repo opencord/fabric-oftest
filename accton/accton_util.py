@@ -548,6 +548,21 @@ def add_vlan_table_flow_allow_all_vlan(ctrl, in_port, send_barrier=False):
     logging.info("Add allow all vlan on port %d " %(in_port))
     ctrl.message_send(request)    
 
+def add_untag_vlan_table_flow(ctrl, in_port, send_barrier=False):
+    """it a flow to allow all vlan untag on this port"""
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.in_port(in_port))
+    match.oxm_list.append(ofp.oxm.vlan_vid_masked(0x1000, 0x0fff))
+    request = ofp.message.flow_add(
+        table_id=10,
+        cookie=42,
+        match=match,
+        instructions=[
+            ofp.instruction.goto_table(20)
+        ],
+        priority=0)
+    logging.info("Add allow all untag on port %d " %(in_port))
+    ctrl.message_send(request)
     
 def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
     # table 10: vlan

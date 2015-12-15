@@ -40,7 +40,7 @@ class TagFlow20to10(base_tests.SimpleDataPlane):
     def runTest(self):
         do_barrier(self.controller)
         for port in config["port_map"].keys():
-            add_one_vlan_table_flow(self.controller, port, 10)
+            add_one_vlan_table_flow(self.controller, port, 10, flag=VLAN_TABLE_FLAG_ONLY_BOTH)
             do_barrier(self.controller)
             logging.info("Sending flow stats request")
             stats = get_flow_stats(self, ofp.match())
@@ -50,6 +50,7 @@ class TagFlow20to10(base_tests.SimpleDataPlane):
             print "END"
         do_barrier(self.controller)
         verify_no_other_packets(self)
+
 @disabled
 class UnTagFlow0(base_tests.SimpleDataPlane):
     def runTest(self):
@@ -66,6 +67,7 @@ class UnTagFlow0(base_tests.SimpleDataPlane):
         do_barrier(self.controller)
         verify_no_other_packets(self)
 
+@disabled
 class UnTagFlow10(base_tests.SimpleDataPlane):
     def runTest(self):
         do_barrier(self.controller)

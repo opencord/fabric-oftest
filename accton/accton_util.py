@@ -548,20 +548,56 @@ def add_vlan_table_flow_allow_all_vlan(ctrl, in_port, send_barrier=False):
     logging.info("Add allow all vlan on port %d " %(in_port))
     ctrl.message_send(request)    
 
-def add_untag_vlan_table_flow(ctrl, in_port, send_barrier=False):
+def add_untag_vlan_table(ctrl, in_port,vlan_id=0x0000, send_barrier=False):
     """it a flow to allow all vlan untag on this port"""
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.in_port(in_port))
-    match.oxm_list.append(ofp.oxm.vlan_vid_masked(0x1000, 0x0fff))
+    match.oxm_list.append(ofp.oxm.vlan_vid(vlan_id))
+    actions=[]
+    #actions.append(ofp.action.push_vlan(0x8100))
+    actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x100a)))
     request = ofp.message.flow_add(
         table_id=10,
         cookie=42,
         match=match,
         instructions=[
+            ofp.instruction.apply_actions(
+                actions=actions
+            ),
             ofp.instruction.goto_table(20)
         ],
         priority=0)
     logging.info("Add allow all untag on port %d " %(in_port))
+    print "REQUEST:"
+    print request.show()
+    print "END"
+
+    ctrl.message_send(request)
+
+def add_untag_vlan_table_flow(ctrl, in_port,vlan_id=0x1001, vlan_mask=0x1fff, send_barrier=False):
+    """it a flow to allow all vlan untag on this port"""
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.in_port(in_port))
+    match.oxm_list.append(ofp.oxm.vlan_vid_masked(vlan_id, vlan_mask))
+    actions=[]
+    #actions.append(ofp.action.push_vlan(0x8100))
+    actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x100a)))
+    request = ofp.message.flow_add(
+        table_id=10,
+        cookie=42,
+        match=match,
+        instructions=[
+            ofp.instruction.apply_actions(
+                actions=actions
+            ),
+            ofp.instruction.goto_table(20)
+        ],
+        priority=0)
+    logging.info("Add allow all untag on port %d " %(in_port))
+    print "REQUEST:"
+    print request.show()
+    print "END"
+
     ctrl.message_send(request)
     
 def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
@@ -576,7 +612,7 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
         if vrf!=0:
             actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
             
-        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(value=vlan_id)))
+        #actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(value=vlan_id)))
 
         request = ofp.message.flow_add(
             table_id=10,

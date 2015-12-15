@@ -51,6 +51,57 @@ class PacketInSrcMacMiss(base_tests.SimpleDataPlane):
 
             verify_no_other_packets(self)
 
+class PacketInMiss(base_tests.SimpleDataPlane):
+    """
+    Test packet in function for a table-miss flow
+    Send a packet to each dataplane port and verify that a packet
+    in message is received from the controller for each
+    
+    NOTE: Verify This case the oft option shall not use --switch-ip
+    """
+
+    def runTest(self):
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)
+        
+        parsed_vlan_pkt = simple_udp_packet(pktlen=104, 
+                      vlan_vid=0x1001, dl_vlan_enable=True)
+        vlan_pkt = str(parsed_vlan_pkt)
+        ports = sorted(config["port_map"].keys())
+        for port in ports:
+            add_one_l2_interface_group(self.controller, port, 1, True, False)
+            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
+
+        # create match
+        match = ofp.match()
+        match.oxm_list.append(ofp.oxm.eth_type(0x0800))
+        match.oxm_list.append(ofp.oxm.ip_proto(17))
+        request = ofp.message.flow_add(
+            table_id=60,
+            cookie=42,
+            match=match,
+            instructions=[
+                ofp.instruction.apply_actions(
+                    actions=[
+                        ofp.action.output(
+                            port=ofp.OFPP_CONTROLLER,
+                            max_len=ofp.OFPCML_NO_BUFFER)]),
+            ],
+            buffer_id=ofp.OFP_NO_BUFFER,
+            priority=1)
+
+        logging.info("Inserting packet in flow to controller")
+        self.controller.message_send(request)
+        do_barrier(self.controller)
+
+        for of_port in config["port_map"].keys():
+            logging.info("PacketInMiss test, port %d", of_port)
+            self.dataplane.send(of_port, vlan_pkt)
+
+            verify_packet_in(self, vlan_pkt, of_port, ofp.OFPR_ACTION)
+
+            verify_no_other_packets(self)
+
 class VlanSupport(base_tests.SimpleDataPlane):
     """
     Test L2 forwarding of both, untagged and double-tagged packets

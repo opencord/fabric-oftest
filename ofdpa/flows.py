@@ -21,7 +21,6 @@ import ofp
 from oftest.testutils import *
 from accton_util import *
 
-
 class PacketInSrcMacMiss(base_tests.SimpleDataPlane):
     """
     Test packet in function on a src-mac miss
@@ -51,7 +50,7 @@ class PacketInSrcMacMiss(base_tests.SimpleDataPlane):
 
             verify_no_other_packets(self)
 
-class PacketInMiss(base_tests.SimpleDataPlane):
+class PacketInUDP(base_tests.SimpleDataPlane):
     """
     Test packet in function for a table-miss flow
     Send a packet to each dataplane port and verify that a packet
@@ -75,7 +74,7 @@ class PacketInMiss(base_tests.SimpleDataPlane):
         # create match
         match = ofp.match()
         match.oxm_list.append(ofp.oxm.eth_type(0x0800))
-        match.oxm_list.append(ofp.oxm.ip_proto(17))
+        match.oxm_list.append(ofp.oxm.ip_proto(0x02))
         request = ofp.message.flow_add(
             table_id=60,
             cookie=42,
@@ -101,6 +100,111 @@ class PacketInMiss(base_tests.SimpleDataPlane):
             verify_packet_in(self, vlan_pkt, of_port, ofp.OFPR_ACTION)
 
             verify_no_other_packets(self)
+
+class ArpNL2(base_tests.SimpleDataPlane):
+     def runTest(self):
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)
+
+        ports = sorted(config["port_map"].keys())
+        match = ofp.match()
+        match.oxm_list.append(ofp.oxm.eth_type(0x0806))
+        request = ofp.message.flow_add(
+            table_id=60,
+            cookie=42,
+            match=match,
+            instructions=[
+                ofp.instruction.apply_actions(
+                    actions=[
+                        ofp.action.output(
+                            port=ofp.OFPP_CONTROLLER,
+                            max_len=ofp.OFPCML_NO_BUFFER)]),
+            ],
+            buffer_id=ofp.OFP_NO_BUFFER,
+            priority=40000)
+        self.controller.message_send(request)
+        for port in ports:
+            add_one_l2_interface_group(self.controller, port, 1, True, False)
+            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_BOTH)
+            group_id = encode_l2_interface_group_id(1, port)
+            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
+        do_barrier(self.controller)
+        parsed_arp_pkt = simple_arp_packet()
+        arp_pkt = str(parsed_arp_pkt)
+
+        for out_port in ports:
+            self.dataplane.send(out_port, arp_pkt)
+            verify_packet_in(self, arp_pkt, out_port, ofp.OFPR_ACTION)
+            # change dest based on port number
+            mac_dst= '00:12:34:56:78:%02X' % out_port
+            for in_port in ports:
+                if in_port == out_port:
+                    continue
+                # change source based on port number to avoid packet-ins from learning
+                mac_src= '00:12:34:56:78:%02X' % in_port
+                parsed_pkt = simple_tcp_packet(eth_dst=mac_dst, eth_src=mac_src)
+                pkt = str(parsed_pkt)
+                self.dataplane.send(in_port, pkt)
+
+                for ofport in ports:
+                    if ofport in [out_port]:
+                        verify_packet(self, pkt, ofport)
+                    else:
+                        verify_no_packet(self, pkt, ofport)
+
+                verify_no_other_packets(self)
+
+
+
+class PacketInArp(base_tests.SimpleDataPlane):
+    """
+    Test packet in function for a table-miss flow
+    Send a packet to each dataplane port and verify that a packet
+    in message is received from the controller for each
+
+    NOTE: Verify This case the oft option shall not use --switch-ip
+    """
+
+    def runTest(self):
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)
+
+        parsed_arp_pkt = simple_arp_packet()
+        arp_pkt = str(parsed_arp_pkt)
+        ports = sorted(config["port_map"].keys())
+        #for port in ports:
+        #    add_one_l2_interface_group(self.controller, port, 1, True, False)
+        #    add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
+
+        # create match
+        match = ofp.match()
+        match.oxm_list.append(ofp.oxm.eth_type(0x0806))
+        request = ofp.message.flow_add(
+            table_id=60,
+            cookie=42,
+            match=match,
+            instructions=[
+                ofp.instruction.apply_actions(
+                    actions=[
+                        ofp.action.output(
+                            port=ofp.OFPP_CONTROLLER,
+                            max_len=ofp.OFPCML_NO_BUFFER)]),
+            ],
+            buffer_id=ofp.OFP_NO_BUFFER,
+            priority=1)
+
+        logging.info("Inserting packet in flow to controller")
+        self.controller.message_send(request)
+        do_barrier(self.controller)
+
+        for of_port in config["port_map"].keys():
+            logging.info("PacketInMiss test, port %d", of_port)
+            self.dataplane.send(of_port, arp_pkt)
+
+            verify_packet_in(self, arp_pkt, of_port, ofp.OFPR_ACTION)
+
+            verify_no_other_packets(self)
+
 
 class L2FloodQinQ(base_tests.SimpleDataPlane):
     """
@@ -545,6 +649,8 @@ class MplsTermination(base_tests.SimpleDataPlane):
 
         intf_src_mac=[0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc]
         dst_mac=[0x00, 0x00, 0x00, 0x22, 0x22, 0x00]
+        mcast_mac = [0x01, 0x00, 0x5e, 0x00, 0x00, 0x01]
+
         dip=0xc0a80001
         index=1
         ports = config["port_map"].keys()
@@ -554,7 +660,7 @@ class MplsTermination(base_tests.SimpleDataPlane):
             l2_gid, l2_msg = add_one_l2_interface_group(self.controller, port, vlan_id, True, False)
             dst_mac[5]=vlan_id
             #add L3 Unicast  group
-            l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vlan_id, id=vlan_id, src_mac=intf_src_mac, dst_mac=dst_mac)
+            l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vlan_id, id=vlan_id, src_mac=intf_src_mac, dst_mac=mcast_mac)
             #add L3 ecmp group
             ecmp_msg = add_l3_ecmp_group(self.controller, port, [l3_msg.group_id])
             #add vlan flow table
@@ -587,8 +693,9 @@ class MplsTermination(base_tests.SimpleDataPlane):
 
                 #build expect packet
                 mac_dst='00:00:00:22:22:%02X' % out_port
+                mcast='01:00:5e:00:00:01'
                 exp_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=out_port,
-                    eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=31, ip_src=ip_src, ip_dst=ip_dst) 
+                    eth_dst=mcast, eth_src=switch_mac, ip_ttl=31, ip_src=ip_src, ip_dst=ip_dst) 
                 pkt=str(exp_pkt)
                 verify_packet(self, pkt, out_port)
                 verify_no_other_packets(self)

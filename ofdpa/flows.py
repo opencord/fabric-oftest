@@ -66,15 +66,10 @@ class PacketInUDP(base_tests.SimpleDataPlane):
         parsed_vlan_pkt = simple_udp_packet(pktlen=104, 
                       vlan_vid=0x1001, dl_vlan_enable=True)
         vlan_pkt = str(parsed_vlan_pkt)
-        ports = sorted(config["port_map"].keys())
-        for port in ports:
-            add_one_l2_interface_group(self.controller, port, 1, True, False)
-            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
-
         # create match
         match = ofp.match()
         match.oxm_list.append(ofp.oxm.eth_type(0x0800))
-        match.oxm_list.append(ofp.oxm.ip_proto(0x02))
+        match.oxm_list.append(ofp.oxm.ip_proto(2))
         request = ofp.message.flow_add(
             table_id=60,
             cookie=42,

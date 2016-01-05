@@ -783,8 +783,9 @@ class L3McastToL2(base_tests.SimpleDataPlane):
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
 
-        if len(config["port_map"]) <2:
-            logging.info("Port count less than 2, can't run this case")
+        if len(config["port_map"]) <3:
+            logging.info("Port count less than 3, can't run this case")
+            assert(False)
             return
 
         vlan_id =300
@@ -849,7 +850,8 @@ class L3McastToL3(base_tests.SimpleDataPlane):
         delete_all_groups(self.controller)
 
         if len(config["port_map"]) <3:
-            logging.info("Port count less than 2, can't run this case")
+            logging.info("Port count less than 3, can't run this case")
+            assert(False)
             return
 
         vlan_id =1
@@ -918,7 +920,8 @@ class L3McastToVPN(base_tests.SimpleDataPlane):
         #delete_all_groups(self.controller)
 
         if len(config["port_map"]) <3:
-            logging.info("Port count less than 2, can't run this case")
+            logging.info("Port count less than 3, can't run this case")
+            assert(False)
             return
 
         vlan_id =1
@@ -985,5 +988,3 @@ class L3McastToVPN(base_tests.SimpleDataPlane):
         verify_packet(self, pkt, port2)
         verify_packet(self, pkt, port3)
         verify_no_other_packets(self)
-
-

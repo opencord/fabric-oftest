@@ -119,7 +119,7 @@ class ArpNL2(base_tests.SimpleDataPlane):
             priority=40000)
         self.controller.message_send(request)
         for port in ports:
-            add_one_l2_interface_group(self.controller, port, 1, True, False)
+            add_one_l2_interface_group(self.controller, port, 1, False, False)
             add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_BOTH)
             group_id = encode_l2_interface_group_id(1, port)
             add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
@@ -148,8 +148,6 @@ class ArpNL2(base_tests.SimpleDataPlane):
                         verify_no_packet(self, pkt, ofport)
 
                 verify_no_other_packets(self)
-
-
 
 class PacketInArp(base_tests.SimpleDataPlane):
     """
@@ -200,7 +198,6 @@ class PacketInArp(base_tests.SimpleDataPlane):
 
             verify_no_other_packets(self)
 
-
 class L2FloodQinQ(base_tests.SimpleDataPlane):
     """
     Test L2 flood of double tagged vlan packets (802.1Q)
@@ -239,7 +236,6 @@ class L2FloodQinQ(base_tests.SimpleDataPlane):
             verify_packets(self, pkt, tmp_ports)
 
         verify_no_other_packets(self)
-
 
 class L2FloodTagged(base_tests.SimpleDataPlane):
     """
@@ -655,7 +651,7 @@ class MplsTermination(base_tests.SimpleDataPlane):
             l2_gid, l2_msg = add_one_l2_interface_group(self.controller, port, vlan_id, True, False)
             dst_mac[5]=vlan_id
             #add L3 Unicast  group
-            l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vlan_id, id=vlan_id, src_mac=intf_src_mac, dst_mac=mcast_mac)
+            l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vlan_id, id=vlan_id, src_mac=intf_src_mac, dst_mac=dst_mac)
             #add L3 ecmp group
             ecmp_msg = add_l3_ecmp_group(self.controller, port, [l3_msg.group_id])
             #add vlan flow table
@@ -690,7 +686,7 @@ class MplsTermination(base_tests.SimpleDataPlane):
                 mac_dst='00:00:00:22:22:%02X' % out_port
                 mcast='01:00:5e:00:00:01'
                 exp_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=out_port,
-                    eth_dst=mcast, eth_src=switch_mac, ip_ttl=31, ip_src=ip_src, ip_dst=ip_dst) 
+                    eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=31, ip_src=ip_src, ip_dst=ip_dst) 
                 pkt=str(exp_pkt)
                 verify_packet(self, pkt, out_port)
                 verify_no_other_packets(self)
@@ -780,8 +776,8 @@ class L3McastToL2(base_tests.SimpleDataPlane):
         """
         port1 (vlan 300)-> All Ports (vlan 300)
         """
-        delete_all_flows(self.controller)
-        delete_all_groups(self.controller)
+        #delete_all_flows(self.controller)
+        #delete_all_groups(self.controller)
 
         if len(config["port_map"]) <3:
             logging.info("Port count less than 3, can't run this case")
@@ -809,12 +805,11 @@ class L3McastToL2(base_tests.SimpleDataPlane):
         #add l2 interface group
         l2_intf_group_list=[]
         for port in config["port_map"].keys():
+            add_one_vlan_table_flow(self.controller, port, vlan_id, flag=4) 
             if port == port2:
                 continue
             l2_intf_gid, msg=add_one_l2_interface_group(self.controller, port, vlan_id=vlan_id, is_tagged=True, send_barrier=False)
             l2_intf_group_list.append(l2_intf_gid)
-            #add vlan flow table
-            add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG)
 
         #add termination flow
         add_termination_flow(self.controller, port1, 0x0800, switch_mac, vlan_id)
@@ -823,7 +818,8 @@ class L3McastToL2(base_tests.SimpleDataPlane):
         mcat_group_msg=add_l3_mcast_group(self.controller, vlan_id,  2, l2_intf_group_list)
         add_mcast4_routing_flow(self.controller, vlan_id, src_ip, 0, dst_ip, mcat_group_msg.group_id)
 
-        parsed_pkt = simple_udp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=300,
+        parsed_pkt = simple_udp_packet(pktlen=100, 
+                                       dl_vlan_enable=True, 
                                        eth_dst=dst_mac_str,
                                        eth_src=port1_mac_str,
                                        ip_ttl=64,
@@ -963,8 +959,6 @@ class L3McastToVPN(base_tests.SimpleDataPlane):
                      index=(0x20000+port2), ref_gid= mpls_gid2, push_mpls_header=True, set_mpls_label=port2, set_bos=1, cpy_ttl_outward=True)
         mpls_label_gid3, mpls_label_msg = add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_L3_VPN_LABEL,
                      index=(0x10000+port3), ref_gid= mpls_gid3, push_mpls_header=True, set_mpls_label=port3, set_bos=1, cpy_ttl_outward=True)
-
-
 
         mcat_group_msg=add_l3_mcast_group(self.controller, in_vlan,  2, [0x92020022 , 0x92010023])
         add_mcast4_routing_flow(self.controller, in_vlan, src_ip, 0, dst_ip, mcat_group_msg.group_id)

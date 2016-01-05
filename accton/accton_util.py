@@ -421,7 +421,7 @@ def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, 
     # goto to table 20
     msgs=[]
     for of_port in ports:
-        if (flag == VLAN_TABLE_FLAG_ONLY_TAG) or (flag == VLAN_TABLE_FLAG_ONLY_BOTH):
+        if (flag == VLAN_TABLE_FLAG_ONLY_TAG) or (flag == VLAN_TABLE_FLAG_ONLY_BOTH) or (flag == 4):
             match = ofp.match()
             match.oxm_list.append(ofp.oxm.in_port(of_port))
             match.oxm_list.append(ofp.oxm.vlan_vid(0x1000+vlan_id))
@@ -445,6 +445,27 @@ def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, 
             match = ofp.match()
             match.oxm_list.append(ofp.oxm.in_port(of_port))
             match.oxm_list.append(ofp.oxm.vlan_vid_masked(0, 0x1fff))
+            request = ofp.message.flow_add(
+                table_id=10,
+                cookie=42,
+                match=match,
+                instructions=[
+                  ofp.instruction.apply_actions(
+                    actions=[
+                      ofp.action.set_field(ofp.oxm.vlan_vid(vlan_id))
+                    ]
+                  ),
+                  ofp.instruction.goto_table(20)
+                ],
+                priority=0)
+            logging.info("Add vlan %d untagged packets on port %d and go to table 20" % (vlan_id, of_port))
+            ctrl.message_send(request)
+            msgs.append(request)
+
+        if (flag == 4) :
+            match = ofp.match()
+            match.oxm_list.append(ofp.oxm.in_port(of_port))
+            match.oxm_list.append(ofp.oxm.vlan_vid_masked(0x1000, 0x1fff))
             request = ofp.message.flow_add(
                 table_id=10,
                 cookie=42,
@@ -551,7 +572,7 @@ def add_vlan_table_flow_allow_all_vlan(ctrl, in_port, send_barrier=False):
 def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
     # table 10: vlan
     # goto to table 20
-    if (flag == VLAN_TABLE_FLAG_ONLY_TAG) or (flag == VLAN_TABLE_FLAG_ONLY_BOTH):
+    if (flag == VLAN_TABLE_FLAG_ONLY_TAG) or (flag == VLAN_TABLE_FLAG_ONLY_BOTH) or (flag == 4):
         match = ofp.match()
         match.oxm_list.append(ofp.oxm.in_port(of_port))
         match.oxm_list.append(ofp.oxm.vlan_vid_masked(0x1000+vlan_id,0x1fff))
@@ -599,6 +620,31 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
             ],
             priority=0)
         logging.info("Add vlan %d untagged packets on port %d and go to table 20" % (vlan_id, of_port))
+        ctrl.message_send(request)
+    
+    if (flag == 4) :
+        match = ofp.match()
+        match.oxm_list.append(ofp.oxm.in_port(of_port))
+        match.oxm_list.append(ofp.oxm.vlan_vid_masked(0x1000,0x1fff))
+
+        actions=[]
+        if vrf!=0:
+            actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
+
+        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(value=vlan_id)))
+
+        request = ofp.message.flow_add(
+            table_id=10,
+            cookie=42,
+            match=match,
+            instructions=[
+                ofp.instruction.apply_actions(
+                     actions=actions
+                ),
+                ofp.instruction.goto_table(20)
+            ],
+            priority=0)
+        logging.info("Add vlan %d tagged packets on port %d and go to table 20" %( vlan_id, of_port))
         ctrl.message_send(request)
 
     if send_barrier:

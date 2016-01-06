@@ -534,6 +534,21 @@ class L3VPNMPLS(base_tests.SimpleDataPlane):
             #add entries in the Bridging table to avoid packet-in from mac learning
             group_id = encode_l2_interface_group_id(vlan_id, port)
             add_bridge_flow(self.controller, dst_mac, vlan_id, group_id, True)
+        port = ports[0]
+        #add l2 interface group
+        vlan_id=port
+        l2_gid = encode_l2_interface_group_id(vlan_id, port)
+        dst_mac[5]=vlan_id
+        #add MPLS interface group
+        mpls_gid = encode_mpls_interface_group_id(0, port)
+        #add MPLS L3 VPN group
+        mpls_label_gid = encode_mpls_label_group_id(OFDPA_MPLS_GROUP_SUBTYPE_L3_VPN_LABEL, index=port)
+        #ecmp_msg=add_l3_ecmp_group(self.controller, vlan_id, [mpls_label_gid])
+        do_barrier(self.controller)
+        #add routing flow
+        dst_ip = 0x0
+        add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0x0, mpls_label_gid, vrf=2)
+        #add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0xffffff00, ecmp_msg.group_id, vrf=2)
 
         do_barrier(self.controller)
 
@@ -558,6 +573,20 @@ class L3VPNMPLS(base_tests.SimpleDataPlane):
                 pkt=str(exp_pkt)
                 verify_packet(self, pkt, out_port)
                 verify_no_other_packets(self)
+                ip_dst='1.168.%02d.1' % out_port
+                parsed_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=in_port,
+                    eth_dst=switch_mac, eth_src=mac_src, ip_ttl=64, ip_src=ip_src, ip_dst=ip_dst)
+                pkt=str(parsed_pkt)
+                self.dataplane.send(in_port, pkt)
+                #build expect packet
+                mac_dst='00:00:00:22:22:%02X' % out_port
+                label = (out_port, 0, 1, 32)
+                exp_pkt = mpls_packet(pktlen=104, dl_vlan_enable=True, vlan_vid=out_port, ip_ttl=63, ip_src=ip_src,
+                            ip_dst=ip_dst, eth_dst=mac_dst, eth_src=switch_mac, label=[label])
+                pkt=str(exp_pkt)
+                verify_packet(self, pkt, out_port)
+                verify_no_other_packets(self)
+
 
 class L3VPN_32(base_tests.SimpleDataPlane):
     """

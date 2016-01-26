@@ -6,6 +6,67 @@ import ofp
 from oftest.testutils import *
 from accton_util import *
 
+class McastLeaf1(base_tests.SimpleDataPlane):
+    def runTest(self):
+        """
+        port1 (vlan 300)-> All Ports (vlan 300)
+        """
+        if len(config["port_map"]) <2:
+            logging.info("Port count less than 2, can't run this case")
+            return
+
+        vlan_id =300
+        intf_src_mac=[0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc]
+        intf_src_mac_str=':'.join(['%02X' % x for x in intf_src_mac])
+        dst_mac=[0x01, 0x00, 0x5e, 0x01, 0x01, 0x01]
+        dst_mac_str=':'.join(['%02X' % x for x in dst_mac])
+        port1_mac=[0x00, 0x11, 0x11, 0x11, 0x11, 0x11]
+        port1_mac_str=':'.join(['%02X' % x for x in port1_mac])
+        src_ip=0xc0a80101
+        src_ip_str="192.168.1.1"
+        dst_ip=0xe0010101
+        dst_ip_str="224.1.1.1"
+
+        port1=32
+        port2=33
+
+        switch_mac = [0x01, 0x00, 0x5e, 0x00, 0x00, 0x00]
+
+        portlist=[32, 33, 34, 36]
+
+        #add l2 interface group
+        l2_intf_group_list=[]
+        for port in portlist:
+            add_one_vlan_table_flow(self.controller, port, vlan_id, flag=4)
+            #if port == port2:
+            #    continue
+            l2_intf_gid, msg=add_one_l2_interface_group(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)
+            l2_intf_group_list.append(l2_intf_gid)
+
+        #add termination flow
+        add_termination_flow(self.controller, port1, 0x0800, switch_mac, vlan_id)
+
+        #add l3 interface group
+        mcat_group_msg=add_l3_mcast_group(self.controller, vlan_id,  2, l2_intf_group_list)
+        add_mcast4_routing_flow(self.controller, vlan_id, src_ip, 0, dst_ip, mcat_group_msg.group_id)
+        parsed_pkt = simple_udp_packet(pktlen=100,
+                                       dl_vlan_enable=True,
+                                       vlan_vid=vlan_id,
+                                       eth_dst=dst_mac_str,
+                                       eth_src=port1_mac_str,
+                                       ip_ttl=64,
+                                       ip_src=src_ip_str,
+                                       ip_dst=dst_ip_str)
+        pkt=str(parsed_pkt)
+        self.dataplane.send(port1, pkt)
+        for port in config["port_map"].keys():
+            if port == port1:
+                 verify_no_packet(self, pkt, port)
+                 continue
+            verify_packet(self, pkt, port)
+        verify_no_other_packets(self)
+        
+
 class Leaf1(base_tests.SimpleDataPlane):
 
     def runTest(self):

@@ -63,7 +63,7 @@ class VlanSupport(base_tests.SimpleDataPlane):
                 self.dataplane.send(in_port, pkt)
 
                 for ofport in ports:
-                    if ofport in [out_port]:
+                    if ofport is out_port:
                         verify_packet(self, pkt, ofport)
                     else:
                         verify_no_packet(self, pkt, ofport)
@@ -77,10 +77,10 @@ class VlanSupport(base_tests.SimpleDataPlane):
                 self.dataplane.send(in_port, pkt)
 
                 for ofport in ports:
-                    if ofport in [out_port]:
-                        verify_packet(self, pkt, ofport)
-                    else:
+                    if ofport is in_port:
                         verify_no_packet(self, pkt, ofport)
+                    else:
+                        verify_packet(self, pkt, ofport)
 
                 verify_no_other_packets(self)
 

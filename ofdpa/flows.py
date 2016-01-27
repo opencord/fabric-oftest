@@ -521,16 +521,16 @@ class L3VPNMPLS(base_tests.SimpleDataPlane):
             #add MPLS L3 VPN group
             mpls_label_gid, mpls_label_msg = add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_L3_VPN_LABEL,
 		     index=port, ref_gid= mpls_gid, push_mpls_header=True, set_mpls_label=port, set_bos=1, set_ttl=32)
-            #ecmp_msg=add_l3_ecmp_group(self.controller, vlan_id, [mpls_label_gid])
+            ecmp_msg=add_l3_ecmp_group(self.controller, vlan_id, [mpls_label_gid])
             do_barrier(self.controller)
             #add vlan flow table
             add_one_vlan_table_flow(self.controller, port, vlan_id, vrf=2, flag=VLAN_TABLE_FLAG_ONLY_TAG)
             #add termination flow
             add_termination_flow(self.controller, port, 0x0800, intf_src_mac, vlan_id)
             #add routing flow
-            dst_ip = dip + (vlan_id<<8)
-            add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0xffffff00, mpls_label_gid, vrf=2)
-            #add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0xffffff00, ecmp_msg.group_id, vrf=2)
+            dst_ip = 0
+            #add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0, mpls_label_gid, vrf=2)
+            add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0xffffff00, ecmp_msg.group_id, vrf=2)
             #add entries in the Bridging table to avoid packet-in from mac learning
             group_id = encode_l2_interface_group_id(vlan_id, port)
             add_bridge_flow(self.controller, dst_mac, vlan_id, group_id, True)
@@ -1012,7 +1012,7 @@ class LPM(base_tests.SimpleDataPlane):
             #add MPLS L3 VPN group
             mpls_label_gid, mpls_label_msg = add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_L3_VPN_LABEL,
 		     index=port, ref_gid= mpls_gid, push_mpls_header=True, set_mpls_label=port, set_bos=1, set_ttl=32)
-            #ecmp_msg=add_l3_ecmp_group(self.controller, vlan_id, [mpls_label_gid])
+            ecmp_msg=add_l3_ecmp_group(self.controller, vlan_id, [mpls_label_gid])
             do_barrier(self.controller)
             #add vlan flow table
             add_one_vlan_table_flow(self.controller, port, vlan_id, vrf=2, flag=VLAN_TABLE_FLAG_ONLY_TAG)
@@ -1020,8 +1020,8 @@ class LPM(base_tests.SimpleDataPlane):
             add_termination_flow(self.controller, port, 0x0800, intf_src_mac, vlan_id)
             #add routing flow
             dst_ip = dip + (vlan_id<<8)
-            add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0xffffff00, mpls_label_gid, vrf=2)
-            #add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0xffffff00, ecmp_msg.group_id, vrf=2)
+            #add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0xffffff00, mpls_label_gid, vrf=2)
+            add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0xffffff00, ecmp_msg.group_id, vrf=2)
             #add entries in the Bridging table to avoid packet-in from mac learning
             group_id = encode_l2_interface_group_id(vlan_id, port)
             add_bridge_flow(self.controller, dst_mac, vlan_id, group_id, True)
@@ -1034,12 +1034,12 @@ class LPM(base_tests.SimpleDataPlane):
         mpls_gid = encode_mpls_interface_group_id(0, port)
         #add MPLS L3 VPN group
         mpls_label_gid = encode_mpls_label_group_id(OFDPA_MPLS_GROUP_SUBTYPE_L3_VPN_LABEL, index=port)
-        #ecmp_msg=add_l3_ecmp_group(self.controller, vlan_id, [mpls_label_gid])
+        ecmp_msg=add_l3_ecmp_group(self.controller, vlan_id, [mpls_label_gid])
         do_barrier(self.controller)
         #add routing flow
         dst_ip = 0x0
-        add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0x0, mpls_label_gid, vrf=2)
-        #add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0xffffff00, ecmp_msg.group_id, vrf=2)
+        #add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0x0, mpls_label_gid, vrf=2)
+        add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0x0, ecmp_msg.group_id, vrf=2)
 
         do_barrier(self.controller)
 

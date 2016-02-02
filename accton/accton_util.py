@@ -257,7 +257,7 @@ def add_l3_unicast_group(ctrl, port, vlanid, id, src_mac, dst_mac):
     if dst_mac is not None:
         action.append(ofp.action.set_field(ofp.oxm.eth_dst(dst_mac)))
 
-    action.append(ofp.action.set_field(ofp.oxm.vlan_vid(vlanid)))
+    action.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vlanid)))
         
     action.append(ofp.action.group(group_id))
     
@@ -452,7 +452,7 @@ def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, 
                 instructions=[
                   ofp.instruction.apply_actions(
                     actions=[
-                      ofp.action.set_field(ofp.oxm.vlan_vid(vlan_id))
+                      ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vlan_id))
                     ]
                   ),
                   ofp.instruction.goto_table(20)
@@ -473,7 +473,7 @@ def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, 
                 instructions=[
                   ofp.instruction.apply_actions(
                     actions=[
-                      ofp.action.set_field(ofp.oxm.vlan_vid(vlan_id))
+                      ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vlan_id))
                     ]
                   ),
                   ofp.instruction.goto_table(20)
@@ -606,7 +606,7 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
         if vrf!=0:
             actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
             
-        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(vlan_id)))
+        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vlan_id)))
         
         request = ofp.message.flow_add(
             table_id=10,
@@ -631,7 +631,7 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
         if vrf!=0:
             actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
 
-        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(value=vlan_id)))
+        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(value=0x1000+vlan_id)))
 
         request = ofp.message.flow_add(
             table_id=10,
@@ -745,27 +745,29 @@ def add_termination_flow(ctrl, in_port, eth_type, dst_mac, vlanid, goto_table=No
 
     return request    
     
-def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=0, send_barrier=False):
+def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=0, send_ctrl=False, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(eth_type))
     if vrf != 0:
         match.oxm_list.append(ofp.oxm.exp2ByteValue(ofp.oxm.OFDPA_EXP_TYPE_VRF, vrf))
-    
-    if mask!=0:
-        match.oxm_list.append(ofp.oxm.ipv4_dst_masked(dst_ip, mask))
-    else:
-        match.oxm_list.append(ofp.oxm.ipv4_dst(dst_ip))
 
+    match.oxm_list.append(ofp.oxm.ipv4_dst_masked(dst_ip, mask))
+
+    instructions = []
+    instructions.append(ofp.instruction.goto_table(60))
+    if send_ctrl:
+        instructions.append(ofp.instruction.apply_actions(
+                            actions=[ofp.action.output( port=ofp.OFPP_CONTROLLER,
+                            max_len=ofp.OFPCML_NO_BUFFER)]))
+    else: 
+        instructions.append(ofp.instruction.write_actions(
+                        actions=[ofp.action.group(action_group_id)]))
 
     request = ofp.message.flow_add(
             table_id=30,
             cookie=42,
             match=match,
-            instructions=[
-                    ofp.instruction.write_actions(
-                        actions=[ofp.action.group(action_group_id)]),
-                    ofp.instruction.goto_table(60)
-                ],
+            instructions=instructions,
             buffer_id=ofp.OFP_NO_BUFFER,
             priority=1) 
 
@@ -1226,7 +1228,7 @@ def add_mpls_intf_group(ctrl, ref_gid, dst_mac, src_mac, vid, index, subtype=0):
     action=[]
     action.append(ofp.action.set_field(ofp.oxm.eth_src(src_mac)))
     action.append(ofp.action.set_field(ofp.oxm.eth_dst(dst_mac)))
-    action.append(ofp.action.set_field(ofp.oxm.vlan_vid(vid)))    
+    action.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vid)))    
     action.append(ofp.action.group(ref_gid))
     
     buckets = [ofp.bucket(actions=action)]

@@ -628,10 +628,11 @@ class _32VPN(base_tests.SimpleDataPlane):
         dst_mac=[0x00, 0x00, 0x00, 0x22, 0x22, 0x00]
         dip=0xc0a80001
         #Hashes Test Name and uses it as id for installing unique groups
-        id=abs(hash(inspect.stack()[0][3])) % (256)
+        class_id=abs(hash(inspect.stack()[0][3])) % (256)
         ports = config["port_map"].keys()
         for port in ports:
             #add l2 interface group
+            id=port+class_id<<8
             vlan_id=port
             l2_gid, l2_msg = add_one_l2_interface_group(self.controller, port, vlan_id, True, True)
             dst_mac[5]=vlan_id

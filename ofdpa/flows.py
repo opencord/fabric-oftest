@@ -81,8 +81,7 @@ class PacketInUDP(base_tests.SimpleDataPlane):
                     actions=[
                         ofp.action.output(
                             port=ofp.OFPP_CONTROLLER,
-                            max_len=ofp.OFPCML_NO_BUFFER)]),
-            ],
+                            max_len=ofp.OFPCML_NO_BUFFER)]),            ],
             buffer_id=ofp.OFP_NO_BUFFER,
             priority=1)
 
@@ -853,7 +852,7 @@ class L3McastToL2(base_tests.SimpleDataPlane):
         #add l2 interface group
         l2_intf_group_list=[]
         for port in config["port_map"].keys():
-            add_one_vlan_table_flow(self.controller, port, vlan_id, flag=4) 
+            add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG) 
             if port == port2:
                 continue
             l2_intf_gid, msg=add_one_l2_interface_group(self.controller, port, vlan_id=vlan_id, is_tagged=True, send_barrier=False)
@@ -867,7 +866,8 @@ class L3McastToL2(base_tests.SimpleDataPlane):
         add_mcast4_routing_flow(self.controller, vlan_id, src_ip, 0, dst_ip, mcat_group_msg.group_id)
 
         parsed_pkt = simple_udp_packet(pktlen=100, 
-                                       dl_vlan_enable=True, 
+                                       dl_vlan_enable=True,
+                                       vlan_vid=vlan_id,
                                        eth_dst=dst_mac_str,
                                        eth_src=port1_mac_str,
                                        ip_ttl=64,
@@ -951,7 +951,7 @@ class L3McastToL3(base_tests.SimpleDataPlane):
         verify_packet(self, pkt, port2)
         verify_packet(self, pkt, port3)        
         verify_no_other_packets(self)  
-
+@disabled
 class L3McastToVPN(base_tests.SimpleDataPlane):
     """
     Mcast routing

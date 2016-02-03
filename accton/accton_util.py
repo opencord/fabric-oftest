@@ -606,7 +606,7 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
         if vrf!=0:
             actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
             
-        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vlan_id)))
+        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(vlan_id)))
         
         request = ofp.message.flow_add(
             table_id=10,
@@ -631,7 +631,7 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
         if vrf!=0:
             actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
 
-        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(value=0x1000+vlan_id)))
+        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(value=vlan_id)))
 
         request = ofp.message.flow_add(
             table_id=10,

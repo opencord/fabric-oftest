@@ -1,17 +1,4 @@
 """
-The following tests are being done here
-1) PacketInSrcMacMiss
-2) VlanSupport
-3) L2FloodQinQ
-4) L2FloodTagged
-5) L2Flood Tagged Unknown Src
-6) L2 Unicast Tagged
-7) MTU 1500
-8) MTU 4100
-9) MTU 4500
-10) L3UnicastTagged
-11) L3VPNMPLS
-12) MPLS Termination
 """
 
 from oftest import config

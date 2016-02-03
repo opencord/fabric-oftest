@@ -15,12 +15,14 @@ The following tests are being done here
 """
 
 from oftest import config
+import inspect
 import logging
 import oftest.base_tests as base_tests
 import ofp
 from oftest.testutils import *
 from accton_util import *
 
+@disabled
 class PacketInSrcMacMiss(base_tests.SimpleDataPlane):
     """
     Test packet in function on a src-mac miss
@@ -95,7 +97,7 @@ class PacketInUDP(base_tests.SimpleDataPlane):
             verify_packet_in(self, vlan_pkt, of_port, ofp.OFPR_ACTION)
 
             verify_no_other_packets(self)
-
+@disabled
 class PacketInIPTable(base_tests.SimpleDataPlane):
     """
     Test packet in function on IPTABLE
@@ -144,7 +146,7 @@ class PacketInIPTable(base_tests.SimpleDataPlane):
                 verify_packet_in(self, pkt, in_port, ofp.OFPR_ACTION)
                 #verify_no_other_packets(self)
 
-
+@disabled
 class ArpNL2(base_tests.SimpleDataPlane):
      def runTest(self):
         delete_all_flows(self.controller)
@@ -324,7 +326,7 @@ class L2FloodTagged(base_tests.SimpleDataPlane):
             verify_packets(self, pkt, tmp_ports)
 
         verify_no_other_packets(self)
-
+@disabled
 class L2FloodTaggedUnknownSrc(base_tests.SimpleDataPlane):
     """
     Test L2 flood to a vlan
@@ -438,7 +440,7 @@ class Mtu1500(base_tests.SimpleDataPlane):
 
                 verify_no_other_packets(self)
 
-
+@disabled
 class Mtu4000(base_tests.SimpleDataPlane):
     """
     Test output function for an exact-match flow
@@ -609,7 +611,7 @@ class L3VPNMPLS(base_tests.SimpleDataPlane):
                 verify_no_other_packets(self)
 
 
-class L3VPN_32(base_tests.SimpleDataPlane):
+class _32VPN(base_tests.SimpleDataPlane):
     """
             Insert IP packet
             Receive MPLS packet
@@ -625,7 +627,8 @@ class L3VPN_32(base_tests.SimpleDataPlane):
         intf_src_mac=[0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc]
         dst_mac=[0x00, 0x00, 0x00, 0x22, 0x22, 0x00]
         dip=0xc0a80001
-        index=1
+        #Hashes Test Name and uses it as id for installing unique groups
+        id=abs(hash(inspect.stack()[0][3])) % (256)
         ports = config["port_map"].keys()
         for port in ports:
             #add l2 interface group
@@ -633,36 +636,31 @@ class L3VPN_32(base_tests.SimpleDataPlane):
             l2_gid, l2_msg = add_one_l2_interface_group(self.controller, port, vlan_id, True, True)
             dst_mac[5]=vlan_id
             #add MPLS interface group
-            mpls_gid, mpls_msg = add_mpls_intf_group(self.controller, l2_gid, dst_mac, intf_src_mac, vlan_id, port)
+            mpls_gid, mpls_msg = add_mpls_intf_group(self.controller, l2_gid, dst_mac, intf_src_mac, vlan_id, id)
             #add MPLS L3 VPN group
             mpls_label_gid, mpls_label_msg = add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_L3_VPN_LABEL,
-                     index=port, ref_gid= mpls_gid, push_mpls_header=True, set_mpls_label=port, set_bos=1, set_ttl=32)
+                     index=id, ref_gid= mpls_gid, push_mpls_header=True, set_mpls_label=port, set_bos=1, set_ttl=32)
             #ecmp_msg=add_l3_ecmp_group(self.controller, vlan_id, [mpls_label_gid])
             do_barrier(self.controller)
             #add vlan flow table
-            add_one_vlan_table_flow(self.controller, port, vlan_id, vrf=2, flag=VLAN_TABLE_FLAG_ONLY_TAG)
+            add_one_vlan_table_flow(self.controller, port, vlan_id, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_TAG)
             #add termination flow
             add_termination_flow(self.controller, port, 0x0800, intf_src_mac, vlan_id)
             #add routing flow
             dst_ip = dip + (vlan_id<<8)
-            add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0, mpls_gid, vrf=2)
-            #ecmp_msg.group_id, vrf=2)
-            #add entries in the Bridging table to avoid packet-in from mac learning
-            group_id = encode_l2_interface_group_id(vlan_id, port)
-            add_bridge_flow(self.controller, dst_mac, vlan_id, group_id, True)
+            add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0xffffffff, mpls_label_gid)
 
         do_barrier(self.controller)
 
         switch_mac = ':'.join(['%02X' % x for x in intf_src_mac])
         for in_port in ports:
-            mac_src='00:00:00:22:22:%02X' % in_port
             ip_src='192.168.%02d.1' % in_port
             for out_port in ports:
                 if in_port == out_port:
                      continue
                 ip_dst='192.168.%02d.1' % out_port
                 parsed_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=in_port,
-                    eth_dst=switch_mac, eth_src=mac_src, ip_ttl=64, ip_src=ip_src,
+                    eth_dst=switch_mac, ip_ttl=64, ip_src=ip_src,
                     ip_dst=ip_dst)
                 pkt=str(parsed_pkt)
                 self.dataplane.send(in_port, pkt)
@@ -674,8 +672,8 @@ class L3VPN_32(base_tests.SimpleDataPlane):
                 pkt=str(exp_pkt)
                 verify_packet(self, pkt, out_port)
                 verify_no_other_packets(self)
-
-class MplsTermination(base_tests.SimpleDataPlane):
+@disabled
+class UniqueMplsTermination(base_tests.SimpleDataPlane):
     """
 	Insert IP packet
 	Receive MPLS packet
@@ -1032,7 +1030,7 @@ class L3McastToVPN(base_tests.SimpleDataPlane):
         verify_packet(self, pkt, port2)
         verify_packet(self, pkt, port3)
         verify_no_other_packets(self)
-
+@disabled
 class LPM(base_tests.SimpleDataPlane):
     """
 	    Insert IP packet

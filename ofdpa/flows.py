@@ -732,7 +732,7 @@ class L3McastToL3(base_tests.SimpleDataPlane):
 
 
 
-class MplsTermination(base_tests.SimpleDataPlane):
+class _MplsTermination(base_tests.SimpleDataPlane):
     """
         Insert IP packet
         Receive MPLS packet

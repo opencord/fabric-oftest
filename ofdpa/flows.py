@@ -178,26 +178,27 @@ class L2FloodQinQ(base_tests.SimpleDataPlane):
     """
     def runTest(self):
         ports = sorted(config["port_map"].keys())
-
+        #Hashes Test Name and uses it as id for installing unique groups
+        vlan_id=abs(hash(inspect.stack()[0][3])) % (256)
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
 
         # Installing flows to avoid packet-in
         for port in ports:
-            add_one_l2_interface_group(self.controller, port, 1, True, False)
-            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
+            add_one_l2_interface_group(self.controller, port, vlan_id, True, False)
+            add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG)
 
-            group_id = encode_l2_interface_group_id(1, port)
-            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
-        msg=add_l2_flood_group(self.controller, ports, 1, 1)
-        add_bridge_flow(self.controller, None, 1, msg.group_id, True)
+            group_id = encode_l2_interface_group_id(vlan_id, port)
+            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], vlan_id, group_id, True)
+        msg=add_l2_flood_group(self.controller, ports, vlan_id, 2)
+        add_bridge_flow(self.controller, None, vlan_id, msg.group_id, True)
         do_barrier(self.controller)
 
         #verify flood
         for ofport in ports:
             # change dest based on port number
             mac_src= '00:12:34:56:78:%02X' % ofport
-            parsed_pkt = simple_tcp_packet_two_vlan(pktlen=108, out_dl_vlan_enable=True, out_vlan_vid=1,
+            parsed_pkt = simple_tcp_packet_two_vlan(pktlen=108, out_dl_vlan_enable=True, out_vlan_vid=vlan_id,
                                                 in_dl_vlan_enable=True, in_vlan_vid=10, eth_dst='00:12:34:56:78:9a', eth_src=mac_src)
             pkt = str(parsed_pkt)
             self.dataplane.send(ofport, pkt)

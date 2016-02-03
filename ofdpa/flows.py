@@ -419,7 +419,7 @@ class L3VPNMPLS(base_tests.SimpleDataPlane):
         switch_mac = ':'.join(['%02X' % x for x in intf_src_mac])
         for in_port in ports:
             mac_src='00:00:00:22:22:%02X' % (class_id+in_port)
-            ip_src='192.168.%02d.1' (class_id+in_port)
+            ip_src='192.168.%02d.1' % (class_id+in_port)
             for out_port in ports:
                 if in_port == out_port:
                      continue

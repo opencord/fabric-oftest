@@ -352,19 +352,19 @@ class L3UcastTagged(base_tests.SimpleDataPlane):
 
         switch_mac = ':'.join(['%02X' % x for x in intf_src_mac])
         for in_port in ports:
-            mac_src='00:00:00:22:22:%02X' % in_port
-            ip_src='192.168.%02d.1' % in_port
+            mac_src='00:00:00:22:22:%02X' % (class_id+in_port)
+            ip_src='192.168.%02d.1' % (class_id+in_port)
             for out_port in ports:
                 if in_port == out_port:
                      continue
-                ip_dst='192.168.%02d.1' % out_port
+                ip_dst='192.168.%02d.1' % (class_id+out_port)
                 parsed_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=(class_id+in_port),
                     eth_dst=switch_mac, eth_src=mac_src, ip_ttl=64, ip_src=ip_src,
                     ip_dst=ip_dst)
                 pkt=str(parsed_pkt)
                 self.dataplane.send(in_port, pkt)
                 #build expected packet
-                mac_dst='00:00:00:22:22:%02X' % out_port
+                mac_dst='00:00:00:22:22:%02X' % (class_id+out_port)
                 exp_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=(class_id+out_port),
                                        eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=63,
                                        ip_src=ip_src, ip_dst=ip_dst)
@@ -389,7 +389,7 @@ class L3VPNMPLS(base_tests.SimpleDataPlane):
         dst_mac=[0x00, 0x00, 0x00, 0x22, 0x22, 0x00]
         dip=0xc0a80001
         #Hashes Test Name and uses it as id for installing unique groups
-        class_id=abs(hash(inspect.stack()[0][3])) % (256)
+        class_id=abs(hash(inspect.stack()[0][3])) % (200)
         ports = config["port_map"].keys()
         for port in ports:
             #add l2 interface group
@@ -417,19 +417,19 @@ class L3VPNMPLS(base_tests.SimpleDataPlane):
 
         switch_mac = ':'.join(['%02X' % x for x in intf_src_mac])
         for in_port in ports:
-            mac_src='00:00:00:22:22:%02X' % in_port
-            ip_src='192.168.%02d.1' % in_port
+            mac_src='00:00:00:22:22:%02X' % (class_id+in_port)
+            ip_src='192.168.%02d.1' (class_id+in_port)
             for out_port in ports:
                 if in_port == out_port:
                      continue
-                ip_dst='192.168.%02d.1' % out_port
+                ip_dst='192.168.%02d.1' % (class_id+out_port)
                 parsed_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=(class_id+in_port),
                     eth_dst=switch_mac, eth_src=mac_src, ip_ttl=64, ip_src=ip_src,
                     ip_dst=ip_dst)
                 pkt=str(parsed_pkt)
                 self.dataplane.send(in_port, pkt)
                 #build expect packet
-                mac_dst='00:00:00:22:22:%02X' % out_port
+                mac_dst='00:00:00:22:22:%02X' % (class_id+out_port)
                 label = (out_port, 0, 1, 32)
                 exp_pkt = mpls_packet(pktlen=104, dl_vlan_enable=True, vlan_vid=(out_port+class_id), ip_ttl=63, ip_src=ip_src,
                             ip_dst=ip_dst, eth_dst=mac_dst, eth_src=switch_mac, label=[label])
@@ -481,18 +481,18 @@ class _32VPN(base_tests.SimpleDataPlane):
 
         switch_mac = ':'.join(['%02X' % x for x in intf_src_mac])
         for in_port in ports:
-            ip_src='192.168.%02d.1' % in_port
+            ip_src='192.168.%02d.1' % (class_id+in_port)
             for out_port in ports:
                 if in_port == out_port:
                      continue
-                ip_dst='192.168.%02d.1' % out_port
+                ip_dst='192.168.%02d.1' % (class_id+out_port)
                 parsed_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=(class_id+in_port),
                     eth_dst=switch_mac, ip_ttl=64, ip_src=ip_src,
                     ip_dst=ip_dst)
                 pkt=str(parsed_pkt)
                 self.dataplane.send(in_port, pkt)
                 #build expect packet
-                mac_dst='00:00:00:22:22:%02X' % out_port
+                mac_dst='00:00:00:22:22:%02X' % (class_id+out_port)
                 label = (out_port, 0, 1, 32)
                 exp_pkt = mpls_packet(pktlen=104, dl_vlan_enable=True, vlan_vid=(class_id+out_port), ip_ttl=63, ip_src=ip_src,
                             ip_dst=ip_dst, eth_dst=mac_dst, eth_src=switch_mac, label=[label])
@@ -754,11 +754,11 @@ class _MplsTermination(base_tests.SimpleDataPlane):
 
         switch_mac = ':'.join(['%02X' % x for x in intf_src_mac])
         for in_port in ports:
-            ip_src='192.168.%02d.1' % in_port
+            ip_src='192.168.%02d.1' % (class_id+in_port)
             for out_port in ports:
                 if in_port == out_port:
                     continue
-                ip_dst='192.168.%02d.1' % out_port
+                ip_dst='192.168.%02d.1' % (class_id+out_port)
 
                 label = (out_port, 0, 1, 32)
                 parsed_pkt = mpls_packet(pktlen=104, dl_vlan_enable=True, vlan_vid=(in_port+class_id), ip_src=ip_src,
@@ -767,7 +767,7 @@ class _MplsTermination(base_tests.SimpleDataPlane):
                 self.dataplane.send(in_port, pkt)
 
                 #build expect packet
-                mac_dst='00:00:00:22:22:%02X' % out_port
+                mac_dst='00:00:00:22:22:%02X' % (class_id+out_port)
                 exp_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=(class_id+out_port),
                                             eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=31, ip_src=ip_src, ip_dst=ip_dst)
                 pkt=str(exp_pkt)

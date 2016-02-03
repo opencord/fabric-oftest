@@ -214,9 +214,11 @@ class L2FloodTagged(base_tests.SimpleDataPlane):
     """
     Test L2 flood to a vlan
     Send a packet with unknown dst_mac and check if the packet is flooded to all ports except inport
-    #todo take in account unknown src 
     """
     def runTest(self):
+        #Hashes Test Name and uses it as id for installing unique groups
+        vlan_id=abs(hash(inspect.stack()[0][3])) % (256)
+
         ports = sorted(config["port_map"].keys())
 
         delete_all_flows(self.controller)
@@ -224,21 +226,16 @@ class L2FloodTagged(base_tests.SimpleDataPlane):
 
         # Installing flows to avoid packet-in
         for port in ports:
-            add_one_l2_interface_group(self.controller, port, 1, True, False)
-            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
-
-            group_id = encode_l2_interface_group_id(1, port)
-            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
-        msg=add_l2_flood_group(self.controller, ports, 1, 1)
-        add_bridge_flow(self.controller, None, 1, msg.group_id, True)  
+            add_one_l2_interface_group(self.controller, port, vlan_id, True, False)
+            add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG)
+        msg=add_l2_flood_group(self.controller, ports, vlan_id, 1)
+        add_bridge_flow(self.controller, None, vlan_id, msg.group_id, True)
         do_barrier(self.controller)
 
         #verify flood
         for ofport in ports:
             # change dest based on port number
-            mac_src= '00:12:34:56:78:%02X' % ofport
-            parsed_pkt = simple_tcp_packet(dl_vlan_enable=True, vlan_vid=1, eth_dst='00:12:34:56:78:9a', eth_src=mac_src)
-            pkt = str(parsed_pkt)
+            pkt = str( simple_tcp_packet(dl_vlan_enable=True, vlan_vid=vlan_id, eth_dst='00:12:34:56:78:9a') )
             self.dataplane.send(ofport, pkt)
             #self won't rx packet
             verify_no_packet(self, pkt, ofport)
@@ -246,7 +243,6 @@ class L2FloodTagged(base_tests.SimpleDataPlane):
             tmp_ports=list(ports)
             tmp_ports.remove(ofport)
             verify_packets(self, pkt, tmp_ports)
-
         verify_no_other_packets(self)
 
 class L2UnicastTagged(base_tests.SimpleDataPlane):
@@ -259,15 +255,16 @@ class L2UnicastTagged(base_tests.SimpleDataPlane):
     """
     def runTest(self):
         ports = sorted(config["port_map"].keys())
-
+        #Hashes Test Name and uses it as id for installing unique groups
+        vlan_id=abs(hash(inspect.stack()[0][3])) % (256)
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
 
         for port in ports:
-            add_one_l2_interface_group(self.controller, port, 1, True, False)
-            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)  
-            group_id = encode_l2_interface_group_id(1, port)
-            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
+            add_one_l2_interface_group(self.controller, port, vlan_id, True, False)
+            add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG)
+            group_id = encode_l2_interface_group_id(vlan_id, port)
+            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], vlan_id, group_id, True)
         do_barrier(self.controller)
 
         for out_port in ports:
@@ -276,38 +273,29 @@ class L2UnicastTagged(base_tests.SimpleDataPlane):
             for in_port in ports:
                 if in_port == out_port:
                     continue
-                # change source based on port number to avoid packet-ins from learning
-                mac_src= '00:12:34:56:78:%02X' % in_port
-                parsed_pkt = simple_tcp_packet(dl_vlan_enable=True, vlan_vid=1, eth_dst=mac_dst, eth_src=mac_src)
-                pkt = str(parsed_pkt)
+                pkt = str( simple_tcp_packet(dl_vlan_enable=True, vlan_vid=vlan_id, eth_dst=mac_dst))
                 self.dataplane.send(in_port, pkt)
-
                 for ofport in ports:
                     if ofport in [out_port]:
                         verify_packet(self, pkt, ofport)
                     else:
                         verify_no_packet(self, pkt, ofport)
-
                 verify_no_other_packets(self)
 
 class Mtu1500(base_tests.SimpleDataPlane):
 
     def runTest(self):
         ports = sorted(config["port_map"].keys())
-
+        #Hashes Test Name and uses it as id for installing unique groups
+        vlan_id=abs(hash(inspect.stack()[0][3])) % (256)
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
 
-       # set up tag groups for each port
-        add_l2_interface_group(self.controller, ports, 1, True, 1)
-
-        add_vlan_table_flow(self.controller, ports)
-
         for port in ports:
-            add_one_l2_interface_group(self.controller, port, 1, True, False)
-            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
-            group_id = encode_l2_interface_group_id(1, port)
-            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
+            add_one_l2_interface_group(self.controller, port, vlan_id, True, False)
+            add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG)
+            group_id = encode_l2_interface_group_id(vlan_id, port)
+            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], vlan_id, group_id, True)
         do_barrier(self.controller)
 
         for out_port in ports:
@@ -316,18 +304,13 @@ class Mtu1500(base_tests.SimpleDataPlane):
             for in_port in ports:
                 if in_port == out_port:
                     continue
-                # change source based on port number to avoid packet-ins from learning
-                mac_src= '00:12:34:56:78:%02X' % in_port
-                parsed_pkt = simple_tcp_packet(pktlen=1500,dl_vlan_enable=True, vlan_vid=1, eth_dst=mac_dst, eth_src=mac_src)
-                pkt = str(parsed_pkt)
+                pkt = str(simple_tcp_packet(pktlen=1500,dl_vlan_enable=True, vlan_vid=vlan_id, eth_dst=mac_dst))
                 self.dataplane.send(in_port, pkt)
-
                 for ofport in ports:
                     if ofport in [out_port]:
                         verify_packet(self, pkt, ofport)
                     else:
                         verify_no_packet(self, pkt, ofport)
-
                 verify_no_other_packets(self)
 
 class L3UcastTagged(base_tests.SimpleDataPlane):
@@ -338,7 +321,8 @@ class L3UcastTagged(base_tests.SimpleDataPlane):
     def runTest(self):
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
-
+        #Hashes Test Name and uses it as id for installing unique groups
+        class_id=abs(hash(inspect.stack()[0][3])) % (256)
         if len(config["port_map"]) <2:
             logging.info("Port count less than 2, can't run this case")
             return
@@ -349,7 +333,7 @@ class L3UcastTagged(base_tests.SimpleDataPlane):
         ports = config["port_map"].keys()
         for port in ports:
             #add l2 interface group
-            vlan_id=port
+            vlan_id=port+class_id
             add_one_l2_interface_group(self.controller, port, vlan_id=vlan_id, is_tagged=True, send_barrier=False)
             dst_mac[5]=vlan_id
             l3_msg=add_l3_unicast_group(self.controller, port, vlanid=vlan_id, id=vlan_id, src_mac=intf_src_mac, dst_mac=dst_mac)
@@ -374,14 +358,14 @@ class L3UcastTagged(base_tests.SimpleDataPlane):
                 if in_port == out_port:
                      continue
                 ip_dst='192.168.%02d.1' % out_port
-                parsed_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=in_port,
+                parsed_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=(class_id+in_port),
                     eth_dst=switch_mac, eth_src=mac_src, ip_ttl=64, ip_src=ip_src,
                     ip_dst=ip_dst)
                 pkt=str(parsed_pkt)
                 self.dataplane.send(in_port, pkt)
                 #build expected packet
                 mac_dst='00:00:00:22:22:%02X' % out_port
-                exp_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=out_port,
+                exp_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=(class_id+out_port),
                                        eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=63,
                                        ip_src=ip_src, ip_dst=ip_dst)
                 pkt=str(exp_pkt)
@@ -410,7 +394,7 @@ class L3VPNMPLS(base_tests.SimpleDataPlane):
         for port in ports:
             #add l2 interface group
             id=port+class_id<<8
-            vlan_id=port
+            vlan_id=port+class_id
             l2_gid, l2_msg = add_one_l2_interface_group(self.controller, port, vlan_id, True, True)
             dst_mac[5]=vlan_id
             #add MPLS interface group
@@ -439,7 +423,7 @@ class L3VPNMPLS(base_tests.SimpleDataPlane):
                 if in_port == out_port:
                      continue
                 ip_dst='192.168.%02d.1' % out_port
-                parsed_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=in_port,
+                parsed_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=(class_id+in_port),
                     eth_dst=switch_mac, eth_src=mac_src, ip_ttl=64, ip_src=ip_src,
                     ip_dst=ip_dst)
                 pkt=str(parsed_pkt)
@@ -447,7 +431,7 @@ class L3VPNMPLS(base_tests.SimpleDataPlane):
                 #build expect packet
                 mac_dst='00:00:00:22:22:%02X' % out_port
                 label = (out_port, 0, 1, 32)
-                exp_pkt = mpls_packet(pktlen=104, dl_vlan_enable=True, vlan_vid=out_port, ip_ttl=63, ip_src=ip_src,
+                exp_pkt = mpls_packet(pktlen=104, dl_vlan_enable=True, vlan_vid=(out_port+class_id), ip_ttl=63, ip_src=ip_src,
                             ip_dst=ip_dst, eth_dst=mac_dst, eth_src=switch_mac, label=[label])
                 pkt=str(exp_pkt)
                 verify_packet(self, pkt, out_port)
@@ -475,7 +459,7 @@ class _32VPN(base_tests.SimpleDataPlane):
         for port in ports:
             #add l2 interface group
             id=port+class_id<<8
-            vlan_id=port
+            vlan_id=port+class_id
             l2_gid, l2_msg = add_one_l2_interface_group(self.controller, port, vlan_id, True, True)
             dst_mac[5]=vlan_id
             #add MPLS interface group
@@ -502,7 +486,7 @@ class _32VPN(base_tests.SimpleDataPlane):
                 if in_port == out_port:
                      continue
                 ip_dst='192.168.%02d.1' % out_port
-                parsed_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=in_port,
+                parsed_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=(class_id+in_port),
                     eth_dst=switch_mac, ip_ttl=64, ip_src=ip_src,
                     ip_dst=ip_dst)
                 pkt=str(parsed_pkt)
@@ -510,12 +494,12 @@ class _32VPN(base_tests.SimpleDataPlane):
                 #build expect packet
                 mac_dst='00:00:00:22:22:%02X' % out_port
                 label = (out_port, 0, 1, 32)
-                exp_pkt = mpls_packet(pktlen=104, dl_vlan_enable=True, vlan_vid=out_port, ip_ttl=63, ip_src=ip_src,
+                exp_pkt = mpls_packet(pktlen=104, dl_vlan_enable=True, vlan_vid=(class_id+out_port), ip_ttl=63, ip_src=ip_src,
                             ip_dst=ip_dst, eth_dst=mac_dst, eth_src=switch_mac, label=[label])
                 pkt=str(exp_pkt)
                 verify_packet(self, pkt, out_port)
                 verify_no_other_packets(self)
-
+@disabled
 class MPLSBUG(base_tests.SimpleDataPlane):
 
     def runTest(self):
@@ -753,7 +737,7 @@ class _MplsTermination(base_tests.SimpleDataPlane):
         for port in ports:
             #add l2 interface group
             id = port + class_id<<8
-            vlan_id=port
+            vlan_id=port+class_id
             l2_gid, l2_msg = add_one_l2_interface_group(self.controller, port, vlan_id, True, False)
             dst_mac[5]=vlan_id
             #add L3 Unicast  group
@@ -777,14 +761,14 @@ class _MplsTermination(base_tests.SimpleDataPlane):
                 ip_dst='192.168.%02d.1' % out_port
 
                 label = (out_port, 0, 1, 32)
-                parsed_pkt = mpls_packet(pktlen=104, dl_vlan_enable=True, vlan_vid=in_port, ip_src=ip_src,
+                parsed_pkt = mpls_packet(pktlen=104, dl_vlan_enable=True, vlan_vid=(in_port+class_id), ip_src=ip_src,
                                          ip_dst=ip_dst, eth_dst=switch_mac, label=[label])
                 pkt=str(parsed_pkt)
                 self.dataplane.send(in_port, pkt)
 
                 #build expect packet
                 mac_dst='00:00:00:22:22:%02X' % out_port
-                exp_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=out_port,
+                exp_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=(class_id+out_port),
                                             eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=31, ip_src=ip_src, ip_dst=ip_dst)
                 pkt=str(exp_pkt)
                 verify_packet(self, pkt, out_port)

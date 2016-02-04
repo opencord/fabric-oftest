@@ -58,13 +58,9 @@ class PacketInUDP(base_tests.SimpleDataPlane):
             logging.info("PacketInMiss test, port %d", of_port)
             self.dataplane.send(of_port, vlan_pkt)
 
-            verify_no_packet_in(self, vlan_pkt, of_port, ofp.OFPR_ACTION)
-
-        logging.info("Inserting packet in flow to controller")
-        self.controller.message_send(request)
+            verify_no_packet_in(self, vlan_pkt, of_port)
+        delete_all_flows(self.controller) 
         do_barrier(self.controller)
-
-        delete_all_flows(self.controller)
 
         match = ofp.match()
         match.oxm_list.append(ofp.oxm.eth_type(0x0800))
@@ -83,6 +79,7 @@ class PacketInUDP(base_tests.SimpleDataPlane):
                 priority=1)
         logging.info("Inserting packet in flow to controller")
         self.controller.message_send(request)
+        do_barrier(self.controller) 
 
         for of_port in config["port_map"].keys():
             logging.info("PacketInMiss test, port %d", of_port)
@@ -210,6 +207,7 @@ class L2FloodQinQ(base_tests.SimpleDataPlane):
             Groups.put(L2gid)
 
         msg = add_l2_flood_group(self.controller, ports, vlan_id, vlan_id)
+        Groups.put(msg.group_id)
         add_bridge_flow(self.controller, None, vlan_id, msg.group_id, True)
         do_barrier(self.controller)
 

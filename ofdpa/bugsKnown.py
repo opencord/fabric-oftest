@@ -317,6 +317,7 @@ class LPM(base_tests.SimpleDataPlane):
         #add MPLS L3 VPN group
         mpls_label_gid = encode_mpls_label_group_id(OFDPA_MPLS_GROUP_SUBTYPE_L3_VPN_LABEL, index=port)
         ecmp_msg=add_l3_ecmp_group(self.controller, vlan_id, [mpls_label_gid])
+        Groups._put(ecmp_msg.group_id)
         do_barrier(self.controller)
         #add routing flow
         dst_ip = 0x0

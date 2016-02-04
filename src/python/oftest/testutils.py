@@ -4,6 +4,8 @@ import logging
 import types
 import time
 import re
+from Queue import Queue
+
 import packet as scapy
 
 import oftest
@@ -58,6 +60,18 @@ def delete_all_groups(ctrl):
     msg = ofp.message.group_delete(group_id=ofp.OFPG_ALL)
     ctrl.message_send(msg)
     do_barrier(ctrl)
+
+def delete_groups(ctrl, group_queue=Queue()):
+    """
+    Delete all groups on list
+    @param ctrl The controller object for the test
+    :param group_queue:
+    """
+    logging.info("Deleting groups")
+    while (not group_queue.empty()):
+        msg = ofp.message.group_delete(group_id=group_queue.get())
+        ctrl.message_send(msg)
+        do_barrier(ctrl)
 
 def required_wildcards(parent):
     w = test_param_get('required_wildcards', default='default')

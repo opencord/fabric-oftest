@@ -188,9 +188,7 @@ class L2FloodQinQ(base_tests.SimpleDataPlane):
             add_one_l2_interface_group(self.controller, port, vlan_id, True, False)
             add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG)
 
-            group_id = encode_l2_interface_group_id(vlan_id, port)
-            add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], vlan_id, group_id, True)
-        msg=add_l2_flood_group(self.controller, ports, vlan_id, 2)
+        msg=add_l2_flood_group(self.controller, ports, vlan_id, vlan_id)
         add_bridge_flow(self.controller, None, vlan_id, msg.group_id, True)
         do_barrier(self.controller)
 
@@ -211,6 +209,7 @@ class L2FloodQinQ(base_tests.SimpleDataPlane):
 
         verify_no_other_packets(self)
 
+@disabled
 class L2FloodTagged(base_tests.SimpleDataPlane):
     """
     Test L2 flood to a vlan
@@ -219,6 +218,7 @@ class L2FloodTagged(base_tests.SimpleDataPlane):
     def runTest(self):
         #Hashes Test Name and uses it as id for installing unique groups
         vlan_id=abs(hash(inspect.stack()[0][3])) % (256)
+        print vlan_id
 
         ports = sorted(config["port_map"].keys())
 
@@ -229,7 +229,7 @@ class L2FloodTagged(base_tests.SimpleDataPlane):
         for port in ports:
             add_one_l2_interface_group(self.controller, port, vlan_id, True, False)
             add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG)
-        msg=add_l2_flood_group(self.controller, ports, vlan_id, 1)
+        msg=add_l2_flood_group(self.controller, ports, vlan_id, vlan_id)
         add_bridge_flow(self.controller, None, vlan_id, msg.group_id, True)
         do_barrier(self.controller)
 

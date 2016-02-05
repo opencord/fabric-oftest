@@ -396,7 +396,7 @@ class L2FloodTaggedUnknownSrc(base_tests.SimpleDataPlane):
 
         verify_no_other_packets(self)
 
-@disabled
+
 class PacketInIPTable(base_tests.SimpleDataPlane):
     """
     Test packet in function on IPTABLE

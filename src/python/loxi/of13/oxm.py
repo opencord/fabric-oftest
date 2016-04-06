@@ -6198,7 +6198,7 @@ class exp1ByteValue(oxm):
 oxm.subtypes[0xffff0007] = exp1ByteValue
 
 class exp2ByteValue(oxm):
-    type_len = 0xffff0008
+    type_len = 0xffff0006
 
     def __init__(self, exp_type=0, value=None):
         if value != None:
@@ -6210,9 +6210,9 @@ class exp2ByteValue(oxm):
 
     def pack(self):
         packed = []
-        packed.append(struct.pack("!L", self.type_len))
+        packed.append(struct.pack("!L", self.type_len | (self.exp_type <<9)))
         packed.append(struct.pack("!L", OFDPA_EXPERIMETER))
-        packed.append(struct.pack("!H", self.exp_type))
+        #packed.append(struct.pack("!H", self.exp_type))
         packed.append(struct.pack("!H", self.value))        
         return ''.join(packed)
 

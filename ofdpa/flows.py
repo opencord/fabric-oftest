@@ -460,7 +460,7 @@ class _32VPN(base_tests.SimpleDataPlane):
             # ecmp_msg=add_l3_ecmp_group(self.controller, vlan_id, [mpls_label_gid])
             do_barrier(self.controller)
             # add vlan flow table
-            add_one_vlan_table_flow(self.controller, port, vlan_id, vrf=0,
+            add_one_vlan_table_flow(self.controller, port, vlan_id, vrf=2,
                                     flag=VLAN_TABLE_FLAG_ONLY_TAG)
             # add termination flow
             add_termination_flow(self.controller, port, 0x0800, intf_src_mac,
@@ -468,7 +468,7 @@ class _32VPN(base_tests.SimpleDataPlane):
             # add routing flow
             dst_ip = dip + (vlan_id << 8)
             add_unicast_routing_flow(self.controller, 0x0800, dst_ip,
-                                     0xffffffff, mpls_label_gid)
+                                     0xffffffff, mpls_label_gid,vrf=2)
             Groups._put(l2_gid)
             Groups._put(mpls_gid)
             Groups._put(mpls_label_gid)
@@ -1152,13 +1152,12 @@ class _MplsTermination(base_tests.SimpleDataPlane):
         Insert IP packet
         Receive MPLS packet
     """
-
     def runTest(self):
         Groups = Queue.LifoQueue()
         if len(config["port_map"]) < 2:
             logging.info("Port count less than 2, can't run this case")
             return
-
+        dip = 0xc0a80001 
         intf_src_mac = [0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc]
         dst_mac = [0x00, 0x00, 0x00, 0x22, 0x22, 0x00]
         # Assigns unique hardcoded test_id to make sure tests don't overlap when writing rules
@@ -1183,6 +1182,9 @@ class _MplsTermination(base_tests.SimpleDataPlane):
             add_termination_flow(self.controller, port, 0x8847, intf_src_mac,
                                  vlan_id, goto_table=24)
             add_mpls_flow(self.controller, ecmp_msg.group_id, port)
+            dst_ip = dip + (vlan_id << 8)
+            add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0xffffff00,
+                      ecmp_msg.group_id, 1)
             Groups._put(l2_gid)
             Groups._put(l3_msg.group_id)
             Groups._put(ecmp_msg.group_id)
@@ -1214,10 +1216,8 @@ class _MplsTermination(base_tests.SimpleDataPlane):
                 pkt = str(exp_pkt)
                 verify_packet(self, pkt, out_port)
                 verify_no_other_packets(self)
-        delete_all_flows(self.controller)
-        delete_groups(self.controller, Groups)
-
-
+        #delete_all_flows(self.controller)
+        #delete_groups(self.controller, Groups)
 
 
 class _24UcastTagged(base_tests.SimpleDataPlane):

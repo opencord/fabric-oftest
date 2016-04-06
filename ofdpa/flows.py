@@ -1216,8 +1216,8 @@ class _MplsTermination(base_tests.SimpleDataPlane):
                 pkt = str(exp_pkt)
                 verify_packet(self, pkt, out_port)
                 verify_no_other_packets(self)
-        #delete_all_flows(self.controller)
-        #delete_groups(self.controller, Groups)
+        delete_all_flows(self.controller)
+        delete_groups(self.controller, Groups)
 
 
 class _24UcastTagged(base_tests.SimpleDataPlane):

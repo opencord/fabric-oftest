@@ -779,7 +779,43 @@ def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=
 
     return request        
 
-def add_mpls_flow(ctrl, action_group_id, label=100 ,ethertype=0x0800, bos=1, vrf=1, send_barrier=False):
+def add_mpls(ctrl, action_group_id, label=100 ,ethertype=0x0800, bos=1, vrf=1, send_barrier=False):
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.eth_type(0x8847))
+    match.oxm_list.append(ofp.oxm.mpls_label(label))
+    match.oxm_list.append(ofp.oxm.mpls_bos(bos))
+    actions = [ofp.action.dec_mpls_ttl(),
+               #ofp.action.copy_ttl_in(),
+               ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)),
+               ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=23, value=32)),
+               ofp.action.group(action_group_id)]
+               #ofp.action.pop_mpls(ethertype)]
+
+    request = ofp.message.flow_add(
+            table_id=24,
+            cookie=43,
+            match=match,
+            instructions=[
+                    ofp.instruction.apply_actions(
+                        actions=actions
+                    ),
+                    #ofp.instruction.write_actions(
+                    ofp.instruction.goto_table(29)
+                ],
+            buffer_id=ofp.OFP_NO_BUFFER,
+            priority=1)
+
+    logging.info("Inserting MPLS flow , label %ld", label)
+    ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
+
+    return request
+
+
+
+def add_mpls_flow(ctrl, action_group_id=0x0, label=100 ,ethertype=0x0800, bos=1, vrf=1, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(0x8847))
     match.oxm_list.append(ofp.oxm.mpls_label(label))
@@ -787,8 +823,9 @@ def add_mpls_flow(ctrl, action_group_id, label=100 ,ethertype=0x0800, bos=1, vrf
     actions = [ofp.action.dec_mpls_ttl(),
                ofp.action.copy_ttl_in(),
                ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)),
-               ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=23, value=8)),
-               ofp.action.pop_mpls(ethertype)]
+               ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=23, value=32))]
+               #ofp.action.group(action_group_id)]
+               #ofp.action.pop_mpls(ethertype)]
    
     request = ofp.message.flow_add(
             table_id=24,

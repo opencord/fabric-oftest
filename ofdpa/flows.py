@@ -1058,7 +1058,6 @@ class L3McastToL2(base_tests.SimpleDataPlane):
         delete_all_flows(self.controller)
         delete_groups(self.controller, Groups)
 
-@disabled
 class L3McastToL3(base_tests.SimpleDataPlane):
     """
     Mcast routing
@@ -1177,33 +1176,17 @@ class _MplsFwd(base_tests.SimpleDataPlane):
                     subtype=OFDPA_MPLS_GROUP_SUBTYPE_SWAP_LABEL,
                     index=id, ref_gid=mpls_gid, push_mpls_header=False,
                     set_mpls_label=port, set_bos=1)
-                    #, set_ttl=32)
-            mpls_ecmp_gid, mpls_ecmp_msg = add_mpls_forwarding_group(
-                    self.controller,
-                    subtype=OFDPA_MPLS_GROUP_SUBTYPE_ECMP,
-                    index=id, 
-                    ref_gids=[mpls_label_gid])
-            # add L3 Unicast  group
-            l3_msg = add_l3_unicast_group(self.controller, port, vlanid=vlan_id,
-                                          id=id, src_mac=intf_src_mac,
-                                          dst_mac=dst_mac)
-            # add L3 ecmp group
-            ecmp_msg = add_l3_ecmp_group(self.controller, id, [l3_msg.group_id])
             # add vlan flow table
             add_one_vlan_table_flow(self.controller, port, vlan_id,
                                     flag=VLAN_TABLE_FLAG_ONLY_TAG)
             # add termination flow
             add_termination_flow(self.controller, port, 0x8847, intf_src_mac,
                                  vlan_id, goto_table=24)
-            #add_mpls_flow(self.controller, ecmp_msg.group_id, port)
-            add_mpls(self.controller, mpls_label_gid, port)
+            add_mpls_flow(self.controller, mpls_label_gid, port, goto_table=29)
             dst_ip = dip + (vlan_id << 8)
-            #add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0xffffff00,
-            #          ecmp_msg.group_id, 1)
             Groups._put(l2_gid)
             Groups._put(mpls_gid)
-            Groups._put(l3_msg.group_id)
-            Groups._put(ecmp_msg.group_id)
+            Groups._put(mpls_label_gid)
         do_barrier(self.controller)
 
         switch_mac = ':'.join(['%02X' % x for x in intf_src_mac])

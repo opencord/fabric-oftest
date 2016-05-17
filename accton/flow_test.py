@@ -74,13 +74,14 @@ class L2UnicastFlow(base_tests.SimpleDataPlane):
         delete_all_groups(self.controller)
         # table 10: vlan
         # send to table 20
-        add_vlan_table_flow(self.controller, config["port_map"].keys())
+        #add_vlan_table_flow(self.controller, config["port_map"].keys(),1)
 
         # group table
         # set up tag groups for each port
-        add_l2_interface_grouop(self.controller, config["port_map"].keys(), 1, True, 1)
+        add_l2_interface_group(self.controller, config["port_map"].keys(), 1, True, 1)
 
         for port in ports:
+            add_one_vlan_table_flow(self.controller, port, 1)
             group_id = encode_l2_interface_group_id(1, port)
             add_bridge_flow(self.controller, [0x00, 0x12, 0x34, 0x56, 0x78, port], 1, group_id, True)
         do_barrier(self.controller)
@@ -93,7 +94,7 @@ class L2UnicastFlow(base_tests.SimpleDataPlane):
                 if in_port == out_port:
                     continue
                 # change source based on port number to avoid packet-ins from learning     
-                mac_src= '00:12:34:56:78:%02X' % in_port 
+                mac_src= '00:12:34:56:79:%02X' % in_port 
                 parsed_pkt = simple_tcp_packet(dl_vlan_enable=True, vlan_vid=1, eth_dst=mac_dst, eth_src=mac_src)
                 pkt = str(parsed_pkt)
                 logging.info("OutputExact test, ports %d to %d", in_port, out_port)

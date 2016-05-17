@@ -122,11 +122,39 @@ def encode_l3_mcast_group_id(vlan, id):
 def encode_l3_ecmp_group_id(id):
     return id + (7 << OFDPA_GROUP_TYPE_SHIFT)
 
+def encode_l2_unfiltered_group_id(id):
+    return id + (11 << OFDPA_GROUP_TYPE_SHIFT)
+
 def encode_l2_overlay_group_id(tunnel_id, subtype, index):
     tunnel_id=tunnel_id&0xffff #16 bits
     subtype = subtype&3        #2 bits
     index = index & 0x3f       #10 bits
     return index + (tunnel_id << OFDPA_TUNNEL_ID_SHIFT)+ (subtype<<OFDPA_TUNNEL_SUBTYPE_SHIFT)+(8 << OFDPA_GROUP_TYPE_SHIFT)
+
+def add_l2_unfiltered_group(ctrl, ports, send_barrier=False):
+    # group table
+    # set up untag groups for each port
+    group_id_list=[]
+    msgs=[]
+    for of_port in ports:
+        # do stuff
+        group_id = encode_l2_unfiltered_group_id(of_port)
+        group_id_list.append(group_id)
+        actions = [ofp.action.output(of_port)]
+        actions.append(ofp.action.set_field(ofp.oxm.exp1ByteValue(exp_type=24, value=1)))
+
+        buckets = [ofp.bucket(actions=actions)]
+        request = ofp.message.group_add(group_type=ofp.OFPGT_INDIRECT,
+                                        group_id=group_id,
+                                        buckets=buckets
+                                       )
+        ctrl.message_send(request)
+        msgs.append(request)
+
+        if send_barrier:
+            do_barrier(ctrl)
+
+    return group_id_list, msgs
 
 def add_l2_interface_group(ctrl, ports, vlan_id=1, is_tagged=False, send_barrier=False):
     # group table
@@ -233,7 +261,7 @@ def add_l2_rewrite_group(ctrl, port, vlanid, id, src_mac, dst_mac):
     if dst_mac is not None:
         action.append(ofp.action.set_field(ofp.oxm.eth_dst(dst_mac)))
 
-    action.append(ofp.action.set_field(ofp.oxm.vlan_vid(vlanid)))
+    action.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vlanid)))
         
     action.append(ofp.action.group(group_id))
     
@@ -606,7 +634,7 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
         if vrf!=0:
             actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
             
-        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(vlan_id)))
+        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vlan_id)))
         
         request = ofp.message.flow_add(
             table_id=10,
@@ -631,7 +659,7 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
         if vrf!=0:
             actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
 
-        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(value=vlan_id)))
+        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vlan_id)))
 
         request = ofp.message.flow_add(
             table_id=10,
@@ -756,7 +784,7 @@ def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=
     instructions = []
     instructions.append(ofp.instruction.goto_table(60))
     if send_ctrl:
-        instructions.append(ofp.instruction.apply_actions(
+        instructions.append(ofp.instruction.write_actions(
                             actions=[ofp.action.output( port=ofp.OFPP_CONTROLLER,
                             max_len=ofp.OFPCML_NO_BUFFER)]))
     else: 
@@ -1339,7 +1367,7 @@ def add_mpls_forwarding_group(ctrl, subtype, index, ref_gids,
         group_type = ofp.OFPGT_INDIRECT
         action=[]
         if set_vid!=None:
-            action.append(ofp.action.set_field(ofp.oxm.vlan_vid(set_vid)))
+            action.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+set_vid)))
         if push_vlan!=None:
             action.append(ofp.action.push_vlan(push_vlan))		
         if pop_vlan!=None:

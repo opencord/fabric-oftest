@@ -6150,7 +6150,7 @@ OFDPA_EXP_TYPE_RX_TIMESAMP  =19
 OFDPA_EXP_TYPE_ACTSET_OUTPUT=42
 
 class exp1ByteValue(oxm):
-    type_len = 0xffff0007
+    type_len = 0xffff0005
 
     def __init__(self, exp_type=0, value=None):
         if value != None:
@@ -6162,9 +6162,9 @@ class exp1ByteValue(oxm):
 
     def pack(self):
         packed = []
-        packed.append(struct.pack("!L", self.type_len))
+        packed.append(struct.pack("!L", self.type_len | (self.exp_type <<9)))
         packed.append(struct.pack("!L", OFDPA_EXPERIMETER))
-        packed.append(struct.pack("!H", self.exp_type))
+        #packed.append(struct.pack("!H", self.exp_type))
         packed.append(struct.pack("!b", self.value))        
         return ''.join(packed)
 

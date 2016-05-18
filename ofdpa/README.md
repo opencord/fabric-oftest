@@ -9,16 +9,25 @@ The onos filename was chosen because these tests are being made to guarantee con
 The following test cases are implemented:
 
 The following tests are being done here
-1. PacketInSrcMacMiss
-2. VlanSupport
-3. L2FloodQinQ
-4. L2FloodTagged
-5. L2Flood Tagged Unknown Src
-6. L2 Unicast Tagged
-7. MTU 1500
-8. MTU 4100
-9. MTU 4500
-10. L3UnicastTagged
-11. L3VPNMPLS
-12. MPLS Termination
-
+1. PacketIn UDP
+2. PacketIn ARP
+3. PacketIn from IP table
+4. L2FloodQinQ
+5. L2 Unicast Tagged
+6. MTU 1500
+7. /32 L3 Unicast
+8. /32 L3 VPN initiation
+9. /32 L3 ECMP + VPN
+10. /32 L3 ECMP forwarding + L3 unicast
+11. /24 L3 Unicast
+12. /24 L3 VPN initiation
+13. /24 L3 ECMP + VPN
+14. /24 L3 ECMP forwarding + L3 unicast
+15. Multicast same VLAN
+16. Multicast different VLANS
+17. MPLS forwarding
+18. MPLS termination
+19. /0 Unicast
+20. Unfiltered group (Incomplete)
+21. Multicast to VPN initiation
+22. PacketInSrcMacMiss

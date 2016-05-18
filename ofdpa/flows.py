@@ -1,17 +1,5 @@
 """
-The following tests are being done here
-1) PacketInSrcMacMiss
-2) VlanSupport
-3) L2FloodQinQ
-4) L2FloodTagged
-5) L2Flood Tagged Unknown Src
-6) L2 Unicast Tagged
-7) MTU 1500
-8) MTU 4100
-9) MTU 4500
-10) L3UnicastTagged
-11) L3VPNMPLS
-12) MPLS Termination
+Check README file
 """
 import Queue
 
@@ -239,8 +227,6 @@ class PacketInIPTable(base_tests.SimpleDataPlane):
         delete_all_flows(self.controller)
         delete_groups(self.controller, Groups)
 
-
-
 class L2FloodQinQ(base_tests.SimpleDataPlane):
     """
     Verify a tagged frame can be flooded based on its outer vlan
@@ -286,7 +272,6 @@ class L2FloodQinQ(base_tests.SimpleDataPlane):
         verify_no_other_packets(self)
         delete_all_flows(self.controller)
         delete_groups(self.controller, Groups)
-
 
 @disabled
 class L2FloodTagged(base_tests.SimpleDataPlane):
@@ -707,7 +692,6 @@ class _32ECMPL3(base_tests.SimpleDataPlane):
         delete_all_flows(self.controller)
         delete_groups(self.controller, Groups)
 
-
 class _24VPN(base_tests.SimpleDataPlane):
     """
             Insert IP packet
@@ -782,7 +766,6 @@ class _24VPN(base_tests.SimpleDataPlane):
                 verify_no_other_packets(self)
         delete_all_flows(self.controller)
         delete_groups(self.controller, Groups)
-
 
 class _24EcmpVpn(base_tests.SimpleDataPlane):
     """
@@ -865,8 +848,6 @@ class _24EcmpVpn(base_tests.SimpleDataPlane):
                 verify_no_other_packets(self)
         delete_all_flows(self.controller)
         delete_groups(self.controller, Groups)
-
-
 
 class _24ECMPL3(base_tests.SimpleDataPlane):
     """
@@ -1031,7 +1012,6 @@ class MPLSBUG(base_tests.SimpleDataPlane):
         delete_all_flows(self.controller)
         delete_groups(self.controller, Groups)
 
-
 class L3McastToL2(base_tests.SimpleDataPlane):
     """
     Mcast routing to L2
@@ -1194,7 +1174,6 @@ class L3McastToL3(base_tests.SimpleDataPlane):
         delete_all_flows(self.controller)
         delete_groups(self.controller, Groups)
 
-
 class _MplsFwd(base_tests.SimpleDataPlane):
     """
         Insert IP packet
@@ -1332,7 +1311,6 @@ class _MplsTermination(base_tests.SimpleDataPlane):
                 verify_no_other_packets(self)
         delete_all_flows(self.controller)
         delete_groups(self.controller, Groups)
-
 
 class _24UcastTagged(base_tests.SimpleDataPlane):
     """
@@ -1489,5 +1467,126 @@ class _0Ucast(base_tests.SimpleDataPlane):
         delete_all_flows(self.controller)
         delete_groups(self.controller, Groups)
 
+class Unfiltered(base_tests.SimpleDataPlane):
+    """
+    Testing addition of unfiltered groups
+    """
 
+    def runTest(self):
+        ports = sorted(config["port_map"].keys())
+        vlan_id = 1;
+        Groups = Queue.LifoQueue()
+        for port in ports:
+            L2gid, l2msg = add_l2_unfiltered_group(self.controller, [port], False)
+            Groups.put(L2gid)
+        do_barrier(self.controller)
+        #delete_all_flows(self.controller)
+        #delete_groups(self.controller, Groups)
 
+class L3McastToVPN(base_tests.SimpleDataPlane):
+    """
+    Mcast routing
+    """
+    def runTest(self):
+        """
+        port1 (vlan 1)-> port 2 (vlan 2)
+        """
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)
+
+        #if len(config["port_map"]) <3:
+        #logging.info("Port count less than 3, can't run this case")
+        #assert(False)
+        #return
+
+        vlan_id =1
+        port2_out_vlan=2
+        port3_out_vlan=3
+        in_vlan=1 #macast group vid shall use input vlan diffe from l3 interface use output vlan
+        intf_src_mac=[0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc]
+        intf_src_mac_str=':'.join(['%02X' % x for x in intf_src_mac])
+        dst_mac=[0x01, 0x00, 0x5e, 0x01, 0x01, 0x01]
+        dst_mac_str=':'.join(['%02X' % x for x in dst_mac])
+        port1_mac=[0x00, 0x11, 0x11, 0x11, 0x11, 0x11]
+        port1_mac_str=':'.join(['%02X' % x for x in port1_mac])
+        src_ip=0xc0a80101
+        src_ip_str="192.168.1.1"
+        dst_ip=0xe0010101
+        dst_ip_str="224.1.1.1"
+
+        port1=config["port_map"].keys()[0]
+        port2=config["port_map"].keys()[1]
+        #port3=config["port_map"].keys()[2]
+
+        #add l2 interface group
+        for port in config["port_map"].keys():
+            add_one_l2_interface_group(self.controller, port, vlan_id=vlan_id, is_tagged=False, send_barrier=False)
+            #add vlan flow table
+            add_one_vlan_table_flow(self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG)
+            vlan_id +=1
+
+        #add termination flow
+        add_termination_flow(self.controller, port1, 0x0800, [0x01, 0x00, 0x5e, 0x00, 0x00, 0x00], vlan_id)
+
+        #add MPLS interface group
+        l2_gid = encode_l2_interface_group_id(port2_out_vlan, port2)
+        mpls_gid2, mpls_msg = add_mpls_intf_group(self.controller, l2_gid, dst_mac, intf_src_mac, port2_out_vlan, port2)
+        #l2_gid3 = encode_l2_interface_group_id(port3_out_vlan, port3)
+        #mpls_gid3, mpls_msg = add_mpls_intf_group(self.controller, l2_gid3, dst_mac, intf_src_mac, port3_out_vlan, port3)
+        #add L3VPN groups
+        mpls_label_gid2, mpls_label_msg = add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_L3_VPN_LABEL,
+                                                               index=(0x20000+port2), ref_gid= mpls_gid2, push_mpls_header=True, set_mpls_label=port2, set_bos=1, cpy_ttl_outward=True)
+        #mpls_label_gid3, mpls_label_msg = add_mpls_label_group(self.controller, subtype=OFDPA_MPLS_GROUP_SUBTYPE_L3_VPN_LABEL,
+        #                                                       index=(0x10000+port3), ref_gid= mpls_gid3, push_mpls_header=True, set_mpls_label=port3, set_bos=1, cpy_ttl_outward=True)
+
+        mcat_group_msg=add_l3_mcast_group(self.controller, in_vlan,  2, [mpls_label_gid2])
+        add_mcast4_routing_flow(self.controller, in_vlan, src_ip, 0, dst_ip, mcat_group_msg.group_id)
+
+        parsed_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=1,
+                                       eth_dst=dst_mac_str,
+                                       eth_src=port1_mac_str,
+                                       ip_ttl=64,
+                                       ip_src=src_ip_str,
+                                       ip_dst=dst_ip_str)
+        pkt=str(parsed_pkt)
+        self.dataplane.send(port1, pkt)
+        label = (12, 0, 1, 63)
+        exp_pkt = mpls_packet(pktlen=100,
+                              eth_dst=dst_mac_str,
+                              eth_src=intf_src_mac_str,
+                              ip_ttl=64,
+                              ip_src=src_ip_str, label= [label],
+                              ip_dst=dst_ip_str)
+        pkt=str(exp_pkt)
+        verify_packet(self, pkt, port2)
+        #verify_packet(self, pkt, port3)
+        verify_no_other_packets(self)
+
+class PacketInSrcMacMiss(base_tests.SimpleDataPlane):
+    """
+    Test packet in function on a src-mac miss
+    Send a packet to each dataplane port and verify that a packet
+    in message is received from the controller for each
+    #todo verify you stop receiving after adding rule
+    """
+
+    def runTest(self):
+        delete_all_flows(self.controller)
+        delete_all_groups(self.controller)
+
+        ports = sorted(config["port_map"].keys())
+        for port in ports:
+            add_one_l2_interface_group(self.controller, port, 1, True, False)
+            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
+
+        parsed_vlan_pkt = simple_tcp_packet(pktlen=104,
+                                            vlan_vid=0x1001, dl_vlan_enable=True)
+        vlan_pkt = str(parsed_vlan_pkt)
+
+        for of_port in config["port_map"].keys():
+            logging.info("PacketInMiss test, port %d", of_port)
+            self.dataplane.send(of_port, vlan_pkt)
+
+            verify_packet_in(self, vlan_pkt, of_port, ofp.OFPR_NO_MATCH)
+
+            verify_no_other_packets(self)

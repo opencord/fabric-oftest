@@ -9,8 +9,8 @@ The onos filename was chosen because these tests are being made to guarantee con
 The following test cases are implemented:
 
 The following tests are being done here
-1. PacketIn UDP
-2. PacketIn ARP
+- PacketIn UDP
+- PacketIn ARP
 3. PacketIn from IP table
 4. L2FloodQinQ
 5. L2 Unicast Tagged

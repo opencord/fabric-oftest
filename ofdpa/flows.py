@@ -190,13 +190,12 @@ class PacketInIPTable(base_tests.SimpleDataPlane):
     """
 
     def runTest(self):
-
+        Groups = Queue.LifoQueue()
         try:
             intf_src_mac=[0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc]
             dst_mac=[0x00, 0x00, 0x00, 0x22, 0x22, 0x00]
             dip=0xc0a80001
             ports = sorted(config["port_map"].keys())
-            Groups = Queue.LifoQueue()
 
             for port in ports:
                 #add l2 interface group
@@ -241,11 +240,11 @@ class L2FloodQinQ(base_tests.SimpleDataPlane):
     """
 
     def runTest(self):
+        Groups = Queue.LifoQueue()
         try:
             ports = sorted(config["port_map"].keys())
             vlan_id = 1
 
-            Groups = Queue.LifoQueue()
             for port in ports:
                 L2gid, l2msg = add_one_l2_interface_group(self.controller, port,
                                                           vlan_id, True, False)
@@ -332,10 +331,11 @@ class L2UnicastTagged(base_tests.SimpleDataPlane):
     """
 
     def runTest(self):
+
+        Groups = Queue.LifoQueue()
         try:
             ports = sorted(config["port_map"].keys())
             vlan_id = 1;
-            Groups = Queue.LifoQueue()
             for port in ports:
                 L2gid, l2msg = add_one_l2_interface_group(self.controller, port,
                                                           vlan_id, True, False)
@@ -370,10 +370,10 @@ class L2UnicastTagged(base_tests.SimpleDataPlane):
 
 class Mtu1500(base_tests.SimpleDataPlane):
     def runTest(self):
+        Groups = Queue.LifoQueue()
         try:
             ports = sorted(config["port_map"].keys())
             vlan_id = 18
-            Groups = Queue.LifoQueue()
             for port in ports:
                 L2gid, msg = add_one_l2_interface_group(self.controller, port,
                                                         vlan_id, True, False)
@@ -411,6 +411,7 @@ class _32UcastTagged(base_tests.SimpleDataPlane):
     """
 
     def runTest(self):
+        Groups = Queue.LifoQueue()
         try:
             test_id = 26
             if len(config["port_map"]) < 2:
@@ -421,7 +422,6 @@ class _32UcastTagged(base_tests.SimpleDataPlane):
             dst_mac = [0x00, 0x00, 0x00, 0x22, 0x22, 0x00]
             dip = 0xc0a80001
             ports = config["port_map"].keys()
-            Groups = Queue.LifoQueue()
             for port in ports:
                 # add l2 interface group
                 vlan_id = port + test_id
@@ -485,6 +485,7 @@ class _32VPN(base_tests.SimpleDataPlane):
     """
 
     def runTest(self):
+        Groups = Queue.LifoQueue()
         try:
             if len(config["port_map"]) < 2:
                 logging.info("Port count less than 2, can't run this case")
@@ -494,7 +495,6 @@ class _32VPN(base_tests.SimpleDataPlane):
             dst_mac = [0x00, 0x00, 0x00, 0x22, 0x22, 0x00]
             dip = 0xc0a80001
             ports = config["port_map"].keys()
-            Groups = Queue.LifoQueue()
             for port in ports:
                 # add l2 interface group
                 id = port
@@ -566,6 +566,7 @@ class _32EcmpVpn(base_tests.SimpleDataPlane):
     """
 
     def runTest(self):
+        Groups = Queue.LifoQueue()
         try:
             if len(config["port_map"]) < 2:
                 logging.info("Port count less than 2, can't run this case")
@@ -575,7 +576,6 @@ class _32EcmpVpn(base_tests.SimpleDataPlane):
             dst_mac = [0x00, 0x00, 0x00, 0x22, 0x22, 0x00]
             dip = 0xc0a80001
             ports = config["port_map"].keys()
-            Groups = Queue.LifoQueue()
             for port in ports:
                 # add l2 interface group
                 id = port
@@ -648,8 +648,8 @@ class _32ECMPL3(base_tests.SimpleDataPlane):
     """
 
     def runTest(self):
+        Groups = Queue.LifoQueue()
         try:
-            Groups = Queue.LifoQueue()
             if len(config["port_map"]) < 2:
                 logging.info("Port count less than 2, can't run this case")
                 return
@@ -725,6 +725,7 @@ class _24VPN(base_tests.SimpleDataPlane):
     """
 
     def runTest(self):
+        Groups = Queue.LifoQueue()
         try:
             if len(config["port_map"]) < 2:
                 logging.info("Port count less than 2, can't run this case")
@@ -734,7 +735,6 @@ class _24VPN(base_tests.SimpleDataPlane):
             dst_mac = [0x00, 0x00, 0x00, 0x22, 0x22, 0x00]
             dip = 0xc0a80001
             ports = config["port_map"].keys()
-            Groups = Queue.LifoQueue()
             for port in ports:
                 # add l2 interface group
                 id = port
@@ -803,6 +803,7 @@ class _24EcmpVpn(base_tests.SimpleDataPlane):
     """
 
     def runTest(self):
+        Groups = Queue.LifoQueue()
         try:
             if len(config["port_map"]) < 2:
                 logging.info("Port count less than 2, can't run this case")
@@ -810,7 +811,6 @@ class _24EcmpVpn(base_tests.SimpleDataPlane):
             intf_src_mac = [0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc]
             dst_mac = [0x00, 0x00, 0x00, 0x22, 0x22, 0x00]
             dip = 0xc0a80001
-            Groups = Queue.LifoQueue()
             ports = config["port_map"].keys()
             for port in ports:
                 # add l2 interface group
@@ -888,8 +888,8 @@ class _24ECMPL3(base_tests.SimpleDataPlane):
     """
 
     def runTest(self):
+        Groups = Queue.LifoQueue()
         try:
-            Groups = Queue.LifoQueue()
             if len(config["port_map"]) < 2:
                 logging.info("Port count less than 2, can't run this case")
                 return
@@ -1056,12 +1056,12 @@ class L3McastToL2(base_tests.SimpleDataPlane):
         """
         port1 (vlan 300)-> All Ports (vlan 300)
         """
+        Groups = Queue.LifoQueue()
         try:
             if len(config["port_map"]) < 3:
                 logging.info("Port count less than 3, can't run this case")
                 assert (False)
                 return
-            Groups = Queue.LifoQueue()
             vlan_id = 300
             intf_src_mac = [0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc]
             intf_src_mac_str = ':'.join(['%02X' % x for x in intf_src_mac])
@@ -1134,8 +1134,8 @@ class L3McastToL3(base_tests.SimpleDataPlane):
         """
         port1 (vlan 1)-> port 2 (vlan 2)
         """
+        Groups = Queue.LifoQueue()
         try:
-            Groups = Queue.LifoQueue()
             if len(config["port_map"]) < 3:
                 logging.info("Port count less than 3, can't run this case")
                 assert (False)
@@ -1221,8 +1221,8 @@ class _MplsFwd(base_tests.SimpleDataPlane):
         Receive MPLS packet
     """
     def runTest(self):
+        Groups = Queue.LifoQueue()
         try:
-            Groups = Queue.LifoQueue()
             if len(config["port_map"]) < 2:
                 logging.info("Port count less than 2, can't run this case")
                 return
@@ -1296,8 +1296,8 @@ class _MplsTermination(base_tests.SimpleDataPlane):
         Receive MPLS packet
     """
     def runTest(self):
+        Groups = Queue.LifoQueue()
         try:
-            Groups = Queue.LifoQueue()
             if len(config["port_map"]) < 2:
                 logging.info("Port count less than 2, can't run this case")
                 return
@@ -1365,17 +1365,16 @@ class _24UcastTagged(base_tests.SimpleDataPlane):
     """
 
     def runTest(self):
+        Groups = Queue.LifoQueue()
         try:
             test_id = 26
             if len(config["port_map"]) < 2:
                 logging.info("Port count less than 2, can't run this case")
                 return
-
             intf_src_mac = [0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc]
             dst_mac = [0x00, 0x00, 0x00, 0x22, 0x22, 0x00]
             dip = 0xc0a80001
             ports = config["port_map"].keys()
-            Groups = Queue.LifoQueue()
             for port in ports:
                 # add l2 interface group
                 vlan_id = port + test_id
@@ -1438,6 +1437,7 @@ class _0Ucast(base_tests.SimpleDataPlane):
     """
 
     def runTest(self):
+        Groups = Queue.LifoQueue()
         try:
             if len(config["port_map"]) < 2:
                 logging.info("Port count less than 2, can't run this case")
@@ -1447,7 +1447,6 @@ class _0Ucast(base_tests.SimpleDataPlane):
             dst_mac = [0x00, 0x00, 0x00, 0x22, 0x22, 0x00]
             dip = 0xc0a80001
             ports = config["port_map"].keys()
-            Groups = Queue.LifoQueue()
             for port in ports:
                 # add l2 interface group
                 vlan_id = port
@@ -1629,6 +1628,7 @@ class PacketInSrcMacMiss(base_tests.SimpleDataPlane):
     """
 
     def runTest(self):
+        Groups = Queue.LifoQueue()
         try:
             ports = sorted(config["port_map"].keys())
 
@@ -1647,5 +1647,4 @@ class PacketInSrcMacMiss(base_tests.SimpleDataPlane):
                 verify_no_other_packets(self)
         finally:
             delete_all_flows(self.controller)
-            delete_groups(self.controller, Groups)
             delete_all_groups(self.controller)

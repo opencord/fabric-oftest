@@ -5,12 +5,24 @@ A set of inter-test utility functions for dealing with OF-DPA
 
 """
 
-import logging
+import logging, subprocess, time
 import ofp
 
 from oftest import config
 from oftest.testutils import *
 
+def forceOfdpaRestart( user ):
+    output = 1;
+    credential = user;
+    test = subprocess.Popen(["ssh", credential, "service ofdpa restart"]);
+    time.sleep(1);
+    while output < 10:
+        output = int(subprocess.check_output(["ssh", credential, "client_cfg_purge | wc -l"]));
+        time.sleep(1);
+    subprocess.Popen(["ssh", credential, "brcm-indigo-ofdpa-ofagent -t 10.128.0.220 &> /dev/null"], stdout=subprocess.PIPE);
+
+def forceOfdpaStop( user ):
+    subprocess.Popen(["ssh", user, "ps ax | grep 'brcm-indigo-ofdpa-ofagent' | awk '{print $1}' | xargs sudo kill"], stdout=subprocess.PIPE);
 
 
 class table(object):
@@ -30,6 +42,8 @@ ACL_TABLE               = table(60, "ACL Policy Table")
 #.... FIXME add all tables
 
 DEFAULT_VLAN = 1
+
+
 
 def enableVlanOnPort(controller, vlan, port=ofp.OFPP_ALL, priority=0):
     if port == ofp.OFPP_ALL:

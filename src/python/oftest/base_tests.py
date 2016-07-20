@@ -37,7 +37,8 @@ class SimpleProtocol(BaseTest):
         self.controller = controller.Controller(
             switch=config["switch_ip"],
             host=config["controller_host"],
-            port=config["controller_port"])
+            port=config["controller_port"],
+            force=config["force_ofdpa_restart"])
         self.controller.start()
 
         try:

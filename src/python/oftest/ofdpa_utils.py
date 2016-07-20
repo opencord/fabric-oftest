@@ -5,7 +5,7 @@ A set of inter-test utility functions for dealing with OF-DPA
 
 """
 
-import logging
+import logging, subprocess, time
 import ofp
 
 from oftest import config
@@ -30,6 +30,15 @@ ACL_TABLE               = table(60, "ACL Policy Table")
 #.... FIXME add all tables
 
 DEFAULT_VLAN = 1
+
+def forceOfdpaRestart( user, switchIp ):
+    output = 1;
+    credential = user+"@"+switchIp;
+    subprocess.Popen(["ssh", credential, "service ofdpa restart"], stdout=subprocess.PIPE);
+    while output < 10:
+        ret = subprocess.Popen(["ssh", credential, "client_cfg_purge | wc -l"], stdout=subprocess.PIPE);
+        output = int(ret.stdout.read());
+        time.sleep(1);
 
 def enableVlanOnPort(controller, vlan, port=ofp.OFPP_ALL, priority=0):
     if port == ofp.OFPP_ALL:

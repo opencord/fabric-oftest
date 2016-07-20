@@ -99,7 +99,7 @@ CONFIG_DEFAULT = {
     "random_order"       : False,
     "dump_packet"        : True,
     "cicada_poject"      : False,
-    
+    "force_ofdpa_restart": False,
     # Other configuration
     "port_map"           : {},
 }
@@ -214,6 +214,8 @@ prefixing them with the '^' character.
                       help="Minimum allowable packet size on the dataplane.")
     group.add_option("--random-seed", type="int",
                       help="Random number generator seed")
+    group.add_option("--force-ofdpa-restart",
+                     help="If set force ofdpa restart on user@switchIP")
     group.add_option("--disable-ipv6", action="store_true",
                       help="Disable IPv6 tests")
     group.add_option("--random-order", action="store_true",

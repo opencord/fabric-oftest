@@ -14,17 +14,24 @@ from oftest import config
 import oftest.controller as controller
 import oftest.dataplane as dataplane
 import ofp
+from ofdpa_utils import *
 
 class BaseTest(unittest.TestCase):
     def __str__(self):
         return self.id().replace('.runTest', '')
 
     def setUp(self):
+        if config["force_ofdpa_restart"]:
+            logging.info("Restarting OFDPA")
+            forceOfdpaRestart( config["force_ofdpa_restart"]);
         oftest.open_logfile(str(self))
         logging.info("** START TEST CASE " + str(self))
 
     def tearDown(self):
         logging.info("** END TEST CASE " + str(self))
+        if config["force_ofdpa_restart"]:
+            forceOfdpaStop( config["force_ofdpa_restart"]);
+
 
 class SimpleProtocol(BaseTest):
     """
@@ -33,7 +40,6 @@ class SimpleProtocol(BaseTest):
 
     def setUp(self):
         BaseTest.setUp(self)
-
         self.controller = controller.Controller(
             switch=config["switch_ip"],
             host=config["controller_host"],
@@ -47,7 +53,6 @@ class SimpleProtocol(BaseTest):
 
             # By default, respond to echo requests
             self.controller.keep_alive = True
-
             if not self.controller.active:
                 raise Exception("Controller startup failed")
             if self.controller.switch_addr is None:

@@ -1480,8 +1480,8 @@ class Unfiltered(base_tests.SimpleDataPlane):
             L2gid, l2msg = add_l2_unfiltered_group(self.controller, [port], False)
             Groups.put(L2gid)
         do_barrier(self.controller)
-        #delete_all_flows(self.controller)
-        #delete_groups(self.controller, Groups)
+        delete_all_flows(self.controller)
+        delete_groups(self.controller, Groups)
 
 class L3McastToVPN(base_tests.SimpleDataPlane):
     """
@@ -1571,22 +1571,21 @@ class PacketInSrcMacMiss(base_tests.SimpleDataPlane):
     """
 
     def runTest(self):
-        delete_all_flows(self.controller)
-        delete_all_groups(self.controller)
-
         ports = sorted(config["port_map"].keys())
-        for port in ports:
-            add_one_l2_interface_group(self.controller, port, 1, True, False)
-            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
 
+        Groups = Queue.LifoQueue()
+        for port in ports:
+            L2gid, l2msg = add_one_l2_interface_group(self.controller, port, 1, True, False)
+            add_one_vlan_table_flow(self.controller, port, 1, flag=VLAN_TABLE_FLAG_ONLY_TAG)
+            Groups.put(L2gid)
         parsed_vlan_pkt = simple_tcp_packet(pktlen=104,
                                             vlan_vid=0x1001, dl_vlan_enable=True)
         vlan_pkt = str(parsed_vlan_pkt)
-
         for of_port in config["port_map"].keys():
             logging.info("PacketInMiss test, port %d", of_port)
             self.dataplane.send(of_port, vlan_pkt)
-
             verify_packet_in(self, vlan_pkt, of_port, ofp.OFPR_NO_MATCH)
-
             verify_no_other_packets(self)
+
+        delete_all_flows(self.controller)
+        delete_groups(self.controller, Groups)

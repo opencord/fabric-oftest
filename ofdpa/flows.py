@@ -1401,11 +1401,11 @@ class _0Ucast(base_tests.SimpleDataPlane):
             # add l2 interface group
             vlan_id = port
             l2gid, msg = add_one_l2_interface_group(self.controller, port,
-                                                    vlan_id=vlan_id,
+                                                    vlan_id=vlan_id+1,
                                                     is_tagged=True,
                                                     send_barrier=False)
             dst_mac[5] = vlan_id
-            l3_msg = add_l3_unicast_group(self.controller, port, vlanid=vlan_id,
+            l3_msg = add_l3_unicast_group(self.controller, port, vlanid=vlan_id+1,
                                           id=vlan_id, src_mac=intf_src_mac,
                                           dst_mac=dst_mac)
             # add vlan flow table
@@ -1444,7 +1444,7 @@ class _0Ucast(base_tests.SimpleDataPlane):
                 # build expected packet
                 mac_dst = '00:00:00:22:22:%02X' % (out_port)
                 exp_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True,
-                                            vlan_vid=(out_port),
+                                            vlan_vid=(out_port+1),
                                             eth_dst=mac_dst, eth_src=switch_mac,
                                             ip_ttl=63,
                                             ip_src=ip_src, ip_dst=ip_dst)
@@ -1458,7 +1458,7 @@ class _0Ucast(base_tests.SimpleDataPlane):
                 self.dataplane.send(in_port, pkt)
                 #build expect packet
                 mac_dst='00:00:00:22:22:%02X' % ports[0]
-                exp_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=ports[0], ip_ttl=63, ip_src=ip_src,
+                exp_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True, vlan_vid=ports[0]+1, ip_ttl=63, ip_src=ip_src,
                                       ip_dst=ip_dst, eth_dst=mac_dst, eth_src=switch_mac)
                 pkt=str(exp_pkt)
                 verify_packet(self, pkt, ports[0])

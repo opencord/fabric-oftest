@@ -26,6 +26,8 @@ import signal
 import fnmatch
 import copy
 
+import subprocess
+
 ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
 
 PY_SRC_DIR = os.path.join(ROOT_DIR, 'src', 'python')
@@ -99,10 +101,24 @@ CONFIG_DEFAULT = {
     "random_order"       : False,
     "dump_packet"        : True,
     "cicada_poject"      : False,
+    "force_ofdpa_restart": False,
     
     # Other configuration
     "port_map"           : {},
 }
+
+def forceOfdpaRestart( user ):
+    output = 1;
+    credential = user;
+    test = subprocess.Popen(["ssh", credential, "service ofdpa restart"]);
+    #test.wait()
+    time.sleep(1);
+    while output < 10:
+        output = int(subprocess.check_output(["ssh", credential, "client_cfg_purge | wc -l"]));
+        time.sleep(1);
+    subprocess.Popen(["ssh", credential, "ps ax | grep 'brcm-indigo-ofdpa-ofagent' | awk '{print $1}' | xargs sudo kill"], stdout=subprocess.PIPE);
+    time.sleep(1)
+    subprocess.Popen(["ssh", credential, "brcm-indigo-ofdpa-ofagent -t 10.128.0.220 &> /dev/null"], stdout=subprocess.PIPE);
 
 def config_setup():
     """
@@ -214,6 +230,8 @@ prefixing them with the '^' character.
                       help="Minimum allowable packet size on the dataplane.")
     group.add_option("--random-seed", type="int",
                       help="Random number generator seed")
+    group.add_option("--force-ofdpa-restart",
+                     help="If set force ofdpa restart on user@switchIP")
     group.add_option("--disable-ipv6", action="store_true",
                       help="Disable IPv6 tests")
     group.add_option("--random-order", action="store_true",
@@ -568,9 +586,15 @@ else:
 # exception waits for all threads to terminate which might not happen.
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
+if config["force_ofdpa_restart"]:
+    forceOfdpaRestart( config["force_ofdpa_restart"]);
+
+
 if __name__ == "__main__":
     profiler = profiler_setup(config)
 
+    if config["force_ofdpa_restart"]:
+        forceOfdpaRestart( config["force_ofdpa_restart"]);
     # Set up the dataplane
     oftest.dataplane_instance = oftest.dataplane.DataPlane(config)
     pcap_setup(config)

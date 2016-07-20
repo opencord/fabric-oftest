@@ -1475,13 +1475,11 @@ class Unfiltered(base_tests.SimpleDataPlane):
     def runTest(self):
         ports = sorted(config["port_map"].keys())
         vlan_id = 1;
-        Groups = Queue.LifoQueue()
         for port in ports:
-            L2gid, l2msg = add_l2_unfiltered_group(self.controller, [port], False)
-            Groups.put(L2gid)
+            add_l2_unfiltered_group(self.controller, [port], False)
         do_barrier(self.controller)
         delete_all_flows(self.controller)
-        delete_groups(self.controller, Groups)
+        delete_all_groups(self.controller)
 
 class L3McastToVPN(base_tests.SimpleDataPlane):
     """
@@ -1494,10 +1492,10 @@ class L3McastToVPN(base_tests.SimpleDataPlane):
         delete_all_flows(self.controller)
         delete_all_groups(self.controller)
 
-        #if len(config["port_map"]) <3:
-        #logging.info("Port count less than 3, can't run this case")
-        #assert(False)
-        #return
+        if len(config["port_map"]) <3:
+            logging.info("Port count less than 3, can't run this case")
+            assert(False)
+            return
 
         vlan_id =1
         port2_out_vlan=2

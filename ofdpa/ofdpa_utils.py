@@ -31,6 +31,10 @@ ACL_TABLE               = table(60, "ACL Policy Table")
 
 DEFAULT_VLAN = 1
 
+def forceOfdpaRestart():
+    if config["force_ofdpa_restart"]:
+        print config["force_ofdpa_restart"]
+
 def enableVlanOnPort(controller, vlan, port=ofp.OFPP_ALL, priority=0):
     if port == ofp.OFPP_ALL:
         ports = sorted(config["port_map"].keys())

@@ -13,6 +13,7 @@ import oftest
 from oftest import config
 import oftest.controller as controller
 import oftest.dataplane as dataplane
+from ofdpa_utils import forceOfdpaRestart
 import ofp
 
 class BaseTest(unittest.TestCase):
@@ -33,7 +34,6 @@ class SimpleProtocol(BaseTest):
 
     def setUp(self):
         BaseTest.setUp(self)
-
         self.controller = controller.Controller(
             switch=config["switch_ip"],
             host=config["controller_host"],
@@ -47,7 +47,6 @@ class SimpleProtocol(BaseTest):
 
             # By default, respond to echo requests
             self.controller.keep_alive = True
-
             if not self.controller.active:
                 raise Exception("Controller startup failed")
             if self.controller.switch_addr is None:

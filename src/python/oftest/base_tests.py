@@ -14,6 +14,7 @@ from oftest import config
 import oftest.controller as controller
 import oftest.dataplane as dataplane
 import ofp
+from ofdpa_utils import *
 
 class BaseTest(unittest.TestCase):
     def __str__(self):
@@ -33,7 +34,6 @@ class SimpleProtocol(BaseTest):
 
     def setUp(self):
         BaseTest.setUp(self)
-
         self.controller = controller.Controller(
             switch=config["switch_ip"],
             host=config["controller_host"],
@@ -47,7 +47,6 @@ class SimpleProtocol(BaseTest):
 
             # By default, respond to echo requests
             self.controller.keep_alive = True
-
             if not self.controller.active:
                 raise Exception("Controller startup failed")
             if self.controller.switch_addr is None:
@@ -102,6 +101,8 @@ class SimpleDataPlane(SimpleProtocol):
     """
     def setUp(self):
         SimpleProtocol.setUp(self)
+        if config["force_ofdpa_restart"]:
+            forceOfdpaRestart( config["force_ofdpa_restart"]);
         self.dataplane = oftest.dataplane_instance
         self.dataplane.flush()
         if config["log_dir"] != None:
@@ -121,6 +122,8 @@ class SimpleDataPlane(SimpleProtocol):
         if config["log_dir"] != None:
             self.dataplane.stop_pcap()
         SimpleProtocol.tearDown(self)
+        if config["force_ofdpa_restart"]:
+            forceOfdpaStop( config["force_ofdpa_restart"]);
 
 class DataPlaneOnly(BaseTest):
     """

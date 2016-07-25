@@ -643,8 +643,8 @@ class _32EcmpVpn(base_tests.SimpleDataPlane):
 
 class _32ECMPL3(base_tests.SimpleDataPlane):
     """
-    Port1(vid=in_port, src=00:00:00:22:22:in_port, 192.168.outport.1) ,
-    Port2(vid=outport, dst=00:00:00:22:22:outport, 192.168.outport.1)
+        Insert IP packet
+        Receive IP packet
     """
 
     def runTest(self):
@@ -883,8 +883,8 @@ class _24EcmpVpn(base_tests.SimpleDataPlane):
 
 class _24ECMPL3(base_tests.SimpleDataPlane):
     """
-    Port1(vid=in_port, src=00:00:00:22:22:in_port, 192.168.outport.1) ,
-    Port2(vid=outport, dst=00:00:00:22:22:outport, 192.168.outport.1)
+        Insert IP packet
+        Receive IP packet
     """
 
     def runTest(self):
@@ -1214,10 +1214,10 @@ class L3McastToL3(base_tests.SimpleDataPlane):
             delete_all_flows(self.controller)
             delete_groups(self.controller, Groups)
             delete_all_groups(self.controller)
-
+@disabled
 class _MplsFwd(base_tests.SimpleDataPlane):
     """
-        Insert IP packet
+        Insert MPLS packet
         Receive MPLS packet
     """
     def runTest(self):
@@ -1292,8 +1292,8 @@ class _MplsFwd(base_tests.SimpleDataPlane):
 
 class _MplsTermination(base_tests.SimpleDataPlane):
     """
-        Insert IP packet
-        Receive MPLS packet
+        Insert MPLS packet
+        Receive IP packet
     """
     def runTest(self):
         Groups = Queue.LifoQueue()
@@ -1310,7 +1310,7 @@ class _MplsTermination(base_tests.SimpleDataPlane):
                 # add l2 interface group
                 vlan_id, id, dst_mac[5] = port, port, port
                 l2_gid, l2_msg = add_one_l2_interface_group(self.controller, port,
-                                                             vlan_id, True, False)
+                                                            vlan_id, True, False)
                 # add L3 Unicast  group
                 l3_msg = add_l3_unicast_group(self.controller, port, vlanid=vlan_id,
                                               id=id, src_mac=intf_src_mac,dst_mac=dst_mac)
@@ -1326,7 +1326,7 @@ class _MplsTermination(base_tests.SimpleDataPlane):
                 add_mpls_flow(self.controller, label=port)
                 dst_ip = dip + (vlan_id << 8)
                 add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0xffffff00,
-                          ecmp_msg.group_id, 1)
+                                         ecmp_msg.group_id, 1)
                 Groups._put(l2_gid)
                 Groups._put(l3_msg.group_id)
                 Groups._put(ecmp_msg.group_id)
@@ -1341,7 +1341,76 @@ class _MplsTermination(base_tests.SimpleDataPlane):
                     ip_dst = '192.168.%02d.1' % (out_port)
                     label = (out_port, 0, 1, 32)
                     parsed_pkt = mpls_packet(pktlen=104, dl_vlan_enable=True,vlan_vid=(in_port),
-                         ip_src=ip_src,ip_dst=ip_dst, eth_dst=switch_mac,label=[label])
+                                             ip_src=ip_src,ip_dst=ip_dst, eth_dst=switch_mac,label=[label])
+                    pkt = str(parsed_pkt)
+                    self.dataplane.send(in_port, pkt)
+                    # build expect packet
+                    mac_dst = '00:00:00:22:22:%02X' % (out_port)
+                    exp_pkt = simple_tcp_packet(pktlen=100, dl_vlan_enable=True,
+                                                vlan_vid=(out_port),
+                                                eth_dst=mac_dst, eth_src=switch_mac,
+                                                ip_ttl=31, ip_src=ip_src,
+                                                ip_dst=ip_dst)
+                    pkt = str(exp_pkt)
+                    verify_packet(self, pkt, out_port)
+                    verify_no_other_packets(self)
+        finally:
+            delete_all_flows(self.controller)
+            delete_groups(self.controller, Groups)
+            delete_all_groups(self.controller)
+
+class _MplsVpnFwd(base_tests.SimpleDataPlane):
+    """
+        Insert MPLS packet
+        Receive IP packet
+    """
+    def runTest(self):
+        Groups = Queue.LifoQueue()
+        try:
+            if len(config["port_map"]) < 2:
+                logging.info("Port count less than 2, can't run this case")
+                return
+            dip = 0xc0a80001
+            intf_src_mac = [0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc]
+            dst_mac = [0x00, 0x00, 0x00, 0x22, 0x22, 0x00]
+            # Assigns unique hardcoded test_id to make sure tests don't overlap when writing rules
+            ports = config["port_map"].keys()
+            for port in ports:
+                # add l2 interface group
+                vlan_id, id, dst_mac[5] = port, port, port
+                l2_gid, l2_msg = add_one_l2_interface_group(self.controller, port,
+                                                            vlan_id, True, False)
+                # add L3 Unicast  group
+                l3_msg = add_l3_unicast_group(self.controller, port, vlanid=vlan_id,
+                                              id=id, src_mac=intf_src_mac,dst_mac=dst_mac)
+                # add L3 ecmp group
+                ecmp_msg = add_l3_ecmp_group(self.controller, id, [l3_msg.group_id])
+                # add vlan flow table
+                add_one_vlan_table_flow(self.controller, port, vlan_id,
+                                        flag=VLAN_TABLE_FLAG_ONLY_TAG)
+                # add termination flow
+                add_termination_flow(self.controller, port, 0x8847, intf_src_mac,
+                                     vlan_id, goto_table=24)
+                add_mpls_flow(self.controller, ecmp_msg.group_id, port)
+                #add_mpls_flow(self.controller, label=port)
+                dst_ip = dip + (vlan_id << 8)
+                #add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0xffffff00,
+                #                         ecmp_msg.group_id, 1)
+                Groups._put(l2_gid)
+                Groups._put(l3_msg.group_id)
+                Groups._put(ecmp_msg.group_id)
+            do_barrier(self.controller)
+
+            switch_mac = ':'.join(['%02X' % x for x in intf_src_mac])
+            for in_port in ports:
+                ip_src = '192.168.%02d.1' % (in_port)
+                for out_port in ports:
+                    if in_port == out_port:
+                        continue
+                    ip_dst = '192.168.%02d.1' % (out_port)
+                    label = (out_port, 0, 1, 32)
+                    parsed_pkt = mpls_packet(pktlen=104, dl_vlan_enable=True,vlan_vid=(in_port),
+                                             ip_src=ip_src,ip_dst=ip_dst, eth_dst=switch_mac,label=[label])
                     pkt = str(parsed_pkt)
                     self.dataplane.send(in_port, pkt)
                     # build expect packet

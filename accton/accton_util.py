@@ -329,7 +329,20 @@ def add_l3_ecmp_group(ctrl, id, l3_ucast_groups):
                                    )
     ctrl.message_send(request)
     return request
-        
+
+def mod_l3_ecmp_group(ctrl, id, l3_ucast_groups):
+    buckets=[]
+    for group in l3_ucast_groups:
+        buckets.append(ofp.bucket(actions=[ofp.action.group(group)]))
+
+    group_id =encode_l3_ecmp_group_id(id)
+    request = ofp.message.group_modify(group_type=ofp.OFPGT_SELECT,
+                                    group_id=group_id,
+                                    buckets=buckets
+                                    )
+    ctrl.message_send(request)
+    return request
+
 def add_l3_mcast_group(ctrl, vid,  mcast_group_id, groups_on_buckets):
     buckets=[]
     for group in groups_on_buckets:

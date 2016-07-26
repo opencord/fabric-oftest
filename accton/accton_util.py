@@ -251,6 +251,22 @@ def add_l2_flood_group(ctrl, ports, vlanid, id):
     ctrl.message_send(request)
     return request
 
+def mod_l2_flood_group(ctrl, ports, vlanid, id):
+    buckets=[]
+    for of_port in ports:
+        group_id = encode_l2_interface_group_id(vlanid, of_port)
+        action=[ofp.action.group(group_id)]
+        buckets.append(ofp.bucket(actions=action))
+
+    group_id =encode_l2_flood_group_id(vlanid, id)
+    request = ofp.message.group_modify(group_type=ofp.OFPGT_ALL,
+                                    group_id=group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    return request
+
+
 def add_l2_rewrite_group(ctrl, port, vlanid, id, src_mac, dst_mac):
     group_id = encode_l2_interface_group_id(vlanid, port)
 
@@ -329,7 +345,20 @@ def add_l3_ecmp_group(ctrl, id, l3_ucast_groups):
                                    )
     ctrl.message_send(request)
     return request
-        
+
+def mod_l3_ecmp_group(ctrl, id, l3_ucast_groups):
+    buckets=[]
+    for group in l3_ucast_groups:
+        buckets.append(ofp.bucket(actions=[ofp.action.group(group)]))
+
+    group_id =encode_l3_ecmp_group_id(id)
+    request = ofp.message.group_modify(group_type=ofp.OFPGT_SELECT,
+                                    group_id=group_id,
+                                    buckets=buckets
+                                    )
+    ctrl.message_send(request)
+    return request
+
 def add_l3_mcast_group(ctrl, vid,  mcast_group_id, groups_on_buckets):
     buckets=[]
     for group in groups_on_buckets:

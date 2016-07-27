@@ -834,7 +834,7 @@ def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=
     if send_barrier:
         do_barrier(ctrl)   
 
-    return request        
+    return request
 
 def add_mpls_flow(ctrl, action_group_id=0x0, label=100 ,ethertype=0x0800, bos=1, vrf=1, goto_table=27, send_barrier=False):
     match = ofp.match()
@@ -844,15 +844,13 @@ def add_mpls_flow(ctrl, action_group_id=0x0, label=100 ,ethertype=0x0800, bos=1,
     actions = [ofp.action.dec_mpls_ttl(),
                ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf))]
     if (goto_table == 29):
-            actions.append(ofp.action.set_field(
-                            ofp.oxm.exp2ByteValue(exp_type=23, value=32)))
             actions.append(ofp.action.group(action_group_id))
     else:
             actions.append(ofp.action.set_field(
                             ofp.oxm.exp2ByteValue(exp_type=23, value=32)))
             actions.append(ofp.action.group(action_group_id))
             actions.append(ofp.action.copy_ttl_in())
-            
+
     request = ofp.message.flow_add(
             table_id=24,
             cookie=43,

@@ -1102,8 +1102,6 @@ class L3McastToL3( base_tests.SimpleDataPlane ):
             delete_groups( self.controller, Groups )
             delete_all_groups( self.controller )
 
-
-@disabled
 class _MplsFwd( base_tests.SimpleDataPlane ):
     """
         Insert MPLS packet
@@ -1132,15 +1130,19 @@ class _MplsFwd( base_tests.SimpleDataPlane ):
                 mpls_label_gid, mpls_label_msg = add_mpls_label_group( self.controller,
                         subtype=OFDPA_MPLS_GROUP_SUBTYPE_SWAP_LABEL, index=id, ref_gid=mpls_gid,
                         push_mpls_header=False, set_mpls_label=port, set_bos=1 )
+                #ecmp_gid, ecmp_msg = add_mpls_forwarding_group( self.controller,
+                #        subtype=OFDPA_MPLS_GROUP_SUBTYPE_ECMP, index=id, ref_gids=[mpls_label_gid] )
                 # add vlan flow table
                 add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
-                add_mpls_flow( self.controller, mpls_label_gid, port, goto_table=29 )
+                #add_mpls_flow( self.controller, ecmp_gid, port, goto_table=29 )
+                add_mpls_flow( self.controller, mpls_label_gid, port, goto_table=29 ) 
                 dst_ip = dip + (vlan_id << 8)
                 Groups._put( l2_gid )
                 Groups._put( mpls_gid )
                 Groups._put( mpls_label_gid )
+                Groups._put( ecmp_gid )
             do_barrier( self.controller )
 
             switch_mac = ':'.join( [ '%02X' % x for x in intf_src_mac ] )
@@ -1585,7 +1587,7 @@ class EcmpGroupMod( base_tests.SimpleDataPlane ):
             dip = 0xc0a80001
             # Hashes Test Name and uses it as id for installing unique groups
             ports = config[ "port_map" ].keys( )
-            ecmp=[]
+            ecmp = [ ]
             for port in ports:
                 vlan_id = port
                 id = port
@@ -1595,11 +1597,10 @@ class EcmpGroupMod( base_tests.SimpleDataPlane ):
                 dst_mac[ 5 ] = vlan_id
                 l3_msg = add_l3_unicast_group( self.controller, port, vlanid=vlan_id, id=id,
                         src_mac=intf_src_mac, dst_mac=dst_mac )
-                ecmp +=[l3_msg.group_id]
+                ecmp += [ l3_msg.group_id ]
                 Groups._put( l2_gid )
                 Groups._put( l3_msg.group_id )
-                ecmp_msg = add_l3_ecmp_group( self.controller, ports[0], [l3_msg.group_id])
-                #ecmp_msg = add_l3_ecmp_group( self.controller, id, [ l3_msg.group_id ] )
+                ecmp_msg = add_l3_ecmp_group( self.controller, ports[ 0 ], [ l3_msg.group_id ] )
                 # add vlan flow table
                 add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
@@ -1608,60 +1609,61 @@ class EcmpGroupMod( base_tests.SimpleDataPlane ):
                 dst_ip = dip + (vlan_id << 8)
                 add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffff00, ecmp_msg.group_id )
                 Groups._put( ecmp_msg.group_id )
-            mod_l3_ecmp_group( self.controller, ports[0], ecmp)
+            mod_l3_ecmp_group( self.controller, ports[ 0 ], ecmp )
 
             switch_mac = ':'.join( [ '%02X' % x for x in intf_src_mac ] )
-            parsed_pkt=exp_pkt=0
+            parsed_pkt = exp_pkt = 0
             for out_port in ports:
-                mac_src = '00:00:00:22:22:%02X' % ports[0]
-                ip_src = '192.168.%02d.%02d' % (ports[0], 1)
-                ip_dst = '192.168.%02d.%02d' % ( ports[1], 1)
-                tcp= out_port if out_port==24 else 25
-                parsed_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=ports[0],
-                    eth_dst=switch_mac, eth_src=mac_src, ip_ttl=64, ip_src=ip_src, ip_dst=ip_dst, 
-                      tcp_dport=tcp)
+                mac_src = '00:00:00:22:22:%02X' % ports[ 0 ]
+                ip_src = '192.168.%02d.%02d' % (ports[ 0 ], 1)
+                ip_dst = '192.168.%02d.%02d' % (ports[ 1 ], 1)
+                tcp = out_port if out_port == 24 else 25
+                parsed_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=ports[ 0 ],
+                        eth_dst=switch_mac, eth_src=mac_src, ip_ttl=64, ip_src=ip_src, ip_dst=ip_dst,
+                        tcp_dport=tcp )
                 pkt = str( parsed_pkt )
-                self.dataplane.send( ports[0], pkt )
+                self.dataplane.send( ports[ 0 ], pkt )
                 # build expected packet
                 mac_dst = '00:00:00:22:22:%02X' % out_port
                 exp_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=out_port,
-                    eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=63, ip_src=ip_src, ip_dst=ip_dst, tcp_dport=tcp )
+                        eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=63, ip_src=ip_src, ip_dst=ip_dst,
+                        tcp_dport=tcp )
                 pkt = str( exp_pkt )
                 verify_packet( self, pkt, out_port )
                 verify_no_other_packets( self )
-            l3_gid = encode_l3_unicast_group_id(ports[0])
-            mod_l3_ecmp_group( self.controller, ports[0], [l3_gid])
+            l3_gid = encode_l3_unicast_group_id( ports[ 0 ] )
+            mod_l3_ecmp_group( self.controller, ports[ 0 ], [ l3_gid ] )
             for port in ports:
-                mac_src = '00:00:00:22:22:%02X' % ports[0]
-                ip_src = '192.168.%02d.%02d' % ( ports[0], 1 )
-                ip_dst = '192.168.%02d.%02d' % ( ports[1], 1 )
-                tcp= port if port==24 else 25
-                parsed_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=ports[0],
-                    eth_dst=switch_mac, eth_src=mac_src, ip_ttl=64, ip_src=ip_src, ip_dst=ip_dst,
-                      tcp_dport=tcp)
+                mac_src = '00:00:00:22:22:%02X' % ports[ 0 ]
+                ip_src = '192.168.%02d.%02d' % (ports[ 0 ], 1)
+                ip_dst = '192.168.%02d.%02d' % (ports[ 1 ], 1)
+                tcp = port if port == 24 else 25
+                parsed_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=ports[ 0 ],
+                        eth_dst=switch_mac, eth_src=mac_src, ip_ttl=64, ip_src=ip_src, ip_dst=ip_dst,
+                        tcp_dport=tcp )
                 pkt = str( parsed_pkt )
-                self.dataplane.send( ports[0], pkt )
+                self.dataplane.send( ports[ 0 ], pkt )
                 # build expected packet
-                mac_dst = '00:00:00:22:22:%02X' % ports[0]
-                exp_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=ports[0],
-                    eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=63, ip_src=ip_src, ip_dst=ip_dst, tcp_dport=tcp )
+                mac_dst = '00:00:00:22:22:%02X' % ports[ 0 ]
+                exp_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=ports[ 0 ],
+                        eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=63, ip_src=ip_src, ip_dst=ip_dst,
+                        tcp_dport=tcp )
                 pkt = str( exp_pkt )
-                verify_packet( self, pkt, ports[0] )
+                verify_packet( self, pkt, ports[ 0 ] )
                 verify_no_other_packets( self )
-            mod_l3_ecmp_group( self.controller, ports[0], [] )
+            mod_l3_ecmp_group( self.controller, ports[ 0 ], [ ] )
             for port in ports:
-                mac_src = '00:00:00:22:22:%02X' % ports[0]
-                ip_src = '192.168.%02d.%02d' % ( ports[0], 1 )
-                ip_dst = '192.168.%02d.%02d' % ( ports[1], 1 )
-                tcp= port if port==24 else 25
-                parsed_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=ports[0],
-                    eth_dst=switch_mac, eth_src=mac_src, ip_ttl=64, ip_src=ip_src, ip_dst=ip_dst,
-                      tcp_dport=tcp)
+                mac_src = '00:00:00:22:22:%02X' % ports[ 0 ]
+                ip_src = '192.168.%02d.%02d' % (ports[ 0 ], 1)
+                ip_dst = '192.168.%02d.%02d' % (ports[ 1 ], 1)
+                tcp = port if port == 24 else 25
+                parsed_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=ports[ 0 ],
+                        eth_dst=switch_mac, eth_src=mac_src, ip_ttl=64, ip_src=ip_src, ip_dst=ip_dst,
+                        tcp_dport=tcp )
                 pkt = str( parsed_pkt )
-                self.dataplane.send( ports[0], pkt )
+                self.dataplane.send( ports[ 0 ], pkt )
                 verify_no_other_packets( self )
         finally:
             delete_all_flows( self.controller )
             delete_groups( self.controller, Groups )
             delete_all_groups( self.controller )
-

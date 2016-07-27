@@ -844,8 +844,6 @@ def add_mpls_flow(ctrl, action_group_id=0x0, label=100 ,ethertype=0x0800, bos=1,
     actions = [ofp.action.dec_mpls_ttl(),
                ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf))]
     if (goto_table == 29):
-            actions.append(ofp.action.set_field(
-                            ofp.oxm.exp2ByteValue(exp_type=23, value=32)))
             actions.append(ofp.action.group(action_group_id))
     else:
             actions.append(ofp.action.set_field(

@@ -14,8 +14,7 @@ from accton_util import *
 
 class PacketInUDP( base_tests.SimpleDataPlane ):
     """
-    Verify a ACL rule that matches on IP_PROTO 2 will not match a UDP packet.
-    Next it verify a rule that matches on IP_PROTO 17 WILL match a UDP packet.
+    Verify ACL rule for IP_PROTO=2 wont match a UDP packet and a rule for IP_PROTO=17 WILL match a UDP packet.
     """
 
     def runTest( self ):
@@ -111,7 +110,7 @@ class ArpNL2( base_tests.SimpleDataPlane ):
 
 class PacketInArp( base_tests.SimpleDataPlane ):
     """
-    Verify an ACL rule matching on ethertyper 0x806 will result in a packet-in
+    Verify Packet-in message from eth_type 0x806 on ACL table
     """
 
     def runTest( self ):
@@ -144,7 +143,7 @@ class PacketInArp( base_tests.SimpleDataPlane ):
 
 class PacketInIPTable( base_tests.SimpleDataPlane ):
     """
-    Test packet in function on IPTABLE
+        Verify Packet-in message from IP table when controller action is used
     Send a packet to each dataplane port and verify that a packet
     in message is received from the controller for each
     #todo verify you stop receiving after adding rule
@@ -200,7 +199,7 @@ class PacketInIPTable( base_tests.SimpleDataPlane ):
 
 class L2FloodQinQ( base_tests.SimpleDataPlane ):
     """
-    Verify a tagged frame can be flooded based on its outer vlan
+    Verify Vlan based flooding of QinQ based on its outer vlan
     """
 
     def runTest( self ):
@@ -283,9 +282,7 @@ class L2FloodTagged( base_tests.SimpleDataPlane ):
 
 
 class L2UnicastTagged( base_tests.SimpleDataPlane ):
-    """
-    Verify L2 forwarding works
-    """
+    """ Verify Bridging works: match(VID, DST_MAC)> fwd(port) """
 
     def runTest( self ):
 
@@ -322,6 +319,7 @@ class L2UnicastTagged( base_tests.SimpleDataPlane ):
 
 
 class Mtu1500( base_tests.SimpleDataPlane ):
+    """V erifies basic mtu limits"""
     def runTest( self ):
         Groups = Queue.LifoQueue( )
         try:
@@ -357,9 +355,7 @@ class Mtu1500( base_tests.SimpleDataPlane ):
 
 
 class _32UcastTagged( base_tests.SimpleDataPlane ):
-    """
-    Verify a IP forwarding works for a /32 rule to L3 Unicast Interface
-    """
+    """ Verify /32 IP forwarding to L3 Interface"""
 
     def runTest( self ):
         Groups = Queue.LifoQueue( )
@@ -420,10 +416,7 @@ class _32UcastTagged( base_tests.SimpleDataPlane ):
 
 
 class _32VPN( base_tests.SimpleDataPlane ):
-    """
-            Insert IP packet
-            Receive MPLS packet
-    """
+    """ Verify MPLS IP VPN Initiation from /32 rule   """
 
     def runTest( self ):
         Groups = Queue.LifoQueue( )
@@ -491,10 +484,7 @@ class _32VPN( base_tests.SimpleDataPlane ):
 
 
 class _32EcmpVpn( base_tests.SimpleDataPlane ):
-    """
-            Insert IP packet
-            Receive MPLS packet
-    """
+    """  Verify MPLS IP VPN Initiation from /32 rule using ECMP  """
 
     def runTest( self ):
         Groups = Queue.LifoQueue( )
@@ -563,10 +553,7 @@ class _32EcmpVpn( base_tests.SimpleDataPlane ):
 
 
 class _32ECMPL3( base_tests.SimpleDataPlane ):
-    """
-        Insert IP packet
-        Receive IP packet
-    """
+    """ Verifies /32 IP routing and ECMP """
 
     def runTest( self ):
         Groups = Queue.LifoQueue( )
@@ -628,10 +615,7 @@ class _32ECMPL3( base_tests.SimpleDataPlane ):
 
 
 class _24VPN( base_tests.SimpleDataPlane ):
-    """
-            Insert IP packet
-            Receive MPLS packet
-    """
+    """  Verify MPLS IP VPN Initiation from /32 rule using ECMP  """
 
     def runTest( self ):
         Groups = Queue.LifoQueue( )
@@ -699,10 +683,7 @@ class _24VPN( base_tests.SimpleDataPlane ):
 
 
 class _24EcmpVpn( base_tests.SimpleDataPlane ):
-    """
-	    Insert IP packet
-	    Receive MPLS packet
-    """
+    """  Verify MPLS IP VPN Initiation from /24 rule using ECMP  """
 
     def runTest( self ):
         Groups = Queue.LifoQueue( )
@@ -774,9 +755,7 @@ class _24EcmpVpn( base_tests.SimpleDataPlane ):
 
 
 class FloodGroupMod( base_tests.SimpleDataPlane ):
-    """
-       Modify referenced group test
-    """
+    """ Modify referenced group test """
 
     def runTest( self ):
         Groups = Queue.LifoQueue( )
@@ -824,10 +803,7 @@ class FloodGroupMod( base_tests.SimpleDataPlane ):
 
 
 class _24ECMPL3( base_tests.SimpleDataPlane ):
-    """
-        Insert IP packet
-        Receive IP packet
-    """
+    """ Verifies /24 IP routing using ECMP """
 
     def runTest( self ):
         Groups = Queue.LifoQueue( )
@@ -961,9 +937,7 @@ class MPLSBUG( base_tests.SimpleDataPlane ):
 
 
 class L3McastToL2( base_tests.SimpleDataPlane ):
-    """
-    Mcast routing to L2
-    """
+    """ Mcast routing in the same vlan """
 
     def runTest( self ):
         """
@@ -1029,9 +1003,7 @@ class L3McastToL2( base_tests.SimpleDataPlane ):
 
 
 class L3McastToL3( base_tests.SimpleDataPlane ):
-    """
-    Mcast routing
-    """
+    """ Mcast routing on different vlans"""
 
     def runTest( self ):
         """
@@ -1103,10 +1075,7 @@ class L3McastToL3( base_tests.SimpleDataPlane ):
             delete_all_groups( self.controller )
 
 class _MplsFwd( base_tests.SimpleDataPlane ):
-    """
-        Insert MPLS packet
-        Receive MPLS packet
-    """
+    """ Verify basic MPLS forwarding: Label switch router """
 
     def runTest( self ):
         Groups = Queue.LifoQueue( )
@@ -1175,74 +1144,7 @@ class _MplsFwd( base_tests.SimpleDataPlane ):
 
 
 class _MplsTermination( base_tests.SimpleDataPlane ):
-    """
-        Insert MPLS packet
-        Receive IP packet
-    """
-
-    def runTest( self ):
-        Groups = Queue.LifoQueue( )
-        try:
-            if len( config[ "port_map" ] ) < 2:
-                logging.info( "Port count less than 2, can't run this case" )
-                return
-            dip = 0xc0a80001
-            intf_src_mac = [ 0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc ]
-            dst_mac = [ 0x00, 0x00, 0x00, 0x22, 0x22, 0x00 ]
-            # Assigns unique hardcoded test_id to make sure tests don't overlap when writing rules
-            ports = config[ "port_map" ].keys( )
-            for port in ports:
-                # add l2 interface group
-                vlan_id, id, dst_mac[ 5 ] = port, port, port
-                l2_gid, l2_msg = add_one_l2_interface_group( self.controller, port, vlan_id, True, False )
-                # add L3 Unicast  group
-                l3_msg = add_l3_unicast_group( self.controller, port, vlanid=vlan_id, id=id,
-                        src_mac=intf_src_mac, dst_mac=dst_mac )
-                # add L3 ecmp group
-                ecmp_msg = add_l3_ecmp_group( self.controller, id, [ l3_msg.group_id ] )
-                # add vlan flow table
-                add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
-                # add termination flow
-                add_termination_flow( self.controller, port, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
-                # add_mpls_flow(self.controller, ecmp_msg.group_id, port)
-                add_mpls_flow( self.controller, label=port )
-                dst_ip = dip + (vlan_id << 8)
-                add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffff00, ecmp_msg.group_id, 1 )
-                Groups._put( l2_gid )
-                Groups._put( l3_msg.group_id )
-                Groups._put( ecmp_msg.group_id )
-            do_barrier( self.controller )
-
-            switch_mac = ':'.join( [ '%02X' % x for x in intf_src_mac ] )
-            for in_port in ports:
-                ip_src = '192.168.%02d.1' % (in_port)
-                for out_port in ports:
-                    if in_port == out_port:
-                        continue
-                    ip_dst = '192.168.%02d.1' % (out_port)
-                    label = (out_port, 0, 1, 32)
-                    parsed_pkt = mpls_packet( pktlen=104, dl_vlan_enable=True, vlan_vid=(in_port),
-                            ip_src=ip_src, ip_dst=ip_dst, eth_dst=switch_mac, label=[ label ] )
-                    pkt = str( parsed_pkt )
-                    self.dataplane.send( in_port, pkt )
-                    # build expect packet
-                    mac_dst = '00:00:00:22:22:%02X' % (out_port)
-                    exp_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=(out_port),
-                            eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=31, ip_src=ip_src, ip_dst=ip_dst )
-                    pkt = str( exp_pkt )
-                    verify_packet( self, pkt, out_port )
-                    verify_no_other_packets( self )
-        finally:
-            delete_all_flows( self.controller )
-            delete_groups( self.controller, Groups )
-            delete_all_groups( self.controller )
-
-
-class _MplsVpnFwd( base_tests.SimpleDataPlane ):
-    """
-        Insert MPLS packet
-        Receive IP packet
-    """
+    """ Verify MPLS VPN Termination at penultimate hop """
 
     def runTest( self ):
         Groups = Queue.LifoQueue( )
@@ -1304,9 +1206,7 @@ class _MplsVpnFwd( base_tests.SimpleDataPlane ):
 
 
 class _24UcastTagged( base_tests.SimpleDataPlane ):
-    """
-    Verify a IP forwarding works for a /32 rule to L3 Unicast Interface
-    """
+    """ Verify /24 IP forwarding to L3 Interface """
 
     def runTest( self ):
         Groups = Queue.LifoQueue( )
@@ -1366,9 +1266,7 @@ class _24UcastTagged( base_tests.SimpleDataPlane ):
 
 
 class _0Ucast( base_tests.SimpleDataPlane ):
-    """
-    Verify a IP forwarding works for a /0 rule to L3 Unicast Interface
-    """
+    """  Verify default gateway IP forwarding to L3 Interface ( /0 rule ) """
 
     def runTest( self ):
         Groups = Queue.LifoQueue( )
@@ -1442,7 +1340,7 @@ class _0Ucast( base_tests.SimpleDataPlane ):
 
 class Unfiltered( base_tests.SimpleDataPlane ):
     """
-    Testing addition of unfiltered groups
+    Attempt to add an unfiltered group: [ATTENTION] this doesn't verify addition
     """
 
     def runTest( self ):
@@ -1459,7 +1357,7 @@ class Unfiltered( base_tests.SimpleDataPlane ):
 
 class L3McastToVPN( base_tests.SimpleDataPlane ):
     """
-    Mcast routing
+    Mcast routing and VPN initiation
     """
 
     def runTest( self ):
@@ -1571,8 +1469,9 @@ class PacketInSrcMacMiss( base_tests.SimpleDataPlane ):
 
 class EcmpGroupMod( base_tests.SimpleDataPlane ):
     """
-        Insert IP packet
-        Receive IP packet
+        Verify referenced group can be modified adding or removing buckets
+        Attention the hashing behavior may vary according to your porting assigment
+        Current values are hardcoded for our topology
     """
 
     def runTest( self ):

@@ -111,7 +111,7 @@ class ArpNL2( base_tests.SimpleDataPlane ):
 
 class PacketInArp( base_tests.SimpleDataPlane ):
     """
-    Verify an ACL rule matching on ethertyper 0x806 will result in a packet-in
+    Verify Packet-in message from eth_type 0x806 on ACL table
     """
 
     def runTest( self ):
@@ -200,7 +200,7 @@ class PacketInIPTable( base_tests.SimpleDataPlane ):
 
 class L2FloodQinQ( base_tests.SimpleDataPlane ):
     """
-    Verify a tagged frame can be flooded based on its outer vlan
+    Verify Vlan based flooding of QinQ based on its outer vlan
     """
 
     def runTest( self ):
@@ -284,8 +284,8 @@ class L2FloodTagged( base_tests.SimpleDataPlane ):
 
 class L2UnicastTagged( base_tests.SimpleDataPlane ):
     """
-    Verify L2 forwarding works
-    """
+    Verify Bridging works: match(VID, DST_MAC)> fwd(port)
+     """
 
     def runTest( self ):
 
@@ -322,6 +322,7 @@ class L2UnicastTagged( base_tests.SimpleDataPlane ):
 
 
 class Mtu1500( base_tests.SimpleDataPlane ):
+    """Verifies basic mtu limits"""
     def runTest( self ):
         Groups = Queue.LifoQueue( )
         try:
@@ -358,7 +359,7 @@ class Mtu1500( base_tests.SimpleDataPlane ):
 
 class _32UcastTagged( base_tests.SimpleDataPlane ):
     """
-    Verify a IP forwarding works for a /32 rule to L3 Unicast Interface
+        Verify /32 IP forwarding to L3 Interface
     """
 
     def runTest( self ):
@@ -564,8 +565,7 @@ class _32EcmpVpn( base_tests.SimpleDataPlane ):
 
 class _32ECMPL3( base_tests.SimpleDataPlane ):
     """
-        Insert IP packet
-        Receive IP packet
+        Verifies /32 IP routing and ECMP 
     """
 
     def runTest( self ):
@@ -700,8 +700,7 @@ class _24VPN( base_tests.SimpleDataPlane ):
 
 class _24EcmpVpn( base_tests.SimpleDataPlane ):
     """
-	    Insert IP packet
-	    Receive MPLS packet
+       Verify MPLS IP VPN forwarding with /24 route and ECMP group
     """
 
     def runTest( self ):
@@ -825,8 +824,7 @@ class FloodGroupMod( base_tests.SimpleDataPlane ):
 
 class _24ECMPL3( base_tests.SimpleDataPlane ):
     """
-        Insert IP packet
-        Receive IP packet
+        Verifies /24 IP routing using ECMP 
     """
 
     def runTest( self ):
@@ -1104,8 +1102,7 @@ class L3McastToL3( base_tests.SimpleDataPlane ):
 
 class _MplsFwd( base_tests.SimpleDataPlane ):
     """
-        Insert MPLS packet
-        Receive MPLS packet
+        Verify basic MPLS forwarding: Label switch router
     """
 
     def runTest( self ):
@@ -1240,8 +1237,7 @@ class _MplsTermination( base_tests.SimpleDataPlane ):
 
 class _MplsVpnFwd( base_tests.SimpleDataPlane ):
     """
-        Insert MPLS packet
-        Receive IP packet
+        Verify MPLS VPN Termination at penultimate hop
     """
 
     def runTest( self ):
@@ -1305,7 +1301,7 @@ class _MplsVpnFwd( base_tests.SimpleDataPlane ):
 
 class _24UcastTagged( base_tests.SimpleDataPlane ):
     """
-    Verify a IP forwarding works for a /32 rule to L3 Unicast Interface
+    Verify /24 IP forwarding to L3 Interface
     """
 
     def runTest( self ):
@@ -1367,7 +1363,7 @@ class _24UcastTagged( base_tests.SimpleDataPlane ):
 
 class _0Ucast( base_tests.SimpleDataPlane ):
     """
-    Verify a IP forwarding works for a /0 rule to L3 Unicast Interface
+     Verify default gateway IP forwarding to L3 Interface ( /0 rule )
     """
 
     def runTest( self ):
@@ -1442,7 +1438,7 @@ class _0Ucast( base_tests.SimpleDataPlane ):
 
 class Unfiltered( base_tests.SimpleDataPlane ):
     """
-    Testing addition of unfiltered groups
+    Attempt to add an unfiltered group: [ATTENTION] this doesn't verify addition
     """
 
     def runTest( self ):
@@ -1571,8 +1567,9 @@ class PacketInSrcMacMiss( base_tests.SimpleDataPlane ):
 
 class EcmpGroupMod( base_tests.SimpleDataPlane ):
     """
-        Insert IP packet
-        Receive IP packet
+        Verify referenced group can be modified adding or removing buckets
+        Attention the hashing behavior may vary according to your porting assigment
+        Current values are hardcoded for our topology
     """
 
     def runTest( self ):

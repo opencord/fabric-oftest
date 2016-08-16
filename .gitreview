@@ -3,5 +3,4 @@ host=gerrit.opencord.org
 port=29418
 project=fabric-oftest.git
 defaultremote=origin
-defaultbranch=ga2.0
-
+defaultbranch=2.0-ga

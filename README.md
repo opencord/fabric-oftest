@@ -17,71 +17,100 @@ This code base was forked from [macauleycheng](github.com/macauleycheng/oftest) 
 ## How it is organized
 
 This codebase is organized by branches. Each OFDPA release correspond to a different branch. At this moment the following releases are available:
- * i12_17 (master)
- * i19
- * i12
- * ga2.0
- * EA3
 
-The OFDPA release i12_17 is the current stable version utilized by the cord project and is the master branch.
+OFDPA version | Branch     | Status
+------------- | ---------- | ------
+i19           | i19        | Archived
+i12           | i12        | Archived
+i12_1.7       | cord-1.0   | Released
+2.0 GA        | 2.0-ga     | Archived
+**3.0 EA0**   | **master** | **Developing <- current branch**
+
 The test case collection for OpenCord are under the folder ofdpa. They are listed under the section Test case collection.
 
-## Installing OFTest
+## Installing Prerequisites
 
-You can check out OFTest with git with the following commands:
+Following packages need to be installed before running OFTest:
 
-    sudo apt-get install python python-pip python-dev python-lxml -y
-    sudo pip install ncclient
-    sudo pip install scapy pycripto
-    sudo apt-get install python-ecdsa git
-    git clone git://github.com/opencord/fabric-oftest
+```
+sudo apt-get install python python-pip python-dev python-lxml -y
+sudo pip install ncclient
+sudo pip install scapy pycripto
+sudo apt-get install python-ecdsa git
+```
 
-## Quick Start
+## Start Testing
 
-Make sure your switch is running and trying to connect to a controller on the machine where you're running oft (normally port `6653`).
+On the switch side:
 
-    cd fabric-oftest
-    ./oft --list --test-dir=ofdpa flows
-    sudo ./oft -V1.3 --test-dir=ofdpa flows.PacketInArp -i 1@veth1 -i 2@veth3
+1. Purge the switch flow/group table by running
 
-This command assumes you connected the switch port 1 to interface veth1 in the OFtest server and port 2 to veth3
+	```
+	client_cfg_purge
+	```
+
+2. Connect the switch to the testing controller
+
+	```
+	brcm-indigo-ofdpa-ofagent -t <controller_ip>
+	```
+
+On the controller side:
+
+1. Clone the source code and switch to the correct branch
+
+	```
+	git clone -b master git://github.com/opencord/fabric-oftest
+	```
+
+2. Run **all test cases** in OFTest
+
+	```
+	sudo ./oft -V1.3 --test-dir=ofdpa flows -i 24@eth1 -i 12@eth2
+	```
+	This command assumes you connected the switch port 24 to interface eth1 on the OFtest server and port 12 to eth2
+
+## Useful commands
+
+* List all available test cases
+
+	```
+	./oft --list --test-dir=ofdpa flows
+	```
+
+* Run only specific test case
+
+	```
+	sudo ./oft -V1.3 --test-dir=ofdpa flows.PacketInArp -i 24@eth1 -i 12@eth2
+	```
 
 ---
 
-## Testing a different release
-
-Don't forget to make sure your switch is attempting to establish a OpenFlow connection to the OFTest server.
-To test the ga2.0 release do the following:
-
-    cd fabric-oftest
-    git checkout ga2.0
-    sudo ./oft -V1.3 --test-dir=ofdpa flows -i 12@eth1 -i 24@eth2
-
-# Test Results
+# Test Result Summary
 
 The following tests are implemented and these are their results.
 
-Test Results | i12_1.7 | ga2.0 | EA3
-------- | ------- | --- | ----- | ---
-/0Ucast | false | ok | ok
-/24UnicastTagged | ok | ok | ok
-/32UnicastTagged | ok | ok | ok
-/24ECMPL3 | ok | ok | ok
-/32ECMPL3 | ok | ok | ok
-/24ECMPVPN | ok | ok | ok
-/32ECMPVPN | ok | ok | ok
-/32VPN | ok | ok | ok
-/24VPN | ok | ok | ok
-EcmpGroupMod | ? | ? | ok
-PacketInArp | ok | ok | ok
-MTU1500 | ok | ok | ok
-MplsTermination | ok | ok | ok
-MplsFwd | ? | ok | ok
-L2FloodQinQ | ok | ok | ok
-L2UnicastTagged | ok | ok | ok
-L3McastToL3 | ok | ? | ?
-L3McastToL2 | ok | ? | ?
-FloodGroupMod | ? | ? | ok
-PacketInUDP | ok | ok | ok
-Unfiltered | ? | ok | ?
+Test Results     | i12_1.7 | 2.0 GA | 3.0 EA0
+-------          | ------- | ------ | -------
+/0Ucast          | X       | ok     | ok
+/24UnicastTagged | ok      | ok     | ok
+/32UnicastTagged | ok      | ok     | ok
+/24ECMPL3        | ok      | ok     | ok
+/32ECMPL3        | ok      | ok     | ok
+/24ECMPVPN       | ok      | ok     | ok
+/32ECMPVPN       | ok      | ok     | ok
+/32VPN           | ok      | ok     | ok
+/24VPN           | ok      | ok     | ok
+EcmpGroupMod     | X       | X      | ok
+PacketInArp      | ok      | ok     | ok
+MTU1500          | ok      | ok     | ok
+MplsTermination  | ok      | ok     | ok
+MplsFwd          | X       | ok     | ok
+L2FloodQinQ      | ok      | ok     | ok
+L2UnicastTagged  | ok      | ok     | ok
+L3McastToL3      | ok      | X      | X
+L3McastToL2      | ok      | X      | X
+FloodGroupMod    | X       | X      | ok
+PacketInUDP      | ok      | ok     | ok
+Unfiltered       | X       | ok     | X
 

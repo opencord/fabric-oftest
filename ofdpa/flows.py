@@ -1099,14 +1099,14 @@ class _MplsFwd( base_tests.SimpleDataPlane ):
                 mpls_label_gid, mpls_label_msg = add_mpls_label_group( self.controller,
                         subtype=OFDPA_MPLS_GROUP_SUBTYPE_SWAP_LABEL, index=id, ref_gid=mpls_gid,
                         push_mpls_header=False, set_mpls_label=port, set_bos=1 )
-                #ecmp_gid, ecmp_msg = add_mpls_forwarding_group( self.controller,
-                #        subtype=OFDPA_MPLS_GROUP_SUBTYPE_ECMP, index=id, ref_gids=[mpls_label_gid] )
+                ecmp_gid, ecmp_msg = add_mpls_forwarding_group( self.controller,
+                        subtype=OFDPA_MPLS_GROUP_SUBTYPE_ECMP, index=id, ref_gids=[mpls_label_gid] )
                 # add vlan flow table
                 add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
                 #add_mpls_flow( self.controller, ecmp_gid, port, goto_table=29 )
-                add_mpls_flow( self.controller, mpls_label_gid, port, goto_table=29 ) 
+                add_mpls_flow( self.controller, mpls_label_gid, port, goto_table=29 )
                 dst_ip = dip + (vlan_id << 8)
                 Groups._put( l2_gid )
                 Groups._put( mpls_gid )

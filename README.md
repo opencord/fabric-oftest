@@ -113,4 +113,7 @@ L3McastToL2      | ok      | X      | X
 FloodGroupMod    | X       | X      | ok
 PacketInUDP      | ok      | ok     | ok
 Unfiltered       | X       | ok     | X
+Untagged         | n/a     | n/a    | ok
+
+n/a means test is not available for that version of the pipeline.
 

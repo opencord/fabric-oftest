@@ -113,4 +113,5 @@ L3McastToL2      | ok      | X      | X
 FloodGroupMod    | X       | X      | ok
 PacketInUDP      | ok      | ok     | ok
 Unfiltered       | X       | ok     | X
+Untagged         | X       | X      | ok
 

@@ -1089,16 +1089,19 @@ class _MplsFwd( base_tests.SimpleDataPlane ):
             # Assigns unique hardcoded test_id to make sure tests don't overlap when writing rules
             ports = config[ "port_map" ].keys( )
             for port in ports:
+                # Shift MPLS label and VLAN ID by 16 to avoid reserved values
+                vlan_id = port + 16
+                mpls_label = port + 16
+
                 # add l2 interface group
                 id = port
-                vlan_id = id
                 l2_gid, l2_msg = add_one_l2_interface_group( self.controller, port, vlan_id, True, False )
-                dst_mac[ 5 ] = vlan_id
+                dst_mac[ 5 ] = port
                 mpls_gid, mpls_msg = add_mpls_intf_group( self.controller, l2_gid, dst_mac, intf_src_mac,
                         vlan_id, id )
                 mpls_label_gid, mpls_label_msg = add_mpls_label_group( self.controller,
                         subtype=OFDPA_MPLS_GROUP_SUBTYPE_SWAP_LABEL, index=id, ref_gid=mpls_gid,
-                        push_mpls_header=False, set_mpls_label=port, set_bos=1 )
+                        push_mpls_header=False, set_mpls_label=mpls_label, set_bos=1 )
                 ecmp_gid, ecmp_msg = add_mpls_forwarding_group( self.controller,
                         subtype=OFDPA_MPLS_GROUP_SUBTYPE_ECMP, index=id, ref_gids=[mpls_label_gid] )
                 # add vlan flow table
@@ -1106,7 +1109,7 @@ class _MplsFwd( base_tests.SimpleDataPlane ):
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
                 #add_mpls_flow( self.controller, ecmp_gid, port, goto_table=29 )
-                add_mpls_flow( self.controller, mpls_label_gid, port, goto_table=29 )
+                add_mpls_flow( self.controller, mpls_label_gid, mpls_label, goto_table=29 )
                 dst_ip = dip + (vlan_id << 8)
                 Groups._put( l2_gid )
                 Groups._put( mpls_gid )
@@ -1120,18 +1123,23 @@ class _MplsFwd( base_tests.SimpleDataPlane ):
                 for out_port in ports:
                     if in_port == out_port:
                         continue
-                    ip_dst = '192.168.%02d.1' % (out_port)
 
-                    label = (out_port, 0, 1, 32)
-                    parsed_pkt = mpls_packet( pktlen=104, dl_vlan_enable=True, vlan_vid=(in_port),
+                    # Shift MPLS label and VLAN ID by 16 to avoid reserved values
+                    out_mpls_label = out_port + 16
+                    in_vlan_vid = in_port + 16
+                    out_vlan_vid = out_port + 16
+
+                    ip_dst = '192.168.%02d.1' % (out_port)
+                    label = (out_mpls_label, 0, 1, 32)
+                    parsed_pkt = mpls_packet( pktlen=104, dl_vlan_enable=True, vlan_vid=(in_vlan_vid),
                             ip_src=ip_src, ip_dst=ip_dst, eth_dst=switch_mac, label=[ label ] )
                     pkt = str( parsed_pkt )
                     self.dataplane.send( in_port, pkt )
 
                     # build expect packet
                     mac_dst = '00:00:00:22:22:%02X' % (out_port)
-                    label = (out_port, 0, 1, 31)
-                    exp_pkt = mpls_packet( pktlen=104, dl_vlan_enable=True, vlan_vid=(out_port),
+                    label = (out_mpls_label, 0, 1, 31)
+                    exp_pkt = mpls_packet( pktlen=104, dl_vlan_enable=True, vlan_vid=(out_vlan_vid),
                             ip_src=ip_src, ip_dst=ip_dst, eth_src=switch_mac, eth_dst=mac_dst,
                             label=[ label ] )
                     pkt = str( exp_pkt )
@@ -1158,8 +1166,12 @@ class _MplsTermination( base_tests.SimpleDataPlane ):
             # Assigns unique hardcoded test_id to make sure tests don't overlap when writing rules
             ports = config[ "port_map" ].keys( )
             for port in ports:
+                # Shift MPLS label and VLAN ID by 16 to avoid reserved values
+                vlan_id = port + 16
+                mpls_label = port + 16
+
                 # add l2 interface group
-                vlan_id, id, dst_mac[ 5 ] = port, port, port
+                id, dst_mac[ 5 ] = port, port
                 l2_gid, l2_msg = add_one_l2_interface_group( self.controller, port, vlan_id, True, False )
                 # add L3 Unicast  group
                 l3_msg = add_l3_unicast_group( self.controller, port, vlanid=vlan_id, id=id,
@@ -1170,7 +1182,7 @@ class _MplsTermination( base_tests.SimpleDataPlane ):
                 add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
-                add_mpls_flow( self.controller, ecmp_msg.group_id, port )
+                add_mpls_flow( self.controller, ecmp_msg.group_id, mpls_label )
                 # add_mpls_flow(self.controller, label=port)
                 dst_ip = dip + (vlan_id << 8)
                 # add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0xffffff00,
@@ -1186,15 +1198,21 @@ class _MplsTermination( base_tests.SimpleDataPlane ):
                 for out_port in ports:
                     if in_port == out_port:
                         continue
+
+                    # Shift MPLS label and VLAN ID by 16 to avoid reserved values
+                    out_mpls_label = out_port + 16
+                    in_vlan_vid = in_port + 16
+                    out_vlan_vid = out_port + 16
+
                     ip_dst = '192.168.%02d.1' % (out_port)
-                    label = (out_port, 0, 1, 32)
-                    parsed_pkt = mpls_packet( pktlen=104, dl_vlan_enable=True, vlan_vid=(in_port),
+                    label = (out_mpls_label, 0, 1, 32)
+                    parsed_pkt = mpls_packet( pktlen=104, dl_vlan_enable=True, vlan_vid=(in_vlan_vid),
                             ip_src=ip_src, ip_dst=ip_dst, eth_dst=switch_mac, label=[ label ] )
                     pkt = str( parsed_pkt )
                     self.dataplane.send( in_port, pkt )
                     # build expect packet
                     mac_dst = '00:00:00:22:22:%02X' % (out_port)
-                    exp_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=(out_port),
+                    exp_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=(out_vlan_vid),
                             eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=31, ip_src=ip_src, ip_dst=ip_dst )
                     pkt = str( exp_pkt )
                     verify_packet( self, pkt, out_port )

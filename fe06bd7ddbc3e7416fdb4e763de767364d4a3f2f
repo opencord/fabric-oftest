@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a014df3_076ff993",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1574,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2016-08-23T00:37:38Z",
+      "side": 1,
+      "message": "I would suggest provide more detail information in the comment. Below is an example:\n---\nVerify VLAN assignment and VLAN filtering rules for untagged packets.\nFiltering: match 0x100A/0x1FFF, goto 20\nAssignment: match 0x0000/(no mask), set_vlan_vid 0x100A, goto 20\n---",
+      "range": {
+        "startLine": 1572,
+        "startChar": 0,
+        "endLine": 1574,
+        "endChar": 39
+      },
+      "revId": "fe06bd7ddbc3e7416fdb4e763de767364d4a3f2f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_a774c59c",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1577,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2016-08-23T00:37:38Z",
+      "side": 1,
+      "message": "(minor) max internal VLAN is actually 4094 for ports without subnet config.",
+      "range": {
+        "startLine": 1577,
+        "startChar": 24,
+        "endLine": 1577,
+        "endChar": 28
+      },
+      "revId": "fe06bd7ddbc3e7416fdb4e763de767364d4a3f2f",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

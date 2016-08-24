@@ -567,7 +567,7 @@ def add_vlan_table_flow_allow_all_vlan(ctrl, in_port, send_barrier=False):
         ],
         priority=0)
     logging.info("Add allow all vlan on port %d " %(in_port))
-    ctrl.message_send(request)    
+    ctrl.message_send(request)
 
 def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
     # table 10: vlan

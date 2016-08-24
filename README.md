@@ -108,7 +108,7 @@ MplsTermination  | ok      | ok     | ok
 MplsFwd          | X       | ok     | ok
 L2FloodQinQ      | ok      | ok     | ok
 L2UnicastTagged  | ok      | ok     | ok
-L3McastToL3      | ok      | X      | X
+L3McastToL3      | ok      | X      | ok
 L3McastToL2      | ok      | X      | X
 FloodGroupMod    | X       | X      | ok
 PacketInUDP      | ok      | ok     | ok

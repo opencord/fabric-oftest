@@ -48,28 +48,28 @@ def getSwitchCpuMACFromDPID(dpid):
     switch_cpu_mac=[int(switch_cpu_mac[i],16) for i in range(0, len(switch_cpu_mac))]
 
     return switch_cpu_mac_str, switch_cpu_mac
-        
+
 def DumpGroup(stats, verify_group_stats, always_show=True):
     if(len(stats) > len(verify_group_stats)):
         min_len = len(verify_group_stats)
         print "Stats Len is not the same, stats>verify_group_stats"
     if(len(stats)< len(verify_group_stats)):
-        min_len = len(stats)    
+        min_len = len(stats)
         print "Stats Len is not the same, stats<verify_group_stats"
-    else:   
+    else:
         min_len = len(stats)
 
     print "\r\n"
     for i in range(min_len):
         gs = stats[i]
-        gv = verify_group_stats[i]        
+        gv = verify_group_stats[i]
         print "FromSwtich:(GID=%lx, TYPE=%lx)\r\nVerify    :(GID=%lx, TYPE=%lx)"%(gs.group_id, gs.group_type, gv.group_id, gv.group_type)
         if(len(gs.buckets) != len(gv.buckets)):
             print "buckets len is not the same gs %lx, gv %lx",(len(gs.buckets), len(gv.buckets))
 
         for j in range(len(gs.buckets)):
            b1=gs.buckets[j]
-           b2=gv.buckets[j]           
+           b2=gv.buckets[j]
            if(len(b1.actions) != len(b2.actions)):
                print "action len is not the same"
 
@@ -78,26 +78,26 @@ def DumpGroup(stats, verify_group_stats, always_show=True):
                a2=b2.actions[k]
                if(always_show == True):
                    print "a1:"+a1.show()
-                   print "a2:"+a2.show()               
+                   print "a2:"+a2.show()
 
 def AssertGroup(self, stats, verify_group_stats):
     self.assertTrue(len(stats) ==len(verify_group_stats), "stats len is not the same")
 
     for i in range(len(stats)):
         gs = stats[i]
-        gv = verify_group_stats[i]        
+        gv = verify_group_stats[i]
         self.assertTrue(len(gs.buckets) == len(gv.buckets), "buckets len is not the same")
 
         for j in range(len(gs.buckets)):
            b1=gs.buckets[j]
-           b2=gv.buckets[j]           
+           b2=gv.buckets[j]
            self.assertTrue(len(b1.actions) == len(b2.actions), "action len is not the same")
 
            for k in range(len(b1.actions)):
                a1=b1.actions[k]
                a2=b2.actions[k]
                self.assertEquals(a1, a2, "action is not the same")
-    
+
 def encode_l2_interface_group_id(vlan, id):
     return id + (vlan << OFDPA_VLAN_ID_SHIFT)
 
@@ -112,7 +112,7 @@ def encode_l2_mcast_group_id(vlan, id):
 
 def encode_l2_flood_group_id(vlan, id):
     return id + (vlan << OFDPA_VLAN_ID_SHIFT) + (4 << OFDPA_GROUP_TYPE_SHIFT)
-    
+
 def encode_l3_interface_group_id(id):
     return id + (5 << OFDPA_GROUP_TYPE_SHIFT)
 
@@ -140,7 +140,7 @@ def add_l2_interface_group(ctrl, ports, vlan_id=1, is_tagged=False, send_barrier
         if is_tagged:
             actions = [
                 ofp.action.output(of_port),
-            ]        
+            ]
         else:
             actions = [
                 ofp.action.pop_vlan(),
@@ -160,7 +160,7 @@ def add_l2_interface_group(ctrl, ports, vlan_id=1, is_tagged=False, send_barrier
 
         if send_barrier:
             do_barrier(ctrl)
- 
+
     return group_id_list, msgs
 
 def add_one_l2_interface_group(ctrl, port, vlan_id=1, is_tagged=False, send_barrier=False):
@@ -171,7 +171,7 @@ def add_one_l2_interface_group(ctrl, port, vlan_id=1, is_tagged=False, send_barr
     if is_tagged:
         actions = [
             ofp.action.output(port),
-        ]        
+        ]
     else:
         actions = [
             ofp.action.pop_vlan(),
@@ -190,9 +190,9 @@ def add_one_l2_interface_group(ctrl, port, vlan_id=1, is_tagged=False, send_barr
 
     if send_barrier:
         do_barrier(ctrl)
- 
+
     return group_id, request
-    
+
 def add_l2_mcast_group(ctrl, ports, vlanid, mcast_grp_index):
     buckets=[]
     for of_port in ports:
@@ -234,9 +234,9 @@ def add_l2_rewrite_group(ctrl, port, vlanid, id, src_mac, dst_mac):
         action.append(ofp.action.set_field(ofp.oxm.eth_dst(dst_mac)))
 
     action.append(ofp.action.set_field(ofp.oxm.vlan_vid(vlanid)))
-        
+
     action.append(ofp.action.group(group_id))
-    
+
     buckets = [ofp.bucket(actions=action)]
 
     group_id =encode_l2_rewrite_group_id(id)
@@ -246,7 +246,7 @@ def add_l2_rewrite_group(ctrl, port, vlanid, id, src_mac, dst_mac):
                                    )
     ctrl.message_send(request)
     return request
-    
+
 def add_l3_unicast_group(ctrl, port, vlanid, id, src_mac, dst_mac):
     group_id = encode_l2_interface_group_id(vlanid, port)
 
@@ -258,9 +258,9 @@ def add_l3_unicast_group(ctrl, port, vlanid, id, src_mac, dst_mac):
         action.append(ofp.action.set_field(ofp.oxm.eth_dst(dst_mac)))
 
     action.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vlanid)))
-        
+
     action.append(ofp.action.group(group_id))
-    
+
     buckets = [ofp.bucket(actions=action)]
 
     group_id =encode_l3_unicast_group_id(id)
@@ -270,15 +270,15 @@ def add_l3_unicast_group(ctrl, port, vlanid, id, src_mac, dst_mac):
                                    )
     ctrl.message_send(request)
     return request
-    
+
 def add_l3_interface_group(ctrl, port, vlanid, id, src_mac):
     group_id = encode_l2_interface_group_id(vlanid, port)
 
     action=[]
     action.append(ofp.action.set_field(ofp.oxm.eth_src(src_mac)))
-    action.append(ofp.action.set_field(ofp.oxm.vlan_vid(vlanid)))       
+    action.append(ofp.action.set_field(ofp.oxm.vlan_vid(vlanid)))
     action.append(ofp.action.group(group_id))
-    
+
     buckets = [ofp.bucket(actions=action)]
 
     group_id =encode_l3_interface_group_id(id)
@@ -301,12 +301,12 @@ def add_l3_ecmp_group(ctrl, id, l3_ucast_groups):
                                    )
     ctrl.message_send(request)
     return request
-        
+
 def add_l3_mcast_group(ctrl, vid,  mcast_group_id, groups_on_buckets):
     buckets=[]
     for group in groups_on_buckets:
         buckets.append(ofp.bucket(actions=[ofp.action.group(group)]))
-    
+
     group_id =encode_l3_mcast_group_id(vid, mcast_group_id)
     request = ofp.message.group_add(group_type=ofp.OFPGT_ALL,
                                     group_id=group_id,
@@ -366,7 +366,7 @@ def add_l2_overlay_mcast_over_mcast_tunnel_group(ctrl, tunnel_id, ports, index):
                                    )
     ctrl.message_send(request)
     return request
-	
+
 def add_port_table_flow(ctrl, is_overlay=True):
     match = ofp.match()
 
@@ -375,7 +375,7 @@ def add_port_table_flow(ctrl, is_overlay=True):
        NEXT_TABLE=50
     else:
        match.oxm_list.append(ofp.oxm.in_port(0))
-       NEXT_TABLE=10       
+       NEXT_TABLE=10
 
     request = ofp.message.flow_add(
 		table_id=0,
@@ -387,7 +387,7 @@ def add_port_table_flow(ctrl, is_overlay=True):
 		priority=0)
     logging.info("Add port table, match port %lx" % 0x10000)
     ctrl.message_send(request)
-    
+
 
 def pop_vlan_flow(ctrl, ports, vlan_id=1):
     # table 10: vlan
@@ -440,7 +440,7 @@ def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, 
                 priority=0)
             logging.info("Add vlan %d tagged packets on port %d and go to table 20" %( vlan_id, of_port))
             ctrl.message_send(request)
-            
+
         if (flag == VLAN_TABLE_FLAG_ONLY_UNTAG) or (flag == VLAN_TABLE_FLAG_ONLY_BOTH):
             match = ofp.match()
             match.oxm_list.append(ofp.oxm.in_port(of_port))
@@ -487,7 +487,7 @@ def add_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, 
         do_barrier(ctrl)
 
     return msgs
-    
+
 def del_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
     # table 10: vlan
     # goto to table 20
@@ -522,22 +522,22 @@ def del_vlan_table_flow(ctrl, ports, vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_BOTH, 
         do_barrier(ctrl)
 
     return msgs
-    
+
 def add_vlan_table_flow_pvid(ctrl, in_port, match_vid=None, pvid=1, send_barrier=False):
     """it will tag pack as untagged packet wether it has tagg or not"""
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.in_port(in_port))
     actions=[]
     if match_vid == None:
-        match.oxm_list.append(ofp.oxm.vlan_vid(0))    
+        match.oxm_list.append(ofp.oxm.vlan_vid(0))
         actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+pvid)))
         goto_table=20
     else:
         match.oxm_list.append(ofp.oxm.vlan_vid_masked(0x1000+match_vid, 0x1fff))
         actions.append(ofp.action.push_vlan(0x8100))
-        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+pvid)))        
+        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+pvid)))
         goto_table=20
-        
+
     request = ofp.message.flow_add(
         table_id=10,
         cookie=42,
@@ -548,8 +548,8 @@ def add_vlan_table_flow_pvid(ctrl, in_port, match_vid=None, pvid=1, send_barrier
         ],
         priority=0)
     logging.info("Add PVID %d on port %d and go to table %ld" %( pvid, in_port, goto_table))
-    ctrl.message_send(request)   
-    
+    ctrl.message_send(request)
+
     if send_barrier:
         do_barrier(ctrl)
 
@@ -563,11 +563,11 @@ def add_vlan_table_flow_allow_all_vlan(ctrl, in_port, send_barrier=False):
         cookie=42,
         match=match,
         instructions=[
-            ofp.instruction.goto_table(20) 
+            ofp.instruction.goto_table(20)
         ],
         priority=0)
     logging.info("Add allow all vlan on port %d " %(in_port))
-    ctrl.message_send(request)    
+    ctrl.message_send(request)
 
 def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
     # table 10: vlan
@@ -580,7 +580,7 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
         actions=[]
         if vrf!=0:
             actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
-            
+
         #actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(value=vlan_id)))
 
         request = ofp.message.flow_add(
@@ -596,18 +596,18 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
             priority=0)
         logging.info("Add vlan %d tagged packets on port %d and go to table 20" %( vlan_id, of_port))
         ctrl.message_send(request)
-        
+
     if (flag == VLAN_TABLE_FLAG_ONLY_UNTAG) or (flag == VLAN_TABLE_FLAG_ONLY_BOTH):
         match = ofp.match()
         match.oxm_list.append(ofp.oxm.in_port(of_port))
         match.oxm_list.append(ofp.oxm.vlan_vid_masked(0, 0x1fff))
-        
+
         actions=[]
         if vrf!=0:
             actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
-            
+
         actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(vlan_id)))
-        
+
         request = ofp.message.flow_add(
             table_id=10,
             cookie=42,
@@ -621,7 +621,7 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
             priority=0)
         logging.info("Add vlan %d untagged packets on port %d and go to table 20" % (vlan_id, of_port))
         ctrl.message_send(request)
-    
+
     if (flag == 4) :
         match = ofp.match()
         match.oxm_list.append(ofp.oxm.in_port(of_port))
@@ -651,7 +651,7 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
         do_barrier(ctrl)
 
     return request
-    
+
 def add_bridge_flow(ctrl, dst_mac, vlanid, group_id, send_barrier=False):
     match = ofp.match()
     priority=500
@@ -678,9 +678,9 @@ def add_bridge_flow(ctrl, dst_mac, vlanid, group_id, send_barrier=False):
     ctrl.message_send(request)
 
     if send_barrier:
-        do_barrier(ctrl)   
+        do_barrier(ctrl)
 
-    return request        
+    return request
 
 def add_overlay_bridge_flow(ctrl, dst_mac, vnid, group_id, is_group=True, send_barrier=False):
     match = ofp.match()
@@ -703,16 +703,16 @@ def add_overlay_bridge_flow(ctrl, dst_mac, vnid, group_id, is_group=True, send_b
                     ofp.instruction.goto_table(60)
                 ],
             buffer_id=ofp.OFP_NO_BUFFER,
-            priority=1000) 
+            priority=1000)
 
     logging.info("Inserting Brdige flow vnid %d, mac %s", vnid, dst_mac)
     ctrl.message_send(request)
 
     if send_barrier:
-        do_barrier(ctrl)   
+        do_barrier(ctrl)
 
-    return request        
-    
+    return request
+
 def add_termination_flow(ctrl, in_port, eth_type, dst_mac, vlanid, goto_table=None, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(eth_type))
@@ -735,16 +735,16 @@ def add_termination_flow(ctrl, in_port, eth_type, dst_mac, vlanid, goto_table=No
                     ofp.instruction.goto_table(goto_table)
                 ],
             buffer_id=ofp.OFP_NO_BUFFER,
-            priority=1) 
+            priority=1)
 
     logging.info("Inserting termination flow inport %d, eth_type %lx, vlan %d, mac %s", in_port, eth_type, vlanid, dst_mac)
     ctrl.message_send(request)
 
     if send_barrier:
-        do_barrier(ctrl)   
+        do_barrier(ctrl)
 
-    return request    
-    
+    return request
+
 def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=0, send_ctrl=False, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(eth_type))
@@ -759,7 +759,7 @@ def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=
         instructions.append(ofp.instruction.apply_actions(
                             actions=[ofp.action.output( port=ofp.OFPP_CONTROLLER,
                             max_len=ofp.OFPCML_NO_BUFFER)]))
-    else: 
+    else:
         instructions.append(ofp.instruction.write_actions(
                         actions=[ofp.action.group(action_group_id)]))
 
@@ -769,15 +769,15 @@ def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=
             match=match,
             instructions=instructions,
             buffer_id=ofp.OFP_NO_BUFFER,
-            priority=1) 
+            priority=1)
 
     logging.info("Inserting unicast routing flow eth_type %lx, dip %ld",eth_type, dst_ip)
     ctrl.message_send(request)
 
     if send_barrier:
-        do_barrier(ctrl)   
+        do_barrier(ctrl)
 
-    return request        
+    return request
 
 def add_mpls_flow(ctrl, action_group_id, label=100 ,ethertype=0x0800, bos=1, send_barrier=False):
     match = ofp.match()
@@ -814,14 +814,14 @@ def add_mpls_flow(ctrl, action_group_id, label=100 ,ethertype=0x0800, bos=1, sen
 def add_mcast4_routing_flow(ctrl, vlan_id, src_ip, src_ip_mask, dst_ip, action_group_id, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(0x0800))
-    match.oxm_list.append(ofp.oxm.vlan_vid(vlan_id))    
+    match.oxm_list.append(ofp.oxm.vlan_vid(vlan_id))
     if src_ip_mask!=0:
         match.oxm_list.append(ofp.oxm.ipv4_src_masked(src_ip, src_ip_mask))
     else:
         match.oxm_list.append(ofp.oxm.ipv4_src(src_ip))
-        
+
     match.oxm_list.append(ofp.oxm.ipv4_dst(dst_ip))
-    
+
     request = ofp.message.flow_add(
             table_id=40,
             cookie=42,
@@ -832,15 +832,15 @@ def add_mcast4_routing_flow(ctrl, vlan_id, src_ip, src_ip_mask, dst_ip, action_g
                     ofp.instruction.goto_table(60)
                 ],
             buffer_id=ofp.OFP_NO_BUFFER,
-            priority=1) 
+            priority=1)
 
     logging.info("Inserting mcast routing flow eth_type %lx, dip %lx, sip %lx, sip_mask %lx",0x0800, dst_ip, src_ip, src_ip_mask)
     ctrl.message_send(request)
 
     if send_barrier:
-        do_barrier(ctrl)   
+        do_barrier(ctrl)
 
-    return request            
+    return request
 
 #dpctl tcp:192.168.1.1:6633 flow-mod table=28,cmd=add,prio=281 eth_type=0x800,ip_dst=100.0.0.1,ip_proto=6,tcp_dst=5000 write:set_field=ip_dst:10.0.0.1,set_field=tcp_dst:2000,group=0x71000001 goto:60
 def add_dnat_flow(ctrl, eth_type, ip_dst, ip_proto, tcp_dst, set_ip_dst, set_tcp_dst, action_group_id):
@@ -849,7 +849,7 @@ def add_dnat_flow(ctrl, eth_type, ip_dst, ip_proto, tcp_dst, set_ip_dst, set_tcp
     match.oxm_list.append(ofp.oxm.ipv4_dst(ip_dst))
     match.oxm_list.append(ofp.oxm.ip_proto(ip_proto))
     match.oxm_list.append(ofp.oxm.tcp_dst(tcp_dst))
-    
+
     request = ofp.message.flow_add(
             table_id=28,
             cookie=42,
@@ -862,7 +862,7 @@ def add_dnat_flow(ctrl, eth_type, ip_dst, ip_proto, tcp_dst, set_ip_dst, set_tcp
                     ofp.instruction.goto_table(60)
                 ],
             buffer_id=ofp.OFP_NO_BUFFER,
-            priority=1) 
+            priority=1)
     logging.info("Inserting DNAT flow eth_type %lx, dip %lx, ip_proto %ld, tcp_dst %ld, SetFeild: Dip %lx, tcp_dst %ld, action_gorup=%lx",eth_type, ip_dst, ip_proto, tcp_dst, set_ip_dst, set_tcp_dst, action_group_id)
     ctrl.message_send(request)
     return request
@@ -874,7 +874,7 @@ def add_snat_flow(ctrl, eth_type, ip_src, ip_proto, tcp_src, set_ip_src, set_tcp
     match.oxm_list.append(ofp.oxm.ipv4_src(ip_src))
     match.oxm_list.append(ofp.oxm.ip_proto(ip_proto))
     match.oxm_list.append(ofp.oxm.tcp_src(tcp_src))
-    
+
     request = ofp.message.flow_add(
             table_id=29,
             cookie=42,
@@ -886,12 +886,12 @@ def add_snat_flow(ctrl, eth_type, ip_src, ip_proto, tcp_src, set_ip_src, set_tcp
                     ofp.instruction.goto_table(30)
                 ],
             buffer_id=ofp.OFP_NO_BUFFER,
-            priority=1) 
+            priority=1)
     logging.info("Inserting DNAT flow eth_type %lx, sip %lx, ip_proto %ld, tcp_src %ld, SetFeild: sip %lx, tcp_src %ld",eth_type, ip_src, ip_proto, tcp_src, set_ip_src, set_tcp_src)
     ctrl.message_send(request)
     return request
-    
-def get_vtap_lport_config_xml(dp_id, lport, phy_port, vlan, vnid, operation='merge'):  
+
+def get_vtap_lport_config_xml(dp_id, lport, phy_port, vlan, vnid, operation='merge'):
     """
     Command Example:
     of-agent vtap 10001 ethernet 1/1 vid 1
@@ -904,38 +904,38 @@ def get_vtap_lport_config_xml(dp_id, lport, phy_port, vlan, vnid, operation='mer
                 <id>capable-switch-1</id>
                 <resources>
                     <port xc:operation="OPERATION">
-                        <resource-id >LPORT</resource-id>     
+                        <resource-id >LPORT</resource-id>
                         <features>
                             <current>
                               <rate>10Gb</rate>
                               <medium>fiber</medium>
-                              <pause>symmetric</pause>      
+                              <pause>symmetric</pause>
                             </current>
                             <advertised>
                               <rate>10Gb</rate>
                               <rate>100Gb</rate>
                               <medium>fiber</medium>
                               <pause>symmetric</pause>
-                            </advertised>    
+                            </advertised>
                             <supported>
                               <rate>10Gb</rate>
                               <rate>100Gb</rate>
                               <medium>fiber</medium>
                               <pause>symmetric</pause>
-                            </supported> 
+                            </supported>
                             <advertised-peer>
                               <rate>10Gb</rate>
                               <rate>100Gb</rate>
                               <medium>fiber</medium>
                               <pause>symmetric</pause>
-                            </advertised-peer>        
+                            </advertised-peer>
                         </features>
                         <ofdpa10:vtap xmlns:ofdpa10="urn:bcm:ofdpa10:accton01" xc:operation="OPERATION">
                             <ofdpa10:phy-port>PHY_PORT</ofdpa10:phy-port>
                             <ofdpa10:vid>VLAN_ID</ofdpa10:vid>
                             <ofdpa10:vni>VNID</ofdpa10:vni>
                         </ofdpa10:vtap>
-                    </port> 
+                    </port>
               </resources>
               <logical-switches>
                   <switch>
@@ -948,7 +948,7 @@ def get_vtap_lport_config_xml(dp_id, lport, phy_port, vlan, vnid, operation='mer
               </logical-switches>
             </capable-switch>
           </config>
-        """    
+        """
     else:
         config_vtap_xml="""
         <config>
@@ -956,37 +956,37 @@ def get_vtap_lport_config_xml(dp_id, lport, phy_port, vlan, vnid, operation='mer
                 <id>capable-switch-1</id>
                 <resources>
                     <port xc:operation="OPERATION">
-                        <resource-id >LPORT</resource-id>     
+                        <resource-id >LPORT</resource-id>
                         <features>
                             <current>
                               <rate>10Gb</rate>
                               <medium>fiber</medium>
-                              <pause>symmetric</pause>      
+                              <pause>symmetric</pause>
                             </current>
                             <advertised>
                               <rate>10Gb</rate>
                               <rate>100Gb</rate>
                               <medium>fiber</medium>
                               <pause>symmetric</pause>
-                            </advertised>    
+                            </advertised>
                             <supported>
                               <rate>10Gb</rate>
                               <rate>100Gb</rate>
                               <medium>fiber</medium>
                               <pause>symmetric</pause>
-                            </supported> 
+                            </supported>
                             <advertised-peer>
                               <rate>10Gb</rate>
                               <rate>100Gb</rate>
                               <medium>fiber</medium>
                               <pause>symmetric</pause>
-                            </advertised-peer>        
+                            </advertised-peer>
                         </features>
                         <ofdpa10:vtap xmlns:ofdpa10="urn:bcm:ofdpa10:accton01" xc:operation="OPERATION">
                             <ofdpa10:phy-port>PHY_PORT</ofdpa10:phy-port>
                             <ofdpa10:vni>VNID</ofdpa10:vni>
                         </ofdpa10:vtap>
-                    </port> 
+                    </port>
               </resources>
               <logical-switches>
                   <switch>
@@ -999,22 +999,22 @@ def get_vtap_lport_config_xml(dp_id, lport, phy_port, vlan, vnid, operation='mer
               </logical-switches>
             </capable-switch>
           </config>
-        """        
-    str_datapath_id_f= "{:016x}".format(dp_id)        
-    str_datapath_id=':'.join([str_datapath_id_f[i:i+2] for i in range(0, len(str_datapath_id_f), 2)])	
-    config_vtap_xml=config_vtap_xml.replace("DATAPATH_ID", str_datapath_id)      
-    config_vtap_xml=config_vtap_xml.replace("LPORT", str(int(lport)))         
-    config_vtap_xml=config_vtap_xml.replace("PHY_PORT", str(phy_port))       
-    config_vtap_xml=config_vtap_xml.replace("VLAN_ID", str(vlan))     
+        """
+    str_datapath_id_f= "{:016x}".format(dp_id)
+    str_datapath_id=':'.join([str_datapath_id_f[i:i+2] for i in range(0, len(str_datapath_id_f), 2)])
+    config_vtap_xml=config_vtap_xml.replace("DATAPATH_ID", str_datapath_id)
+    config_vtap_xml=config_vtap_xml.replace("LPORT", str(int(lport)))
+    config_vtap_xml=config_vtap_xml.replace("PHY_PORT", str(phy_port))
+    config_vtap_xml=config_vtap_xml.replace("VLAN_ID", str(vlan))
     config_vtap_xml=config_vtap_xml.replace("VNID", str(vnid))
     config_vtap_xml=config_vtap_xml.replace("OPERATION", str(operation))
     return config_vtap_xml
-      
-def get_vtep_lport_config_xml(dp_id, lport, src_ip, dst_ip, next_hop_id, vnid, udp_src_port=6633, ttl=25, operation='merge'): 
+
+def get_vtep_lport_config_xml(dp_id, lport, src_ip, dst_ip, next_hop_id, vnid, udp_src_port=6633, ttl=25, operation='merge'):
     """
     Command Example:
     of-agent vtep 10002 source user-input-src-ip destination user-input-dst-ip udp-source-port 6633 nexthop 2 ttl 25
-    of-agent vtp 10001 vni 10    
+    of-agent vtp 10001 vni 10
     """
 
     config_vtep_xml="""
@@ -1023,31 +1023,31 @@ def get_vtep_lport_config_xml(dp_id, lport, src_ip, dst_ip, next_hop_id, vnid, u
             <id>capable-switch-1</id>
             <resources>
              <port xc:operation="OPERATION">
-               <resource-id>LPORT</resource-id>     
+               <resource-id>LPORT</resource-id>
                  <features>
                    <current>
                      <rate>10Gb</rate>
                      <medium>fiber</medium>
-                     <pause>symmetric</pause>      
+                     <pause>symmetric</pause>
                    </current>
                    <advertised>
                      <rate>10Gb</rate>
                      <rate>100Gb</rate>
                      <medium>fiber</medium>
                      <pause>symmetric</pause>
-                   </advertised>    
+                   </advertised>
                    <supported>
                      <rate>10Gb</rate>
                      <rate>100Gb</rate>
                      <medium>fiber</medium>
                      <pause>symmetric</pause>
-                   </supported> 
+                   </supported>
                    <advertised-peer>
                      <rate>10Gb</rate>
                      <rate>100Gb</rate>
                      <medium>fiber</medium>
                      <pause>symmetric</pause>
-                   </advertised-peer>        
+                   </advertised-peer>
                 </features>
 			  <ofdpa10:vtep xmlns:ofdpa10="urn:bcm:ofdpa10:accton01">
 				<ofdpa10:src-ip>SRC_IP</ofdpa10:src-ip>
@@ -1059,7 +1059,7 @@ def get_vtep_lport_config_xml(dp_id, lport, src_ip, dst_ip, next_hop_id, vnid, u
 				<ofdpa10:nexthop-id>NEXT_HOP_ID</ofdpa10:nexthop-id>
 				<ofdpa10:ttl>TTL</ofdpa10:ttl>
 			  </ofdpa10:vtep>
-             </port> 
+             </port>
             </resources>
             <logical-switches>
                 <switch>
@@ -1071,23 +1071,23 @@ def get_vtep_lport_config_xml(dp_id, lport, src_ip, dst_ip, next_hop_id, vnid, u
                 </switch>
             </logical-switches>
           </capable-switch>
-        </config>  
+        </config>
     """
-    str_datapath_id_f= "{:016x}".format(dp_id)        
-    str_datapath_id=':'.join([str_datapath_id_f[i:i+2] for i in range(0, len(str_datapath_id_f), 2)])	
-    config_vtep_xml=config_vtep_xml.replace("DATAPATH_ID", str_datapath_id)      
+    str_datapath_id_f= "{:016x}".format(dp_id)
+    str_datapath_id=':'.join([str_datapath_id_f[i:i+2] for i in range(0, len(str_datapath_id_f), 2)])
+    config_vtep_xml=config_vtep_xml.replace("DATAPATH_ID", str_datapath_id)
     config_vtep_xml=config_vtep_xml.replace("LPORT", str(int(lport)))
-    config_vtep_xml=config_vtep_xml.replace("SRC_IP", str(src_ip))            
-    config_vtep_xml=config_vtep_xml.replace("DST_IP", str(dst_ip))                 
-    config_vtep_xml=config_vtep_xml.replace("UDP_SRC_PORT", str(udp_src_port))                      
-    config_vtep_xml=config_vtep_xml.replace("NEXT_HOP_ID", str(next_hop_id))                           
-    config_vtep_xml=config_vtep_xml.replace("TTL", str(ttl))                           
+    config_vtep_xml=config_vtep_xml.replace("SRC_IP", str(src_ip))
+    config_vtep_xml=config_vtep_xml.replace("DST_IP", str(dst_ip))
+    config_vtep_xml=config_vtep_xml.replace("UDP_SRC_PORT", str(udp_src_port))
+    config_vtep_xml=config_vtep_xml.replace("NEXT_HOP_ID", str(next_hop_id))
+    config_vtep_xml=config_vtep_xml.replace("TTL", str(ttl))
     config_vtep_xml=config_vtep_xml.replace("VNID", str(vnid))
-    config_vtep_xml=config_vtep_xml.replace("OPERATION", str(operation))		
+    config_vtep_xml=config_vtep_xml.replace("OPERATION", str(operation))
 
-    return config_vtep_xml   
-      
-def get_next_hop_config_xml(next_hop_id, dst_mac, phy_port, vlan, operation='merge'): 
+    return config_vtep_xml
+
+def get_next_hop_config_xml(next_hop_id, dst_mac, phy_port, vlan, operation='merge'):
     #of-agent nexthop 2 destination user-input-dst-mac ethernet 1/2 vid 2
     config_nexthop_xml="""
       <config>
@@ -1102,15 +1102,15 @@ def get_next_hop_config_xml(next_hop_id, dst_mac, phy_port, vlan, operation='mer
       </config>
       """
     config_nexthop_xml=config_nexthop_xml.replace("VLAN_ID", str(vlan))
-    config_nexthop_xml=config_nexthop_xml.replace("PHY_PORT", str(phy_port))   
-    config_nexthop_xml=config_nexthop_xml.replace("NEXT_HOP_ID", str(next_hop_id))   
-    config_nexthop_xml=config_nexthop_xml.replace("DST_MAC", str(dst_mac))   
-    config_nexthop_xml=config_nexthop_xml.replace("OPERATION", str(operation))	
-    return config_nexthop_xml   
+    config_nexthop_xml=config_nexthop_xml.replace("PHY_PORT", str(phy_port))
+    config_nexthop_xml=config_nexthop_xml.replace("NEXT_HOP_ID", str(next_hop_id))
+    config_nexthop_xml=config_nexthop_xml.replace("DST_MAC", str(dst_mac))
+    config_nexthop_xml=config_nexthop_xml.replace("OPERATION", str(operation))
+    return config_nexthop_xml
 
-def get_vni_config_xml(vni_id, mcast_ipv4, next_hop_id, operation='merge'):  
+def get_vni_config_xml(vni_id, mcast_ipv4, next_hop_id, operation='merge'):
     #of-agent vni 10 multicast 224.1.1.1 nexthop 20
-    if mcast_ipv4!=None:    
+    if mcast_ipv4!=None:
         config_vni_xml="""
           <config>
               <of11-config:capable-switch xmlns:of11-config="urn:onf:of111:config:yang" xmlns:xc="urn:ietf:params:xml:ns:netconf:base:1.0">
@@ -1121,9 +1121,9 @@ def get_vni_config_xml(vni_id, mcast_ipv4, next_hop_id, operation='merge'):
                 </ofdpa10:vni>
               </of11-config:capable-switch>
           </config>
-          """   
-        config_vni_xml=config_vni_xml.replace("NEXT_HOP_ID", str(next_hop_id))   
-        config_vni_xml=config_vni_xml.replace("MCAST_IP", str(mcast_ipv4))             
+          """
+        config_vni_xml=config_vni_xml.replace("NEXT_HOP_ID", str(next_hop_id))
+        config_vni_xml=config_vni_xml.replace("MCAST_IP", str(mcast_ipv4))
     else:
         config_vni_xml="""
           <config>
@@ -1133,29 +1133,29 @@ def get_vni_config_xml(vni_id, mcast_ipv4, next_hop_id, operation='merge'):
                 </ofdpa10:vni>
               </of11-config:capable-switch>
           </config>
-          """   
-          
-    config_vni_xml=config_vni_xml.replace("VNID", str(vni_id))            
-    config_vni_xml=config_vni_xml.replace("OPERATION", str(operation))	
+          """
+
+    config_vni_xml=config_vni_xml.replace("VNID", str(vni_id))
+    config_vni_xml=config_vni_xml.replace("OPERATION", str(operation))
     return config_vni_xml
-	
-def get_featureReplay(self):    
+
+def get_featureReplay(self):
     req = ofp.message.features_request()
     res, raw = self.controller.transact(req)
-    self.assertIsNotNone(res, "Did not receive a response from the DUT.")        
+    self.assertIsNotNone(res, "Did not receive a response from the DUT.")
     self.assertEqual(res.type, ofp.OFPT_FEATURES_REPLY,
                  ("Unexpected packet type %d received in response to "
                   "OFPT_FEATURES_REQUEST") % res.type)
-    return res		
-	
+    return res
+
 def send_edit_config(switch_ip, xml, target='runing'):
     NETCONF_ACCOUNT="netconfuser"
     NETCONF_PASSWD="netconfuser"
     with manager.connect_ssh(host=switch_ip, port=830, username=NETCONF_ACCOUNT, password=NETCONF_PASSWD, hostkey_verify=False ) as m:
         try:
-            m.edit_config(target='running', 
-                      config=xml, 
-                      default_operation='merge', 
+            m.edit_config(target='running',
+                      config=xml,
+                      default_operation='merge',
                       error_option='stop-on-error')
 
         except Exception as e:
@@ -1170,9 +1170,9 @@ def send_delete_config(switch_ip, xml, target='runing'):
     NETCONF_PASSWD="netconfuser"
     with manager.connect_ssh(host=switch_ip, port=830, username=NETCONF_ACCOUNT, password=NETCONF_PASSWD, hostkey_verify=False ) as m:
         try:
-            m.edit_config(target='running', 
-                      config=xml, 
-                      default_operation='delete', 
+            m.edit_config(target='running',
+                      config=xml,
+                      default_operation='delete',
                       error_option='stop-on-error')
 
         except Exception as e:
@@ -1181,7 +1181,7 @@ def send_delete_config(switch_ip, xml, target='runing'):
 
 	#return m.get_config(source='running').data_xml
     return True
-    
+
 def get_edit_config(switch_ip, target='runing'):
     NETCONF_ACCOUNT="netconfuser"
     NETCONF_PASSWD="netconfuser"
@@ -1194,7 +1194,7 @@ MPLS
 """
 
 OFDPA_MPLS_SUBTYPE_SHIFT=24
-OFDPA_MPLS_GROUP_SUBTYPE_L2_VPN_LABEL=1 
+OFDPA_MPLS_GROUP_SUBTYPE_L2_VPN_LABEL=1
 OFDPA_MPLS_GROUP_SUBTYPE_L3_VPN_LABEL=2
 OFDPA_MPLS_GROUP_SUBTYPE_TUNNEL_LABEL1=3
 OFDPA_MPLS_GROUP_SUBTYPE_TUNNEL_LABEL2=4
@@ -1216,21 +1216,21 @@ def encode_mpls_label_group_id(subtype, index):
     #3: mpls tunnel label 1
     #4: mpls tunnel lable 2
     #5: mpls swap label
-    return index + (9 << OFDPA_GROUP_TYPE_SHIFT)+(subtype<<OFDPA_MPLS_SUBTYPE_SHIFT)         
+    return index + (9 << OFDPA_GROUP_TYPE_SHIFT)+(subtype<<OFDPA_MPLS_SUBTYPE_SHIFT)
 
 def encode_mpls_forwarding_group_id(subtype, index):
     index=index&0x00ffffff
     assert(subtype==6 or subtype==8 or subtype==10)
-    return index + (10 << OFDPA_GROUP_TYPE_SHIFT)+(subtype<<OFDPA_MPLS_SUBTYPE_SHIFT)         
+    return index + (10 << OFDPA_GROUP_TYPE_SHIFT)+(subtype<<OFDPA_MPLS_SUBTYPE_SHIFT)
 
 
 def add_mpls_intf_group(ctrl, ref_gid, dst_mac, src_mac, vid, index, subtype=0):
     action=[]
     action.append(ofp.action.set_field(ofp.oxm.eth_src(src_mac)))
     action.append(ofp.action.set_field(ofp.oxm.eth_dst(dst_mac)))
-    action.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vid)))    
+    action.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vid)))
     action.append(ofp.action.group(ref_gid))
-    
+
     buckets = [ofp.bucket(actions=action)]
 
     mpls_group_id =encode_mpls_interface_group_id(subtype, index)
@@ -1241,7 +1241,7 @@ def add_mpls_intf_group(ctrl, ref_gid, dst_mac, src_mac, vid, index, subtype=0):
     ctrl.message_send(request)
     return mpls_group_id, request
 
-def add_mpls_label_group(ctrl, subtype, index, ref_gid, 
+def add_mpls_label_group(ctrl, subtype, index, ref_gid,
                          lmep_id=-1,
                          qos_index=-1,
                          push_l2_header=False,
@@ -1260,7 +1260,7 @@ def add_mpls_label_group(ctrl, subtype, index, ref_gid,
                          ):
     """
     @ref_gid: only can be mpls intf group or mpls tunnel label 1/2 group
-    """      
+    """
     action=[]
 
     if push_vlan== True:
@@ -1275,44 +1275,44 @@ def add_mpls_label_group(ctrl, subtype, index, ref_gid,
         assert(set_tc_from_table==False)
         action.append(ofp.action.set_field(ofp.oxm.mpls_tc(set_tc)))
     if set_ttl != None:
-        action.append(ofp.action.set_mpls_ttl(set_ttl))  
+        action.append(ofp.action.set_mpls_ttl(set_ttl))
     if cpy_ttl_outward == True:
-        action.append(ofp.action.copy_ttl_out())  
+        action.append(ofp.action.copy_ttl_out())
     """
     ofdpa experimenter
-    """    
+    """
     if push_l2_header== True:
-        action.append(ofp.action.ofdpa_push_l2_header())          
+        action.append(ofp.action.ofdpa_push_l2_header())
     if set_tc_from_table== True:
         assert(qos_index>=0)
         assert(set_tc == None)
-        action.append(ofp.action.ofdpa_set_tc_from_table(qos_index))        
+        action.append(ofp.action.ofdpa_set_tc_from_table(qos_index))
     if cpy_tc_outward == True:
-        action.append(ofp.action.ofdpa_copy_tc_out())	
+        action.append(ofp.action.ofdpa_copy_tc_out())
     if oam_lm_tx_count == True:
-        assert(qos_index>=0 and lmep_id>=0)	
-        action.append(ofp.action.ofdpa_oam_lm_tx_count(lmep_id, qos_index))  
+        assert(qos_index>=0 and lmep_id>=0)
+        action.append(ofp.action.ofdpa_oam_lm_tx_count(lmep_id, qos_index))
     if set_pri_from_table == True:
-        assert(qos_index>=0)	
-        action.append(ofp.action.ofdpa_set_qos_from_table(qos_index))  
+        assert(qos_index>=0)
+        action.append(ofp.action.ofdpa_set_qos_from_table(qos_index))
     if push_cw == True:
         action.append(ofp.action.ofdpa_push_cw())
-       
-    action.append(ofp.action.group(ref_gid))    
+
+    action.append(ofp.action.group(ref_gid))
     buckets = [ofp.bucket(actions=action)]
-    
+
     mpls_group_id = encode_mpls_label_group_id(subtype, index)
     request = ofp.message.group_add(group_type=ofp.OFPGT_INDIRECT,
                                     group_id=mpls_group_id,
                                     buckets=buckets
                                    )
     ctrl.message_send(request)
-    
-    return mpls_group_id, request    
-    
-def add_mpls_forwarding_group(ctrl, subtype, index, ref_gids, 
-                              watch_port=None, 
-							  watch_group=ofp.OFPP_ANY, 
+
+    return mpls_group_id, request
+
+def add_mpls_forwarding_group(ctrl, subtype, index, ref_gids,
+                              watch_port=None,
+							  watch_group=ofp.OFPP_ANY,
 							  push_vlan=None,
                               pop_vlan=None,
                               set_vid=None):
@@ -1325,14 +1325,14 @@ def add_mpls_forwarding_group(ctrl, subtype, index, ref_gids,
         group_type = ofp.OFPGT_FF
         for gid in ref_gids:
             action=[]
-            action.append(ofp.action.group(gid)) 
+            action.append(ofp.action.group(gid))
             buckets.append(ofp.bucket(watch_port=watch_port, watch_group=watch_group,actions=action))
 
     elif subtype == OFDPA_MPLS_GROUP_SUBTYPE_ECMP:
         group_type = ofp.OFPGT_SELECT
         for gid in ref_gids:
             action=[]
-            action.append(ofp.action.group(gid))    
+            action.append(ofp.action.group(gid))
             buckets.append(ofp.bucket(actions=action))
 
     elif subtype == OFDPA_MPLS_GROUP_SUBTYPE_L2_TAG:
@@ -1341,10 +1341,10 @@ def add_mpls_forwarding_group(ctrl, subtype, index, ref_gids,
         if set_vid!=None:
             action.append(ofp.action.set_field(ofp.oxm.vlan_vid(set_vid)))
         if push_vlan!=None:
-            action.append(ofp.action.push_vlan(push_vlan))		
+            action.append(ofp.action.push_vlan(push_vlan))
         if pop_vlan!=None:
-            action.append(ofp.action.pop_vlan())		
-            action.append(ofp.action.group(ref_gids[0]))    
+            action.append(ofp.action.pop_vlan())
+            action.append(ofp.action.group(ref_gids[0]))
             buckets.append(ofp.bucket(actions=action))
 
     mpls_group_id = encode_mpls_forwarding_group_id(subtype, index)
@@ -1353,12 +1353,12 @@ def add_mpls_forwarding_group(ctrl, subtype, index, ref_gids,
                                     buckets=buckets
                                    )
     ctrl.message_send(request)
-    return mpls_group_id, request    
+    return mpls_group_id, request
 
 
 """
 dislay
-"""   
+"""
 def print_current_table_flow_stat(ctrl, table_id=0xff):
     stat_req=ofp.message.flow_stats_request()
     response, pkt = ctrl.transact(stat_req)

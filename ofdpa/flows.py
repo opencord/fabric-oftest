@@ -1297,3 +1297,59 @@ class _24UcastTagged(base_tests.SimpleDataPlane):
                 verify_no_other_packets(self)
         delete_all_flows(self.controller)
         delete_groups(self.controller, Groups)
+
+class Untagged( base_tests.SimpleDataPlane ):
+    """
+        Verify VLAN filtering table does not require OFPVID_PRESENT bit to be 0.
+        This should be fixed in OFDPA 2.0 GA and above, the test fails with
+        previous versions of the OFDPA.
+
+        Two rules are necessary in VLAN table (10):
+        1) Assignment: match 0x0000/(no mask), set_vlan_vid 0x100A, goto 20
+        2) Filtering: match 0x100A/0x1FFF, goto 20
+
+        In this test case vlan_id = (MAX_INTERNAL_VLAN - port_no).
+        The remaining part of the test is based on the use of the bridging table
+    """
+
+    MAX_INTERNAL_VLAN = 4094
+
+    def runTest( self ):
+        groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 2:
+                logging.info( "Port count less than 2, can't run this case" )
+                return
+
+            ports = sorted( config[ "port_map" ].keys( ) )
+            for port in ports:
+                vlan_id = Untagged.MAX_INTERNAL_VLAN - port
+                add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+                add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_UNTAG )
+                for other_port in ports:
+                    if other_port == port:
+                        continue
+                    L2gid, l2msg = add_one_l2_interface_group( self.controller, other_port, vlan_id, False, False )
+                    groups.put( L2gid )
+                    add_bridge_flow( self.controller, [ 0x00, 0x12, 0x34, 0x56, 0x78, other_port ], vlan_id, L2gid, True )
+
+            do_barrier( self.controller )
+
+            for out_port in ports:
+                # change dest based on port number
+                mac_dst = '00:12:34:56:78:%02X' % out_port
+                for in_port in ports:
+                    if in_port == out_port:
+                        continue
+                    pkt = str( simple_tcp_packet( eth_dst=mac_dst ) )
+                    self.dataplane.send( in_port, pkt )
+                    for ofport in ports:
+                        if ofport in [ out_port ]:
+                            verify_packet( self, pkt, ofport )
+                        else:
+                            verify_no_packet( self, pkt, ofport )
+                    verify_no_other_packets( self )
+        finally:
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, groups )
+            delete_all_groups( self.controller )

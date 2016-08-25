@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a014df3_1a3aaccd",
+        "filename": "accton/accton_util.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 551,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2016-08-25T20:18:01Z",
+      "side": 1,
+      "message": "(minor) please also remove these trailing spaces.",
+      "range": {
+        "startLine": 551,
+        "startChar": 30,
+        "endLine": 551,
+        "endChar": 33
+      },
+      "revId": "f0a671f4a52a15ba44adf5c9ef225bd7cb1ccc15",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_7a52d014",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 1126,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2016-08-25T20:18:01Z",
+      "side": 1,
+      "message": "Please uncomment this. We need to clear all rules after the test case is completed.",
+      "range": {
+        "startLine": 1126,
+        "startChar": 12,
+        "endLine": 1126,
+        "endChar": 13
+      },
+      "revId": "f0a671f4a52a15ba44adf5c9ef225bd7cb1ccc15",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_ba3058e9",
+        "filename": "ofdpa/utils.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2016-08-25T20:18:01Z",
+      "side": 1,
+      "message": "Please add some comment about what is done in this method",
+      "range": {
+        "startLine": 6,
+        "startChar": 0,
+        "endLine": 6,
+        "endChar": 3
+      },
+      "revId": "f0a671f4a52a15ba44adf5c9ef225bd7cb1ccc15",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_da3324f5",
+        "filename": "ofdpa/utils.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2016-08-25T20:18:01Z",
+      "side": 1,
+      "message": "(minor) please convert tab to 4 spaces (according to PEP8 suggestion)",
+      "range": {
+        "startLine": 7,
+        "startChar": 0,
+        "endLine": 7,
+        "endChar": 1
+      },
+      "revId": "f0a671f4a52a15ba44adf5c9ef225bd7cb1ccc15",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

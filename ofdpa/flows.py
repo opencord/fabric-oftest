@@ -1638,6 +1638,6 @@ class Untagged( base_tests.SimpleDataPlane ):
                     verify_no_other_packets( self )
         finally:
             delete_all_flows( self.controller )
-            delete_groups( self.controller, Groups )
+            delete_groups( self.controller, groups )
             delete_all_groups( self.controller )
 

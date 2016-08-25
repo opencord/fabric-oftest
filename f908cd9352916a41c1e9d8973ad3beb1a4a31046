@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a014df3_1a418c39",
+        "filename": "README.md",
+        "patchSetId": 3
+      },
+      "lineNbr": 116,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2016-08-25T20:30:08Z",
+      "side": 1,
+      "message": "This review is based on cord-1.0 branch. However, the results come from 3.0 (master) which is not consistent.",
+      "range": {
+        "startLine": 116,
+        "startChar": 40,
+        "endLine": 116,
+        "endChar": 42
+      },
+      "revId": "f908cd9352916a41c1e9d8973ad3beb1a4a31046",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

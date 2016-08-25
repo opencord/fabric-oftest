@@ -90,29 +90,39 @@ On the controller side:
 
 The following tests are implemented and these are their results.
 
-Test Results     | i12_1.7 | 2.0 GA | 3.0 EA0
--------          | ------- | ------ | -------
-/0Ucast          | X       | ok     | ok
-/24UnicastTagged | ok      | ok     | ok
-/32UnicastTagged | ok      | ok     | ok
-/24ECMPL3        | ok      | ok     | ok
-/32ECMPL3        | ok      | ok     | ok
-/24ECMPVPN       | ok      | ok     | ok
-/32ECMPVPN       | ok      | ok     | ok
-/32VPN           | ok      | ok     | ok
-/24VPN           | ok      | ok     | ok
-EcmpGroupMod     | X       | X      | ok
-PacketInArp      | ok      | ok     | ok
-MTU1500          | ok      | ok     | ok
-MplsTermination  | ok      | ok     | ok
-MplsFwd          | X       | ok     | ok
-L2FloodQinQ      | ok      | ok     | ok
-L2UnicastTagged  | ok      | ok     | ok
-L3McastToL3      | ok      | X      | ?
-L3McastToL2      | ok      | X      | X
-FloodGroupMod    | X       | X      | ok
-PacketInUDP      | ok      | ok     | ok
-Unfiltered       | X       | ok     | X
-Untagged         | ok      | n/a    | ok
+Test Results       | i12_1.7 | 2.0 GA | 3.0 EA0
+-------            | ------- | ------ | -------
+/0Ucast            | X       | ok     | ok
+/24UnicastTagged   | ok      | ok     | ok
+/32UnicastTagged   | ok      | ok     | ok
+/24ECMPL3          | ok      | ok     | ok
+/32ECMPL3          | ok      | ok     | ok
+/24ECMPVPN         | ok      | ok     | ok
+/32ECMPVPN         | ok      | ok     | ok
+/32VPN             | ok      | ok     | ok
+/24VPN             | ok      | ok     | ok
+EcmpGroupMod       | X       | X      | ok
+PacketInArp        | ok      | ok     | ok
+MTU1500            | ok      | ok     | ok
+MplsTermination    | ok      | ok     | ok
+MplsFwd            | X       | ok     | ok
+L2FloodQinQ        | ok      | ok     | ok
+L2UnicastTagged    | ok      | ok     | ok
+L3McastToL3        | ok      | X      | ?
+L3McastToL2_1*     | ok      | ?      | ?
+L3McastToL2_2**    | ok      | ?      | ?
+L3McastToL2_3***   | ok      | ?      | ?
+L3McastToL2_4****  | ok      | ?      | ?
+L3McastToL2_5***** | ok      | ?      | ok
+FloodGroupMod      | X       | X      | ok
+PacketInUDP        | ok      | ok     | ok
+Unfiltered         | X       | ok     | X
+Untagged           | ok      | n/a    | ok
+
+*       Untag -> Untag (4094 as internal vlan)
+**      Untag -> Tag
+***     Tag   -> Untag
+****    Tag   -> Tag
+*****   Tag   -> Tag (Translated)
 
 n/a means test is not available for that version of the pipeline.

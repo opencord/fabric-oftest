@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a014df3_9d88f623",
+        "filename": "accton/accton_util.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 629,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2016-09-01T18:21:09Z",
+      "side": 1,
+      "message": "Please add a short description (as comment) about the main purpose of this method and the difference between this one and add_one_vlan_table_flow",
+      "range": {
+        "startLine": 629,
+        "startChar": 4,
+        "endLine": 629,
+        "endChar": 39
+      },
+      "revId": "1d7f4a57db31e1f51701aa401f607f2faa2960f4",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

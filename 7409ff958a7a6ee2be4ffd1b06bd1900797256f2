@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1a014df3_d8ba0c0a",
+        "filename": "accton/accton_util.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 631,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2016-09-06T20:38:23Z",
+      "side": 1,
+      "message": "Extra tab",
+      "range": {
+        "startLine": 631,
+        "startChar": 0,
+        "endLine": 631,
+        "endChar": 1
+      },
+      "revId": "7409ff958a7a6ee2be4ffd1b06bd1900797256f2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_b83740b0",
+        "filename": "accton/accton_util.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 670,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2016-09-06T20:38:23Z",
+      "side": 1,
+      "message": "Extra spaces",
+      "range": {
+        "startLine": 670,
+        "startChar": 0,
+        "endLine": 670,
+        "endChar": 12
+      },
+      "revId": "7409ff958a7a6ee2be4ffd1b06bd1900797256f2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1a014df3_983c8495",
+        "filename": "ofdpa/utils.py",
+        "patchSetId": 4
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2016-09-06T20:38:23Z",
+      "side": 1,
+      "message": "Please change tab to 4 spaces in order to be aligned with the coding style",
+      "range": {
+        "startLine": 7,
+        "startChar": 0,
+        "endLine": 7,
+        "endChar": 1
+      },
+      "revId": "7409ff958a7a6ee2be4ffd1b06bd1900797256f2",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

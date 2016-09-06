@@ -570,9 +570,9 @@ def add_vlan_table_flow_allow_all_vlan(ctrl, in_port, send_barrier=False):
     ctrl.message_send(request)
 
 def add_one_vlan_table_flow_translation(ctrl, of_port, vlan_id=1, new_vlan_id=-1, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
-	# Insert a VLAN translation flow
-	# in VLAN flows table    
-	# table 10: vlan
+    # Insert a VLAN translation flow
+    # in VLAN flows table
+    # table 10: vlan
     # goto to table 20
     if (flag == VLAN_TABLE_FLAG_ONLY_TAG) or (flag == VLAN_TABLE_FLAG_ONLY_BOTH) or (flag == 4):
         match = ofp.match()
@@ -610,7 +610,7 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
         actions=[]
         if vrf!=0:
             actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
-            
+
         #actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(value=vlan_id)))
 
         request = ofp.message.flow_add(

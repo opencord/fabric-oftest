@@ -1000,7 +1000,13 @@ class L3McastToL2UntagToUntag( base_tests.SimpleDataPlane ):
 
             ports      = config[ "port_map" ].keys( )
             dst_ip_str = "224.0.0.1"
-            (port_to_in_vlan, port_to_out_vlan, port_to_src_mac_str, port_to_dst_mac_str, port_to_src_ip_str, Groups) = fill_mcast_pipeline_L3toL2(
+            (
+                port_to_in_vlan,
+                port_to_out_vlan,
+                port_to_src_mac_str,
+                port_to_dst_mac_str,
+                port_to_src_ip_str,
+                Groups) = fill_mcast_pipeline_L3toL2(
                 self.controller,
                 logging,
                 ports,
@@ -1059,7 +1065,13 @@ class L3McastToL2UntagToTag( base_tests.SimpleDataPlane ):
                 return
             ports      = config[ "port_map" ].keys( )
             dst_ip_str = "224.0.0.1"
-            (port_to_in_vlan, port_to_out_vlan, port_to_src_mac_str, port_to_dst_mac_str, port_to_src_ip_str, Groups) = fill_mcast_pipeline_L3toL2(
+            (
+                port_to_in_vlan,
+                port_to_out_vlan,
+                port_to_src_mac_str,
+                port_to_dst_mac_str,
+                port_to_src_ip_str,
+                Groups) = fill_mcast_pipeline_L3toL2(
                 self.controller,
                 logging,
                 ports,
@@ -1120,7 +1132,13 @@ class L3McastToL2TagToUntag( base_tests.SimpleDataPlane ):
                 return
             ports      = config[ "port_map" ].keys( )
             dst_ip_str = "224.0.0.1"
-            (port_to_in_vlan, port_to_out_vlan, port_to_src_mac_str, port_to_dst_mac_str, port_to_src_ip_str, Groups) = fill_mcast_pipeline_L3toL2(
+            (
+                port_to_in_vlan,
+                port_to_out_vlan,
+                port_to_src_mac_str,
+                port_to_dst_mac_str,
+                port_to_src_ip_str,
+                Groups) = fill_mcast_pipeline_L3toL2(
                 self.controller,
                 logging,
                 ports,
@@ -1180,7 +1198,13 @@ class L3McastToL2TagToTag( base_tests.SimpleDataPlane ):
                 return
             ports      = config[ "port_map" ].keys( )
             dst_ip_str = "224.0.0.1"
-            (port_to_in_vlan, port_to_out_vlan, port_to_src_mac_str, port_to_dst_mac_str, port_to_src_ip_str, Groups) = fill_mcast_pipeline_L3toL2(
+            (
+                port_to_in_vlan,
+                port_to_out_vlan,
+                port_to_src_mac_str,
+                port_to_dst_mac_str,
+                port_to_src_ip_str,
+                Groups) = fill_mcast_pipeline_L3toL2(
                 self.controller,
                 logging,
                 ports,
@@ -1243,7 +1267,13 @@ class L3McastToL2TagToTagTranslated( base_tests.SimpleDataPlane ):
                 return
             ports      = config[ "port_map" ].keys( )
             dst_ip_str = "224.0.0.1"
-            (port_to_in_vlan, port_to_out_vlan, port_to_src_mac_str, port_to_dst_mac_str, port_to_src_ip_str, Groups) = fill_mcast_pipeline_L3toL2(
+            (
+                port_to_in_vlan,
+                port_to_out_vlan,
+                port_to_src_mac_str,
+                port_to_dst_mac_str,
+                port_to_src_ip_str,
+                Groups) = fill_mcast_pipeline_L3toL2(
                 self.controller,
                 logging,
                 ports,

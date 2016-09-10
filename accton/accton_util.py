@@ -843,7 +843,7 @@ def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=
     instructions = []
     instructions.append(ofp.instruction.goto_table(60))
     if send_ctrl:
-        instructions.append(ofp.instruction.write_actions(
+        instructions.append(ofp.instruction.apply_actions(
                             actions=[ofp.action.output( port=ofp.OFPP_CONTROLLER,
                             max_len=ofp.OFPCML_NO_BUFFER)]))
     else:

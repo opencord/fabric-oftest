@@ -127,3 +127,17 @@ Untagged           | ok      | n/a    | ok
 
 n/a means test is not available for that version of the pipeline.
 
+# VLAN Test Result Summary
+
+The following tests are implemented in vlan_flows.py and these are their results.
+
+Test Results                | 3.0 EA0
+-------                     | -------
+L2ForwardingStackedVLAN1    | ok
+L2ForwardingStackedVLAN2    | ok
+L2ForwardingStackedVLAN3    | ok
+L2ForwardingStackedVLAN4    | ok
+L2ForwardingStackedVLAN5    | ok
+
+For major details on the test look the comments in the code.
+

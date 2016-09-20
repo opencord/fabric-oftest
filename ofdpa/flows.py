@@ -8,6 +8,7 @@ import inspect
 import logging
 import oftest.base_tests as base_tests
 import ofp
+import time
 from oftest.testutils import *
 from accton_util import *
 from utils import *
@@ -1923,4 +1924,442 @@ class Untagged( base_tests.SimpleDataPlane ):
         finally:
             delete_all_flows( self.controller )
             delete_groups( self.controller, groups )
+            delete_all_groups( self.controller )
+
+class UntaggedPWInitiation_2_Labels( base_tests.SimpleDataPlane ):
+    """
+    This is meant to test the PW Initiation. The traffic
+    arrives untagged to the MPLS-TP CE device and goes out
+    with a new ethernet header and 2 mpls labels.
+    """
+    def runTest( self ):
+
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 1:
+                logging.info( "Port count less than 1, can't run this case" )
+                assert (False)
+                return
+            ports = config[ "port_map" ].keys( )
+            fill_pw_initiation_pipeline(
+                self.controller,
+                logging,
+                ports,
+                ingress_tags=0,
+                mpls_labels=1,
+                )
+
+            for pair in itertools.product(ports, ports):
+
+                in_port     = pair[0]
+                out_port    = pair[1]
+                if out_port == in_port:
+                    continue
+                mac_dst = '00:12:34:56:78:%02X' % in_port
+                parsed_pkt = simple_tcp_packet(
+                    pktlen=104,
+                    eth_dst=mac_dst
+                    )
+                pkt = str( parsed_pkt )
+                self.dataplane.send( in_port, pkt )
+
+
+        finally:
+            print "END"
+            #delete_all_flows( self.controller )
+            #delete_groups( self.controller, Groups )
+            #delete_all_groups( self.controller )
+
+class UntaggedPWInitiation_3_Labels( base_tests.SimpleDataPlane ):
+    """
+    This is meant to test the PW Initiation. The traffic
+    arrives untagged to the MPLS-TP CE device and goes out
+    with a new ethernet header and 2 mpls labels.
+    """
+    def runTest( self ):
+
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 1:
+                logging.info( "Port count less than 1, can't run this case" )
+                assert (False)
+                return
+            ports = config[ "port_map" ].keys( )
+            fill_pw_initiation_pipeline(
+                self.controller,
+                logging,
+                ports,
+                ingress_tags=0,
+                mpls_labels=2,
+                )
+        finally:
+            print "END"
+            #delete_all_flows( self.controller )
+            #delete_groups( self.controller, Groups )
+            #delete_all_groups( self.controller )
+
+class TaggedPWInitiation_2_Labels( base_tests.SimpleDataPlane ):
+    """
+    This is meant to test the PW Initiation. The traffic
+    arrives untagged to the MPLS-TP CE device and goes out
+    with a new ethernet header and 2 mpls labels.
+    """
+
+    def print_port_stats(self, port):
+        entries = get_port_stats(self, port)
+        for item in entries:
+            packet_rcv              = item.rx_packets
+            packet_rcv_dropped      = item.rx_dropped
+            packet_rcv_errors       = item.rx_errors
+
+            packet_sent         = item.tx_packets
+            packet_sent_dropped = item.tx_dropped
+            packet_sent_errors  = item.tx_errors
+
+
+        print "Port %d stats count: tx %d rx %d - tx_dropped %d rx_dropped %d - tx_errors %d rx_errors %d" % (
+            port, packet_sent, packet_rcv, packet_sent_dropped, packet_rcv_dropped, packet_sent_errors, packet_rcv_errors
+            )
+
+    def runTest( self ):
+
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 1:
+                logging.info( "Port count less than 1, can't run this case" )
+                assert (False)
+                return
+            ports = config[ "port_map" ].keys( )
+            (
+                port_to_in_vlan_2,
+                port_to_in_vlan_1,
+                port_to_src_mac_str,
+                port_to_dst_mac_str,
+                Groups
+            ) = fill_pw_initiation_pipeline(
+                self.controller,
+                logging,
+                ports,
+                ingress_tags=1,
+                mpls_labels=1,
+                )
+
+            in_port     = ports[0]
+            out_port    = ports[1]
+            """
+            if out_port == in_port:
+                continue
+            """
+            mac_dst = '00:12:34:56:78:%02X' % in_port
+            parsed_pkt = simple_tcp_packet(
+                pktlen=108,
+                dl_vlan_enable=True,
+                vlan_vid=port_to_in_vlan_1[in_port],
+                eth_dst=mac_dst,
+                )
+            pkt = str( parsed_pkt )
+            print "\nBEFORE"
+            self.print_port_stats(in_port)
+            self.print_port_stats(out_port)
+            self.dataplane.send( in_port, pkt )
+            time.sleep(5)
+            print "AFTER"
+            self.print_port_stats(in_port)
+            self.print_port_stats(out_port)
+
+        finally:
+            print "END"
+            #delete_all_flows( self.controller )
+            #delete_groups( self.controller, Groups )
+            #delete_all_groups( self.controller )
+
+class TaggedPWInitiation_3_Labels( base_tests.SimpleDataPlane ):
+    """
+    This is meant to test the PW Initiation. The traffic
+    arrives untagged to the MPLS-TP CE device and goes out
+    with a new ethernet header and 2 mpls labels.
+    """
+    def runTest( self ):
+
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 1:
+                logging.info( "Port count less than 1, can't run this case" )
+                assert (False)
+                return
+            ports = config[ "port_map" ].keys( )
+            fill_pw_initiation_pipeline(
+                self.controller,
+                logging,
+                ports,
+                ingress_tags=1,
+                mpls_labels=2,
+                )
+        finally:
+            print "END"
+            #delete_all_flows( self.controller )
+            #delete_groups( self.controller, Groups )
+            #delete_all_groups( self.controller )
+
+class DoubleTaggedPWInitiation_2_Labels( base_tests.SimpleDataPlane ):
+    """
+    This is meant to test the PW Initiation. The traffic
+    arrives untagged to the MPLS-TP CE device and goes out
+    with a new ethernet header and 2 mpls labels.
+    """
+    def runTest( self ):
+
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 1:
+                logging.info( "Port count less than 1, can't run this case" )
+                assert (False)
+                return
+            ports = config[ "port_map" ].keys( )
+            fill_pw_initiation_pipeline(
+                self.controller,
+                logging,
+                ports,
+                ingress_tags=2,
+                mpls_labels=1,
+                )
+        finally:
+            print "END"
+            #delete_all_flows( self.controller )
+            #delete_groups( self.controller, Groups )
+            #delete_all_groups( self.controller )
+
+class DoubleTaggedPWInitiation_3_Labels( base_tests.SimpleDataPlane ):
+    """
+    This is meant to test the PW Initiation. The traffic
+    arrives untagged to the MPLS-TP CE device and goes out
+    with a new ethernet header and 2 mpls labels.
+    """
+    def runTest( self ):
+
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 1:
+                logging.info( "Port count less than 1, can't run this case" )
+                assert (False)
+                return
+            ports = config[ "port_map" ].keys( )
+            fill_pw_initiation_pipeline(
+                self.controller,
+                logging,
+                ports,
+                ingress_tags=2,
+                mpls_labels=2,
+                )
+        finally:
+            print "END"
+            #delete_all_flows( self.controller )
+            #delete_groups( self.controller, Groups )
+            #delete_all_groups( self.controller )
+
+class IntraCO_2_Labels( base_tests.SimpleDataPlane ):
+    """
+    This is meant to test the PW intermediate transport.
+    Incoming packet has 2 labels (SR/PW) (intermediate leaf switch).
+    There is no VLAN tag in the incoming packet. Pop outer MPLS label
+    """
+    def runTest( self ):
+
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 1:
+                logging.info( "Port count less than 1, can't run this case" )
+                assert (False)
+                return
+            ports = config[ "port_map" ].keys( )
+            (
+                port_to_mpls_label_2,
+                port_to_mpls_label_1,
+                port_to_mpls_label_pw,
+                port_to_switch_mac_str,
+                port_to_src_mac_str,
+                port_to_dst_mac_str,
+                Groups
+            ) = fill_pw_intermediate_transport_pipeline(
+                self.controller,
+                logging,
+                ports,
+                mpls_labels=3
+                )
+
+            for pair in itertools.product(ports, ports):
+                in_port     = pair[0]
+                out_port    = pair[1]
+                if out_port == in_port:
+                    continue
+
+                label_1  = (port_to_mpls_label_2[in_port], 0, 0, 32)
+                label_pw = (port_to_mpls_label_pw[in_port], 0, 1, 32)
+                parsed_pkt = mpls_packet(
+                    pktlen=104,
+                    ip_ttl=63,
+                    eth_dst=port_to_switch_mac_str[in_port],
+                    label=[ label_1, label_pw ]
+                )
+                pkt = str( parsed_pkt )
+                self.dataplane.send( in_port, pkt )
+                label_pw = (port_to_mpls_label_pw[in_port], 0, 1, 31)
+                parsed_pkt = mpls_packet(
+                    pktlen=100,
+                    ip_ttl=63,
+                    eth_dst=port_to_dst_mac_str[in_port],
+                    eth_src=port_to_src_mac_str[out_port],
+                    label=[ label_pw ]
+                )
+                pkt = str( parsed_pkt )
+                verify_packet( self, pkt, out_port )
+                verify_no_other_packets( self )
+
+        finally:
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
+            delete_all_groups( self.controller )
+
+class IntraCO_3_Labels( base_tests.SimpleDataPlane ):
+    """
+    This is meant to test the PW intermediate transport.
+    Incoming packet has 3 labels (SR/SR/PW) (spine switch).
+    There is no VLAN tag in the incoming packet. Pop outer MPLS label
+    """
+    def runTest( self ):
+
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 1:
+                logging.info( "Port count less than 1, can't run this case" )
+                assert (False)
+                return
+            ports = config[ "port_map" ].keys( )
+            (
+                port_to_mpls_label_2,
+                port_to_mpls_label_1,
+                port_to_mpls_label_pw,
+                port_to_switch_mac_str,
+                port_to_src_mac_str,
+                port_to_dst_mac_str,
+                Groups
+            ) = fill_pw_intermediate_transport_pipeline(
+                self.controller,
+                logging,
+                ports,
+                mpls_labels=3
+                )
+
+            for pair in itertools.product(ports, ports):
+                in_port     = pair[0]
+                out_port    = pair[1]
+                if out_port == in_port:
+                    continue
+
+                label_2  = (port_to_mpls_label_2[in_port], 0, 0, 32)
+                label_1  = (port_to_mpls_label_1[in_port], 0, 0, 32)
+                label_pw = (port_to_mpls_label_pw[in_port], 0, 1, 32)
+                parsed_pkt = mpls_packet(
+                    pktlen=104,
+                    ip_ttl=63,
+                    eth_dst=port_to_switch_mac_str[in_port],
+                    label=[ label_2, label_1, label_pw ]
+                )
+                pkt = str( parsed_pkt )
+                self.dataplane.send( in_port, pkt )
+                label_1  = (port_to_mpls_label_1[in_port], 0, 0, 31)
+                parsed_pkt = mpls_packet(
+                    pktlen=100,
+                    ip_ttl=63,
+                    eth_dst=port_to_dst_mac_str[in_port],
+                    eth_src=port_to_src_mac_str[out_port],
+                    label=[ label_1, label_pw ]
+                )
+                pkt = str( parsed_pkt )
+                verify_packet( self, pkt, out_port )
+                verify_no_other_packets( self )
+
+        finally:
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
+            delete_all_groups( self.controller )
+
+class InterCO( base_tests.SimpleDataPlane ):
+    """
+    This is meant to test the PW intermediate transport.
+    Incoming packet has 1 labels (PW) (Intermediate CO leaf switch).
+    There is no VLAN tag in the incoming packet. Push up to 2 MPLS labels
+    """
+    def print_port_stats(self, port):
+        entries = get_port_stats(self, port)
+        for item in entries:
+            packet_rcv              = item.rx_packets
+            packet_rcv_dropped      = item.rx_dropped
+            packet_rcv_errors       = item.rx_errors
+
+            packet_sent         = item.tx_packets
+            packet_sent_dropped = item.tx_dropped
+            packet_sent_errors  = item.tx_errors
+
+
+        print "Port %d stats count: tx %d rx %d - tx_dropped %d rx_dropped %d - tx_errors %d rx_errors %d" % (
+            port, packet_sent, packet_rcv, packet_sent_dropped, packet_rcv_dropped, packet_sent_errors, packet_rcv_errors
+            )
+
+    def runTest( self ):
+
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 1:
+                logging.info( "Port count less than 1, can't run this case" )
+                assert (False)
+                return
+            ports = config[ "port_map" ].keys( )
+            (
+                port_to_mpls_label_2,
+                port_to_mpls_label_1,
+                port_to_mpls_label_pw,
+                port_to_switch_mac_str,
+                port_to_src_mac_str,
+                port_to_dst_mac_str,
+                Groups
+            ) = fill_pw_intermediate_transport_pipeline(
+                self.controller,
+                logging,
+                ports,
+                mpls_labels=1
+                )
+
+            for pair in itertools.product(ports, ports):
+                in_port     = pair[0]
+                out_port    = pair[1]
+                if out_port == in_port:
+                    continue
+
+                label_pw = (port_to_mpls_label_pw[in_port], 0, 1, 32)
+                parsed_pkt = mpls_packet(
+                    pktlen=104,
+                    ip_ttl=63,
+                    eth_dst=port_to_switch_mac_str[in_port],
+                    label=[ label_pw ]
+                )
+                pkt = str( parsed_pkt )
+                self.dataplane.send( in_port, pkt )
+                label_2  = (port_to_mpls_label_2[in_port], 0, 0, 31)
+                label_1  = (port_to_mpls_label_1[in_port], 0, 0, 31)
+                label_pw = (port_to_mpls_label_pw[in_port], 0, 1, 31)
+                parsed_pkt = mpls_packet(
+                    pktlen=112,
+                    ip_ttl=63,
+                    eth_dst=port_to_dst_mac_str[in_port],
+                    eth_src=port_to_src_mac_str[out_port],
+                    label=[ label_2, label_1, label_pw ]
+                )
+                pkt = str( parsed_pkt )
+                verify_packet( self, pkt, out_port )
+                verify_no_other_packets( self )
+
+        finally:
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
             delete_all_groups( self.controller )

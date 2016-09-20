@@ -69,7 +69,6 @@ def filter_igmp(controller):
     controller.message_send( request )
     do_barrier( controller )
 
-
 """
 MULTICAST Pipelines
 """
@@ -331,7 +330,6 @@ def fill_pw_initiation_pipeline(
     port_to_src_mac_str     = {}
     port_to_dst_mac         = {}
     port_to_dst_mac_str     = {}
-
     port_to_mpls_label_1    = {}
     port_to_mpls_label_2    = {}
     port_to_mpls_label_pw   = {}
@@ -408,7 +406,6 @@ def fill_pw_initiation_pipeline(
             )
         Groups._put( mpls_tunnel_gid )
         mpls_gid = mpls_tunnel_gid
-
     # add MPLS L2 VPN group
     mpls_l2_vpn_gid, mpls_l2_vpn_msg = add_mpls_label_group(
         ctrl=controller,
@@ -423,7 +420,6 @@ def fill_pw_initiation_pipeline(
         set_bos=1,
         cpy_ttl_outward=True
     )
-
     Groups._put( mpls_l2_vpn_gid )
     # add MPLS L2 port flow
     add_mpls_l2_port_flow(
@@ -665,7 +661,7 @@ def fill_pw_termination_pipeline(
     logging,
     in_port,
     out_port,
-    egress_tags,
+    egress_tags
     ):
     """
     This method, according to the scenario, fills properly
@@ -759,7 +755,7 @@ def fill_pw_termination_pipeline(
     return (
         port_to_mpls_label_pw,
         port_to_vlan_2,
-        port_to_in_vlan_1,
+        port_to_vlan_1,
         port_to_switch_mac_str,
         Groups
         )

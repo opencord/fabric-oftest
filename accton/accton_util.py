@@ -1736,6 +1736,7 @@ def add_mpls_l2_port_flow(ctrl, of_port, mpls_l2_port, tunnel_index, ref_gid, qo
     match.oxm_list.append(ofp.oxm.exp4ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_L2_PORT, value=0x00000000 + of_port))
     match.oxm_list.append(ofp.oxm.tunnel_id(tunnel_index + ofp.oxm.TUNNEL_ID_BASE))
 
+
     action = []
     action.append(ofp.action.group(ref_gid))
     assert(qos_index>=0)

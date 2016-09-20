@@ -12,7 +12,6 @@ from oftest.testutils import *
 from accton_util import *
 from utils import *
 
-
 class PacketInUDP( base_tests.SimpleDataPlane ):
     """
     Verify ACL rule for IP_PROTO=2 wont match a UDP packet and a rule for IP_PROTO=17 WILL match a UDP packet.
@@ -1924,6 +1923,3 @@ class Untagged( base_tests.SimpleDataPlane ):
             delete_all_flows( self.controller )
             delete_groups( self.controller, groups )
             delete_all_groups( self.controller )
-
-
-

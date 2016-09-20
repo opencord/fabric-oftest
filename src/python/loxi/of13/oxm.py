@@ -6146,8 +6146,12 @@ OFDPA_EXP_TYPE_OAM_Y1731_OPCODE=15
 OFDPA_EXP_TYPE_COLOR_ACTION_INDEX=16
 OFDPA_EXP_TYPE_TXFCL        =17
 OFDPA_EXP_TYPE_RXFCL        =18
+OFDPA_EXP_TYPE_MPLS_TYPE    = 23
 OFDPA_EXP_TYPE_RX_TIMESAMP  =19
 OFDPA_EXP_TYPE_ACTSET_OUTPUT=42
+
+VPWS                        = 1
+TUNNEL_ID_BASE              = 0x10000
 
 class exp1ByteValue(oxm):
     type_len = 0xffff0005
@@ -6165,7 +6169,7 @@ class exp1ByteValue(oxm):
         packed.append(struct.pack("!L", self.type_len | (self.exp_type <<9)))
         packed.append(struct.pack("!L", OFDPA_EXPERIMETER))
         #packed.append(struct.pack("!H", self.exp_type))
-        packed.append(struct.pack("!b", self.value))        
+        packed.append(struct.pack("!b", self.value))
         return ''.join(packed)
 
     @staticmethod
@@ -6182,7 +6186,7 @@ class exp1ByteValue(oxm):
     def __eq__(self, other):
         if type(self) != type(other): return False
         if self.value != other.value: return False
-        if self.exp_type != other.exp_type: return False        
+        if self.exp_type != other.exp_type: return False
         return True
 
     def pretty_print(self, q):
@@ -6213,7 +6217,7 @@ class exp2ByteValue(oxm):
         packed.append(struct.pack("!L", self.type_len | (self.exp_type <<9)))
         packed.append(struct.pack("!L", OFDPA_EXPERIMETER))
         #packed.append(struct.pack("!H", self.exp_type))
-        packed.append(struct.pack("!H", self.value))        
+        packed.append(struct.pack("!H", self.value))
         return ''.join(packed)
 
     @staticmethod
@@ -6230,7 +6234,7 @@ class exp2ByteValue(oxm):
     def __eq__(self, other):
         if type(self) != type(other): return False
         if self.value != other.value: return False
-        if self.exp_type != other.exp_type: return False        
+        if self.exp_type != other.exp_type: return False
         return True
 
     def pretty_print(self, q):
@@ -6245,9 +6249,8 @@ class exp2ByteValue(oxm):
 
 oxm.subtypes[0xffff0008] = exp2ByteValue
 
-
 class exp4ByteValue(oxm):
-    type_len = 0xffff000a
+    type_len = 0xffff0008
 
     def __init__(self, exp_type=0, value=None):
         if value != None:
@@ -6259,10 +6262,9 @@ class exp4ByteValue(oxm):
 
     def pack(self):
         packed = []
-        packed.append(struct.pack("!L", self.type_len))
+        packed.append(struct.pack("!L", self.type_len | (self.exp_type <<9)))
         packed.append(struct.pack("!L", OFDPA_EXPERIMETER))
-        packed.append(struct.pack("!H", self.exp_type))
-        packed.append(struct.pack("!L", self.value))        
+        packed.append(struct.pack("!L", self.value))
         return ''.join(packed)
 
     @staticmethod
@@ -6279,7 +6281,7 @@ class exp4ByteValue(oxm):
     def __eq__(self, other):
         if type(self) != type(other): return False
         if self.value != other.value: return False
-        if self.exp_type != other.exp_type: return False        
+        if self.exp_type != other.exp_type: return False
         return True
 
     def pretty_print(self, q):

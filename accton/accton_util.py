@@ -25,7 +25,11 @@ VLAN_TABLE_FLAG_ONLY_UNTAG_PRIORITY=7
 PORT_FLOW_TABLE=0
 VLAN_FLOW_TABLE=10
 VLAN_1_FLOW_TABLE=11
+MPLS_L2_PORT_FLOW_TABLE=13
+MPLS_L2_PORT_DSCP_TRUST_FLOW_TABLE=15
+MPLS_L2_PORT_PCP_TRUST_FLOW_TABLE=16
 TERMINATION_FLOW_TABLE=20
+MPLS_TYPE_FLOW_TABLE=29
 UCAST_ROUTING_FLOW_TABLE=30
 MCAST_ROUTING_FLOW_TABLE=40
 BRIDGE_FLOW_TABLE=50
@@ -791,6 +795,70 @@ def add_one_vlan_table_flow(ctrl, of_port, out_vlan_id=1, vlan_id=1, vrf=0, flag
 
     return request
 
+def add_one_vlan_table_flow_pw(ctrl, of_port, tunnel_index, new_vlan_id=1, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_TAG, send_barrier=False):
+    # table 10: vlan
+    # goto to table 13
+    if flag == VLAN_TABLE_FLAG_ONLY_TAG:
+        match = ofp.match()
+        match.oxm_list.append(ofp.oxm.in_port(of_port))
+        match.oxm_list.append(ofp.oxm.vlan_vid_masked(0x1000+vlan_id, 0x1fff))
+
+        actions=[]
+        if vlan_id == -1:
+            actions.append(ofp.action.pop_vlan())
+        if new_vlan_id > 1:
+            actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+new_vlan_id)))
+        actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_TYPE, value=ofp.oxm.VPWS)))
+        actions.append(ofp.action.set_field(ofp.oxm.tunnel_id(tunnel_index + ofp.oxm.TUNNEL_ID_BASE)))
+        # 0x0000nnnn is for UNI interfaces
+        actions.append(ofp.action.set_field(ofp.oxm.exp4ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_L2_PORT, value=0x00000000 + of_port)))
+
+        request = ofp.message.flow_add(
+            table_id=10,
+            cookie=42,
+            match=match,
+            instructions=[
+              ofp.instruction.apply_actions(
+                actions=actions
+              ),
+              ofp.instruction.goto_table(MPLS_L2_PORT_FLOW_TABLE)
+            ],
+            priority=0)
+        logging.info("Add vlan %d tagged packets on port %d and go to table %d" % (vlan_id, of_port, MPLS_L2_PORT_FLOW_TABLE))
+        ctrl.message_send(request)
+
+    if flag == VLAN_TABLE_FLAG_ONLY_UNTAG:
+        match = ofp.match()
+        match.oxm_list.append(ofp.oxm.in_port(of_port))
+        match.oxm_list.append(ofp.oxm.vlan_vid(0))
+
+        actions=[]
+        if vlan_id > 1:
+            actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vlan_id)))
+        actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_TYPE, value=ofp.oxm.VPWS)))
+        actions.append(ofp.action.set_field(ofp.oxm.tunnel_id(tunnel_index + ofp.oxm.TUNNEL_ID_BASE)))
+        # 0x0000nnnn is for UNI interfaces
+        actions.append(ofp.action.set_field(ofp.oxm.exp4ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_L2_PORT, value=0x00000000 + of_port)))
+
+        request = ofp.message.flow_add(
+            table_id=10,
+            cookie=42,
+            match=match,
+            instructions=[
+              ofp.instruction.apply_actions(
+                actions=actions
+              ),
+              ofp.instruction.goto_table(MPLS_L2_PORT_FLOW_TABLE)
+            ],
+            priority=0)
+        logging.info("Add vlan %d untagged packets on port %d and go to table %d" % (vlan_id, of_port, MPLS_L2_PORT_FLOW_TABLE))
+        ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
+
+    return request
+
 def add_one_vlan_1_table_flow(ctrl, of_port, new_outer_vlan_id=-1, outer_vlan_id=1, inner_vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_TAG, send_barrier=False):
     # table 11: vlan 1 table
     # goto to table 20
@@ -841,6 +909,45 @@ def add_one_vlan_1_table_flow(ctrl, of_port, new_outer_vlan_id=-1, outer_vlan_id
             priority=0)
         logging.info("Add vlan 1 double tagged %d-%d packets on port %d and go to table %d" %( outer_vlan_id, inner_vlan_id, of_port, TERMINATION_FLOW_TABLE))
         ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
+
+    return request
+
+def add_one_vlan_1_table_flow_pw(ctrl, of_port, tunnel_index, new_outer_vlan_id=-1, outer_vlan_id=1, inner_vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_TAG, send_barrier=False):
+    # table 11: vlan 1 table
+    # goto to table 13
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.in_port(of_port))
+    match.oxm_list.append(ofp.oxm.vlan_vid_masked(0x1000+inner_vlan_id,0x1fff))
+    match.oxm_list.append(ofp.oxm.exp2ByteValue(ofp.oxm.OFDPA_EXP_TYPE_OVID, 0x1000+outer_vlan_id))
+
+    actions=[]
+    actions.append(ofp.action.push_vlan(0x8100))
+    if new_outer_vlan_id != -1:
+        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+new_outer_vlan_id)))
+    else:
+        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+outer_vlan_id)))
+
+    actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_TYPE, value=ofp.oxm.VPWS)))
+    actions.append(ofp.action.set_field(ofp.oxm.tunnel_id(tunnel_index + ofp.oxm.TUNNEL_ID_BASE)))
+    # 0x0000nnnn is for UNI interfaces
+    actions.append(ofp.action.set_field(ofp.oxm.exp4ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_L2_PORT, value=0x00000000 + of_port)))
+
+    request = ofp.message.flow_add(
+        table_id=11,
+        cookie=42,
+        match=match,
+        instructions=[
+            ofp.instruction.apply_actions(
+                 actions=actions
+            ),
+            ofp.instruction.goto_table(MPLS_L2_PORT_FLOW_TABLE)
+        ],
+        priority=0)
+    logging.info("Add vlan 1 double tagged %d-%d packets on port %d and go to table %d" %( outer_vlan_id, inner_vlan_id, of_port, MPLS_L2_PORT_FLOW_TABLE))
+    ctrl.message_send(request)
 
     if send_barrier:
         do_barrier(ctrl)
@@ -1399,6 +1506,9 @@ OFDPA_MPLS_GROUP_SUBTYPE_FAST_FAILOVER_GROUP=6
 OFDPA_MPLS_GROUP_SUBTYPE_ECMP=8
 OFDPA_MPLS_GROUP_SUBTYPE_L2_TAG=10
 
+
+
+
 def encode_mpls_interface_group_id(subtype, index):
     index=index&0x00ffffff
     assert(subtype==0)
@@ -1424,7 +1534,8 @@ def add_mpls_intf_group(ctrl, ref_gid, dst_mac, src_mac, vid, index, subtype=0):
     action=[]
     action.append(ofp.action.set_field(ofp.oxm.eth_src(src_mac)))
     action.append(ofp.action.set_field(ofp.oxm.eth_dst(dst_mac)))
-    action.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vid)))
+    if vid != 1:
+        action.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vid)))
     action.append(ofp.action.group(ref_gid))
 
     buckets = [ofp.bucket(actions=action)]
@@ -1435,6 +1546,29 @@ def add_mpls_intf_group(ctrl, ref_gid, dst_mac, src_mac, vid, index, subtype=0):
                                     buckets=buckets
                                    )
     ctrl.message_send(request)
+    return mpls_group_id, request
+
+def add_mpls_tunnel_label_group(
+    ctrl,
+    ref_gid,
+    subtype,
+    index,
+    label,
+    ):
+
+    action=[]
+    action.append(ofp.action.push_mpls(0x8847))
+    action.append(ofp.action.set_field(ofp.oxm.mpls_label(label)))
+    action.append(ofp.action.group(ref_gid))
+    buckets = [ofp.bucket(actions=action)]
+
+    mpls_group_id = encode_mpls_label_group_id(subtype, index)
+    request = ofp.message.group_add(group_type=ofp.OFPGT_INDIRECT,
+                                    group_id=mpls_group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+
     return mpls_group_id, request
 
 def add_mpls_label_group(ctrl, subtype, index, ref_gid,
@@ -1506,6 +1640,40 @@ def add_mpls_label_group(ctrl, subtype, index, ref_gid,
 
     return mpls_group_id, request
 
+def add_mpls_l2_port_flow(ctrl, of_port, mpls_l2_port, tunnel_index, ref_gid, qos_index=0):
+    """
+    Only action is Group, which must indicate one of:
+    MPLS L2 VPN Label or Fast Failover Protection Group.
+    ref_gid contains this information
+    """
+    tunnel_id = tunnel_index + ofp.oxm.TUNNEL_ID_BASE
+
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.exp4ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_L2_PORT, value=0x00000000 + of_port))
+    match.oxm_list.append(ofp.oxm.tunnel_id(tunnel_index + ofp.oxm.TUNNEL_ID_BASE))
+
+    action = []
+    action.append(ofp.action.group(ref_gid))
+    assert(qos_index>=0)
+    action.append(ofp.action.set_field(ofp.oxm.exp1ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_QOS_INDEX, value=qos_index)))
+
+    request = ofp.message.flow_add(
+            table_id=MPLS_L2_PORT_FLOW_TABLE,
+            cookie=42,
+            match=match,
+            instructions=[
+                    ofp.instruction.write_actions(
+                        actions=action
+                        ),
+                    ofp.instruction.goto_table(MPLS_L2_PORT_PCP_TRUST_FLOW_TABLE)                ],
+            buffer_id=ofp.OFP_NO_BUFFER,
+            priority=1)
+    logging.info("Inserting flow %d mpls_l2_port, %d tunnel_id, action %x group and go to table %d", mpls_l2_port, tunnel_id, ref_gid, MPLS_L2_PORT_DSCP_TRUST_FLOW_TABLE)
+    ctrl.message_send(request)
+    return request
+
+    return
+
 def add_mpls_forwarding_group(ctrl, subtype, index, ref_gids,
                               watch_port=None,
 							  watch_group=ofp.OFPP_ANY,
@@ -1553,7 +1721,7 @@ def add_mpls_forwarding_group(ctrl, subtype, index, ref_gids,
 
 
 """
-dislay
+display
 """
 def print_current_table_flow_stat(ctrl, table_id=0xff):
     stat_req=ofp.message.flow_stats_request()

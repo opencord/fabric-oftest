@@ -132,12 +132,41 @@ n/a means test is not available for that version of the pipeline.
 The following tests are implemented in vlan_flows.py and these are their results.
 
 Test Results                | 3.0 EA0
--------                     | -------
+-----------------           | -------
 L2ForwardingStackedVLAN1    | ok
 L2ForwardingStackedVLAN2    | ok
 L2ForwardingStackedVLAN3    | ok
 L2ForwardingStackedVLAN4    | ok
 L2ForwardingStackedVLAN5    | ok
+
+For major details on the test look the comments in the code.
+
+# Pseudowire Test Result Summary
+
+The following tests are implemented in pw_flows.py and these are their results.
+
+Test Results                            | 3.0 EA0
+----------------------------------      | -------
+UntaggedPWInitiation_2_Labels           | ok
+Untagged2PWInitiation_2_Labels          | ok
+UntaggedPWInitiation_3_Labels           | ok
+Untagged2PWInitiation_3_Labels          | ok
+TaggedPWInitiation_2_Labels             | ?
+Tagged2PWInitiation_2_Labels            | ?
+TaggedPWInitiation_3_Labels             | ?
+Tagged2PWInitiation_3_Labels            | ?
+DoubleTaggedPWInitiation_2_Labels       | ?
+DoubleTagged2PWInitiation_2_Labels      | ?
+DoubleTaggedPWInitiation_3_Labels       | ?
+DoubleTagged2PWInitiation_3_Labels      | ?
+IntraCO_2_Labels                        | ok
+IntraCO_3_Labels                        | ok
+InterCO                                 | ok
+UntaggedPWTermination                   | ok
+Untagged2PWTermination                  | ?
+TaggedPWTermination                     | ok
+DoubleTaggedPWTermination               | ok
+
 
 For major details on the test look the comments in the code.
 

@@ -693,9 +693,7 @@ def add_one_vlan_table_flow(ctrl, of_port, out_vlan_id=1, vlan_id=1, vrf=0, flag
 
         actions=[]
         if vrf!=0:
-            actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
-        if mpls_type!=None:
-            actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_TYPE, value=mpls_type)))
+            actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf))) 
 
         #actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(value=vlan_id)))
 
@@ -1735,6 +1733,7 @@ def add_mpls_l2_port_flow(ctrl, of_port, mpls_l2_port, tunnel_index, ref_gid, qo
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.exp4ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_L2_PORT, value=0x00000000 + of_port))
     match.oxm_list.append(ofp.oxm.tunnel_id(tunnel_index + ofp.oxm.TUNNEL_ID_BASE))
+
 
     action = []
     action.append(ofp.action.group(ref_gid))

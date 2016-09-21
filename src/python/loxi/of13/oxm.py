@@ -6152,6 +6152,7 @@ OFDPA_EXP_TYPE_ACTSET_OUTPUT=42
 
 VPWS                        = 1
 TUNNEL_ID_BASE              = 0x10000
+L3_PHP                      = 32
 
 class exp1ByteValue(oxm):
     type_len = 0xffff0005

@@ -331,7 +331,7 @@ def fill_pw_initiation_pipeline(
     port_to_src_mac_str     = {}
     port_to_dst_mac         = {}
     port_to_dst_mac_str     = {}
-    mpls_labels_to_port     = []
+
     port_to_mpls_label_1    = {}
     port_to_mpls_label_2    = {}
     port_to_mpls_label_pw   = {}
@@ -504,6 +504,157 @@ def fill_pw_initiation_pipeline(
         port_to_in_vlan_3,
         port_to_in_vlan_2,
         port_to_in_vlan_1,
+        port_to_src_mac_str,
+        port_to_dst_mac_str,
+        Groups
+        )
+
+MPLS_FLOW_TABLE_0           = 23
+OF_DPA_MPLS_SWAP_Label      = 5
+
+def fill_pw_intermediate_transport_pipeline(
+    controller,
+    logging,
+    ports,
+    mpls_labels
+    ):
+    """
+    This method, according to the scenario, fills properly
+    the pw pipeline. The method generates using ports data the
+    necessary information to fill the pw pipeline and
+    fills properly the pipeline which consists into:
+
+    """
+
+    Groups                  = Queue.LifoQueue( )
+    out_vlan                = 4094
+    port_to_src_mac         = {}
+    port_to_src_mac_str     = {}
+    port_to_dst_mac         = {}
+    port_to_dst_mac_str     = {}
+    port_to_mpls_label_2    = {}
+    port_to_mpls_label_1    = {}
+    port_to_mpls_label_pw   = {}
+    port_to_switch_mac      = {}
+    port_to_switch_mac_str  = {}
+
+    for port in ports:
+        mpls_label_1                    = port + 10
+        mpls_label_2                    = port + 100
+        mpls_label_pw                   = port + 300
+        src_mac                         = [ 0x00, 0x00, 0x00, 0x00, 0x11, port ]
+        src_mac_str                     = ':'.join( [ '%02X' % x for x in src_mac ] )
+        dst_mac                         = [ 0x00, 0x00, 0x00, 0x11, 0x11, port ]
+        dst_mac_str                     = ':'.join( [ '%02X' % x for x in dst_mac ] )
+        switch_mac                      = [ 0x00, 0x00, 0x00, 0x00, 0x00, port ]
+        switch_mac_str                  = ':'.join( [ '%02X' % x for x in switch_mac ] )
+        port_to_src_mac[port]           = src_mac
+        port_to_src_mac_str[port]       = src_mac_str
+        port_to_dst_mac[port]           = dst_mac
+        port_to_dst_mac_str[port]       = dst_mac_str
+        port_to_mpls_label_1[port]      = mpls_label_1
+        port_to_mpls_label_2[port]      = mpls_label_2
+        port_to_mpls_label_pw[port]     = mpls_label_pw
+        port_to_switch_mac[port]        = switch_mac
+        port_to_switch_mac_str[port]    = switch_mac_str
+
+    for pair in itertools.product(ports, ports):
+        in_port     = pair[0]
+        out_port    = pair[1]
+        if out_port == in_port:
+            continue
+        # add l2 interface group, we have to pop the VLAN;
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_group(
+            ctrl=controller,
+            port=out_port,
+            vlan_id=out_vlan,
+            is_tagged=False,
+            send_barrier=False
+            )
+        Groups._put( l2_intf_gid )
+        # add MPLS interface group
+        mpls_intf_gid, mpls_intf_msg = add_mpls_intf_group(
+            ctrl=controller,
+            ref_gid=l2_intf_gid,
+            dst_mac=port_to_dst_mac[in_port],
+            src_mac=port_to_src_mac[out_port],
+            vid=out_vlan,
+            index=in_port
+            )
+        Groups._put( mpls_intf_gid )
+        # add MPLS flows
+        if mpls_labels >=2:
+            add_mpls_flow_pw(
+                ctrl=controller,
+                action_group_id=mpls_intf_gid,
+                label=port_to_mpls_label_2[in_port],
+                ethertype=0x8847,
+                tunnel_index=1,
+                bos=0
+                )
+        else:
+            mpls_tunnel_gid, mpls_tunnel_msg = add_mpls_tunnel_label_group(
+                ctrl=controller,
+                ref_gid=mpls_intf_gid,
+                subtype=OF_DPA_MPLS_Tunnel_Label_2,
+                index=in_port,
+                label=port_to_mpls_label_2[in_port]
+                )
+            Groups._put( mpls_tunnel_gid )
+            mpls_tunnel_gid, mpls_tunnel_msg = add_mpls_tunnel_label_group(
+                ctrl=controller,
+                ref_gid=mpls_tunnel_gid,
+                subtype=OF_DPA_MPLS_Tunnel_Label_1,
+                index=in_port,
+                label=port_to_mpls_label_1[in_port]
+                )
+            Groups._put( mpls_tunnel_gid )
+            mpls_swap_gid, mpls_tunnel_msg = add_mpls_swap_label_group(
+                ctrl=controller,
+                ref_gid=mpls_tunnel_gid,
+                subtype=OF_DPA_MPLS_SWAP_Label,
+                index=in_port,
+                label=port_to_mpls_label_pw[in_port]
+                )
+            Groups._put( mpls_swap_gid )
+            add_mpls_flow_pw(
+                ctrl=controller,
+                action_group_id=mpls_swap_gid,
+                label=port_to_mpls_label_pw[in_port],
+                ethertype=0x8847,
+                tunnel_index=1,
+                bos=1,
+                popMPLS=False,
+                popL2=False
+                )
+        # add Termination flow
+        add_termination_flow(
+            ctrl=controller,
+            in_port=in_port,
+            eth_type=0x8847,
+            dst_mac=port_to_switch_mac[in_port],
+            vlanid=out_vlan,
+            goto_table=MPLS_FLOW_TABLE_0)
+        # add VLAN flows
+        add_one_vlan_table_flow(
+            ctrl=controller,
+            of_port=in_port,
+            vlan_id=out_vlan,
+            flag=VLAN_TABLE_FLAG_ONLY_TAG,
+            mpls_type=None
+            )
+        add_one_vlan_table_flow(
+            ctrl=controller,
+            of_port=in_port,
+            vlan_id=out_vlan,
+            flag=VLAN_TABLE_FLAG_ONLY_UNTAG
+            )
+
+    return (
+        port_to_mpls_label_2,
+        port_to_mpls_label_1,
+        port_to_mpls_label_pw,
+        port_to_switch_mac_str,
         port_to_src_mac_str,
         port_to_dst_mac_str,
         Groups

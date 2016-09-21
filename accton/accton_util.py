@@ -661,7 +661,7 @@ def add_one_vlan_table_flow_translation(ctrl, of_port, vlan_id=1, new_vlan_id=-1
         logging.info("Add vlan %d tagged packets on port %d and go to table 20" %( vlan_id, of_port))
         ctrl.message_send(request)
 
-def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
+def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_BOTH, mpls_type=None, send_barrier=False):
     # table 10: vlan
     # goto to table 20
     if (flag == VLAN_TABLE_FLAG_ONLY_TAG) or (flag == VLAN_TABLE_FLAG_ONLY_BOTH) or (flag == 4):
@@ -672,6 +672,8 @@ def add_one_vlan_table_flow(ctrl, of_port, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLA
         actions=[]
         if vrf!=0:
             actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
+        if mpls_type!=None:
+            actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_TYPE, value=mpls_type)))
 
         #actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(value=vlan_id)))
 
@@ -1057,6 +1059,7 @@ def add_mpls_flow(ctrl, action_group_id=0x0, label=100 ,ethertype=0x0800, bos=1,
     match.oxm_list.append(ofp.oxm.eth_type(0x8847))
     match.oxm_list.append(ofp.oxm.mpls_label(label))
     match.oxm_list.append(ofp.oxm.mpls_bos(bos))
+    actions = []
     actions = [ofp.action.dec_mpls_ttl(),
                ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf))]
     if (goto_table == 29):
@@ -1077,6 +1080,38 @@ def add_mpls_flow(ctrl, action_group_id=0x0, label=100 ,ethertype=0x0800, bos=1,
                 ],
             buffer_id=ofp.OFP_NO_BUFFER,
             priority=1)
+    logging.info("Inserting MPLS flow , label %ld", label)
+    ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
+
+    return request
+
+def add_mpls_flow_pw(ctrl, action_group_id, label, ethertype, bos, goto_table=MPLS_TYPE_FLOW_TABLE, pop=True, send_barrier=False):
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.eth_type(0x8847))
+    match.oxm_list.append(ofp.oxm.mpls_label(label))
+    match.oxm_list.append(ofp.oxm.mpls_bos(bos))
+
+    actions = []
+    actions.append(ofp.action.dec_mpls_ttl())
+    if pop == True:
+        actions.append(ofp.action.copy_ttl_in())
+        actions.append(ofp.action.pop_mpls(ethertype))
+    actions.append(ofp.action.group(action_group_id))
+
+    request = ofp.message.flow_add(
+        table_id=24,
+        cookie=43,
+        match=match,
+        instructions=[
+        ofp.instruction.apply_actions(actions=actions),
+        ofp.instruction.goto_table(goto_table)
+        ],
+        buffer_id=ofp.OFP_NO_BUFFER,
+        priority=1
+        )
     logging.info("Inserting MPLS flow , label %ld", label)
     ctrl.message_send(request)
 
@@ -1529,6 +1564,28 @@ def add_mpls_tunnel_label_group(
 
     action=[]
     action.append(ofp.action.push_mpls(0x8847))
+    action.append(ofp.action.set_field(ofp.oxm.mpls_label(label)))
+    action.append(ofp.action.group(ref_gid))
+    buckets = [ofp.bucket(actions=action)]
+
+    mpls_group_id = encode_mpls_label_group_id(subtype, index)
+    request = ofp.message.group_add(group_type=ofp.OFPGT_INDIRECT,
+                                    group_id=mpls_group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+
+    return mpls_group_id, request
+
+def add_mpls_swap_label_group(
+    ctrl,
+    ref_gid,
+    subtype,
+    index,
+    label,
+    ):
+
+    action=[]
     action.append(ofp.action.set_field(ofp.oxm.mpls_label(label)))
     action.append(ofp.action.group(ref_gid))
     buckets = [ofp.bucket(actions=action)]

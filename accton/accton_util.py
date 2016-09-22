@@ -164,6 +164,26 @@ def add_l2_unfiltered_group(ctrl, ports, send_barrier=False):
 
     return group_id_list, msgs
 
+def add_one_l2_unfiltered_group(ctrl, of_port, send_barrier=False):
+    # group table
+    # set up untag groups for each port
+    group_id = encode_l2_unfiltered_group_id(of_port)
+    actions = [ofp.action.output(of_port)]
+    actions.append(ofp.action.set_field(ofp.oxm.exp1ByteValue(exp_type=24, value=1)))
+
+    buckets = [ofp.bucket(actions=actions)]
+    request = ofp.message.group_add(
+        group_type=ofp.OFPGT_INDIRECT,
+        group_id=group_id,
+        buckets=buckets
+    )
+    ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
+
+    return group_id, request
+
 def add_l2_interface_group(ctrl, ports, vlan_id=1, is_tagged=False, send_barrier=False):
     # group table
     # set up untag groups for each port
@@ -1117,7 +1137,7 @@ def add_mpls_flow(ctrl, action_group_id=0x0, label=100 ,ethertype=0x0800, bos=1,
 
     return request
 
-def add_mpls_flow_pw(ctrl, action_group_id, label, ethertype, bos, goto_table=MPLS_TYPE_FLOW_TABLE, pop=True, send_barrier=False):
+def add_mpls_flow_pw(ctrl, action_group_id, label, ethertype, bos, tunnel_index, goto_table=MPLS_TYPE_FLOW_TABLE, popMPLS=True, popL2=False, of_port=0, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(0x8847))
     match.oxm_list.append(ofp.oxm.mpls_label(label))
@@ -1125,9 +1145,16 @@ def add_mpls_flow_pw(ctrl, action_group_id, label, ethertype, bos, goto_table=MP
 
     actions = []
     actions.append(ofp.action.dec_mpls_ttl())
-    if pop == True:
+    if popMPLS == True:
         actions.append(ofp.action.copy_ttl_in())
         actions.append(ofp.action.pop_mpls(ethertype))
+    if bos==1 and popL2 == True:
+        actions.append(ofp.action.ofdpa_pop_l2_header())
+        actions.append(ofp.action.ofdpa_pop_cw())
+        actions.append(ofp.action.set_field(ofp.oxm.tunnel_id(tunnel_index + ofp.oxm.TUNNEL_ID_BASE)))
+        # 0x0002nnnn is for UNI interfaces
+        actions.append(ofp.action.set_field(ofp.oxm.exp4ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_L2_PORT, value=0x00020000 + of_port)))
+        actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_TYPE, value=ofp.oxm.VPWS)))
     actions.append(ofp.action.group(action_group_id))
 
     request = ofp.message.flow_add(

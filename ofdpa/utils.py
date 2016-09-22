@@ -659,3 +659,107 @@ def fill_pw_intermediate_transport_pipeline(
         port_to_dst_mac_str,
         Groups
         )
+
+def fill_pw_termination_pipeline(
+    controller,
+    logging,
+    in_port,
+    out_port,
+    egress_tags,
+    ):
+    """
+    This method, according to the scenario, fills properly
+    the pw pipeline. The method generates using ports data the
+    necessary information to fill the pw pipeline and
+    fills properly the pipeline which consists into:
+
+    """
+
+    Groups                  = Queue.LifoQueue( )
+    out_vlan                = 4094
+    port_to_mpls_label_pw   = {}
+    port_to_vlan_2          = {}
+    port_to_vlan_1          = {}
+    port_to_switch_mac      = {}
+    port_to_switch_mac_str  = {}
+    ports                   = [in_port, out_port]
+
+    for port in ports:
+        mpls_label_pw                   = port + 300
+        in_vlan_id_1                    = port + 1
+        in_vlan_id_2                    = port + 100
+        switch_mac                      = [ 0x00, 0x00, 0x00, 0x00, 0x11, port ]
+        switch_mac_str                  = ':'.join( [ '%02X' % x for x in switch_mac ] )
+        port_to_mpls_label_pw[port]     = mpls_label_pw
+        port_to_vlan_2[port]            = in_vlan_id_2
+        port_to_vlan_1[port]            = in_vlan_id_1
+        port_to_switch_mac[port]        = switch_mac
+        port_to_switch_mac_str[port]    = switch_mac_str
+
+    # add l2 interface group;
+    if egress_tags == 2:
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_group(
+            ctrl=controller,
+            port=out_port,
+            vlan_id=port_to_vlan_2[out_port],
+            is_tagged=True,
+            send_barrier=False
+            )
+    elif egress_tags == 1:
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_group(
+            ctrl=controller,
+            port=out_port,
+            vlan_id=port_to_vlan_1[out_port],
+            is_tagged=True,
+            send_barrier=False
+            )
+    elif egress_tags == 0:
+        l2_intf_gid, l2_intf_msg = add_one_l2_interface_group(
+            ctrl=controller,
+            port=out_port,
+            vlan_id=port_to_vlan_1[out_port],
+            is_tagged=False,
+            send_barrier=False
+            )
+    Groups._put( l2_intf_gid )
+    add_mpls_flow_pw(
+        ctrl=controller,
+        action_group_id=l2_intf_gid,
+        label=port_to_mpls_label_pw[out_port],
+        ethertype=0x6558,
+        bos=1,
+        tunnel_index=1,
+        popMPLS=True,
+        popL2=True,
+        of_port=in_port
+        )
+    # add Termination flow
+    add_termination_flow(
+        ctrl=controller,
+        in_port=in_port,
+        eth_type=0x8847,
+        dst_mac=port_to_switch_mac[in_port],
+        vlanid=out_vlan,
+        goto_table=MPLS_FLOW_TABLE_0)
+    # add VLAN flows
+    add_one_vlan_table_flow(
+        ctrl=controller,
+        of_port=in_port,
+        vlan_id=out_vlan,
+        flag=VLAN_TABLE_FLAG_ONLY_TAG,
+        mpls_type=None
+        )
+    add_one_vlan_table_flow(
+        ctrl=controller,
+        of_port=in_port,
+        vlan_id=out_vlan,
+        flag=VLAN_TABLE_FLAG_ONLY_UNTAG
+        )
+
+    return (
+        port_to_mpls_label_pw,
+        port_to_vlan_2,
+        port_to_in_vlan_1,
+        port_to_switch_mac_str,
+        Groups
+        )

@@ -127,3 +127,21 @@ Untagged           | ok      | n/a    | ok
 
 n/a means test is not available for that version of the pipeline.
 
+# IPv6 Test Result Summary
+
+The following tests are implemented in ipv6_flows.py and these are their results.
+
+Test Results                | 3.0 EA0
+----------------------      | -------
+PacketInICMPv6              | ok
+PacketInIPv6Table           | ok
+_128UcastUnTagged           | ok
+_128ECMPVpn                 | ok
+_128ECMPL3                  | ok
+_64UcastUnTagged            | ok
+_64ECMPVpn                  | ok
+_64ECMPL3                   | ok
+_0UcastV6                   | ok
+_MPLSTerminationV6          | ok
+
+For major details on the test look the comments in the code.

@@ -450,6 +450,49 @@ def mpls_packet(pktlen=100,
 
     return pkt
 
+def mplsv6_packet(pktlen=100,
+                      eth_dst='00:01:02:03:04:05',
+                      eth_src='00:06:07:08:09:0a',
+                      dl_vlan_enable=False,
+                      vlan_vid=0,
+                      vlan_pcp=0,
+                      dl_vlan_cfi=0,
+                      ipv6_src='2001:db8:85a3::8a2e:370:7334',
+                      ipv6_dst='2001:db8:85a3::8a2e:370:7335',
+                      ipv6_tc=0,
+                      ipv6_hlim=64,
+                      ipv6_fl=0,
+                      tcp_sport=1234,
+                      tcp_dport=80,
+                      tcp_flags="S",
+                      label=None,
+                      inner_payload=True
+                      ):
+    if MINSIZE > pktlen:
+        pktlen = MINSIZE
+
+    # Note Dot1Q.id is really CFI
+    if (dl_vlan_enable):
+        pkt = scapy.Ether(dst=eth_dst, src=eth_src)/ \
+            scapy.Dot1Q(prio=vlan_pcp, id=dl_vlan_cfi, vlan=vlan_vid)
+    else:
+        pkt = scapy.Ether(dst=eth_dst, src=eth_src)
+
+    #add MPLS header
+    for i in range(len(label)):
+        l,c,s,t=label[i]
+        pkt = pkt/scapy.MPLS(label=l, cos=c, s=s, ttl=t)
+
+    #add innder payload
+    if inner_payload!=None:
+        pkt=pkt / \
+            scapy.IPv6(src=ipv6_src, dst=ipv6_dst, fl=ipv6_fl, tc=ipv6_tc, hlim=ipv6_hlim)/ \
+            scapy.TCP(sport=tcp_sport, dport=tcp_dport, flags=tcp_flags)
+
+    pkt = pkt/("D" * (pktlen - len(pkt)))
+
+    return pkt
+
 def simple_mpls_packet(eth_dst='00:01:02:03:04:05',
                       eth_src='00:06:07:08:09:0a',
                       dl_vlan_enable=False,

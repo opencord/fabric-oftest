@@ -3,6 +3,21 @@ import Queue
 from oftest.testutils import *
 from accton_util import *
 
+def print_port_stats(test, port):
+    entries = get_port_stats(test, port)
+    for item in entries:
+        packet_rcv          = item.rx_packets
+        packet_rcv_dropped  = item.rx_dropped
+        packet_rcv_errors   = item.rx_errors
+
+        packet_sent         = item.tx_packets
+        packet_sent_dropped = item.tx_dropped
+        packet_sent_errors  = item.tx_errors
+
+    print "\nPort %d stats count: tx %d rx %d - tx_dropped %d rx_dropped %d - tx_errors %d rx_errors %d" % (
+        port, packet_sent, packet_rcv, packet_sent_dropped, packet_rcv_dropped, packet_sent_errors, packet_rcv_errors
+        )
+
 def fill_mcast_pipeline_L3toL2(
     controller,
     logging,

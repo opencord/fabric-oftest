@@ -5,6 +5,7 @@ import oftest.base_tests as base_tests
 import ofp
 import time
 from oftest.testutils import *
+from oftest.parse import parse_ipv6
 
 from ncclient import manager
 import ncclient
@@ -319,7 +320,7 @@ def add_l2_rewrite_group(ctrl, port, vlanid, id, src_mac, dst_mac):
     ctrl.message_send(request)
     return request
 
-def add_l3_unicast_group(ctrl, port, vlanid, id, src_mac, dst_mac):
+def add_l3_unicast_group(ctrl, port, vlanid, id, src_mac, dst_mac, send_barrier=False):
     group_id = encode_l2_interface_group_id(vlanid, port)
 
     action=[]
@@ -341,6 +342,10 @@ def add_l3_unicast_group(ctrl, port, vlanid, id, src_mac, dst_mac):
                                     buckets=buckets
                                    )
     ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
+
     return request
 
 def add_l3_interface_group(ctrl, port, vlanid, id, src_mac):
@@ -361,7 +366,7 @@ def add_l3_interface_group(ctrl, port, vlanid, id, src_mac):
     ctrl.message_send(request)
     return request
 
-def add_l3_ecmp_group(ctrl, id, l3_ucast_groups):
+def add_l3_ecmp_group(ctrl, id, l3_ucast_groups, send_barrier=False):
     buckets=[]
     for group in l3_ucast_groups:
         buckets.append(ofp.bucket(actions=[ofp.action.group(group)]))
@@ -372,6 +377,10 @@ def add_l3_ecmp_group(ctrl, id, l3_ucast_groups):
                                     buckets=buckets
                                    )
     ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
+
     return request
 
 def mod_l3_ecmp_group(ctrl, id, l3_ucast_groups):
@@ -1101,6 +1110,40 @@ def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=
 
     return request
 
+def add_unicast_v6_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=0, send_ctrl=False, send_barrier=False):
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.eth_type(eth_type))
+    if vrf != 0:
+        match.oxm_list.append(ofp.oxm.exp2ByteValue(ofp.oxm.OFDPA_EXP_TYPE_VRF, vrf))
+
+    match.oxm_list.append(ofp.oxm.ipv6_dst_masked(parse_ipv6(dst_ip), parse_ipv6(mask)))
+
+    instructions = []
+    instructions.append(ofp.instruction.goto_table(60))
+    if send_ctrl:
+        instructions.append(ofp.instruction.apply_actions(
+                            actions=[ofp.action.output( port=ofp.OFPP_CONTROLLER,
+                            max_len=ofp.OFPCML_NO_BUFFER)]))
+    else:
+        instructions.append(ofp.instruction.write_actions(
+                        actions=[ofp.action.group(action_group_id)]))
+
+    request = ofp.message.flow_add(
+            table_id=30,
+            cookie=42,
+            match=match,
+            instructions=instructions,
+            buffer_id=ofp.OFP_NO_BUFFER,
+            priority=1)
+
+    logging.info("Inserting unicast routing flow eth_type %lx, dip %s",eth_type, dst_ip)
+    ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
+
+    return request
+
 def add_mpls_flow(ctrl, action_group_id=0x0, label=100 ,ethertype=0x0800, bos=1, vrf=1, goto_table=27, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(0x8847))
@@ -1198,6 +1241,34 @@ def add_mcast4_routing_flow(ctrl, vlan_id, src_ip, src_ip_mask, dst_ip, action_g
             priority=1)
 
     logging.info("Inserting mcast routing flow eth_type %lx, dip %lx, sip %lx, sip_mask %lx",0x0800, dst_ip, src_ip, src_ip_mask)
+    ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
+
+    return request
+
+def add_acl_rule(ctrl, eth_type=None, ip_proto=None, send_barrier=False):
+    match = ofp.match()
+    if eth_type != None:
+            match.oxm_list.append(ofp.oxm.eth_type(eth_type))
+    if ip_proto != None:
+        match.oxm_list.append(ofp.oxm.ip_proto(ip_proto))
+
+    request = ofp.message.flow_add(
+        table_id=60,
+        cookie=42,
+        match=match,
+        instructions=[
+                ofp.instruction.apply_actions(
+                    actions=[ofp.action.output(port=ofp.OFPP_CONTROLLER, max_len=ofp.OFPCML_NO_BUFFER)]
+                    ),
+                ],
+        buffer_id=ofp.OFP_NO_BUFFER,
+        priority=1
+        )
+
+    logging.info("Inserting ACL flow eth_type %lx, ip_proto %ld", eth_type, ip_proto)
     ctrl.message_send(request)
 
     if send_barrier:
@@ -1590,7 +1661,7 @@ def encode_mpls_forwarding_group_id(subtype, index):
     return index + (10 << OFDPA_GROUP_TYPE_SHIFT)+(subtype<<OFDPA_MPLS_SUBTYPE_SHIFT)
 
 
-def add_mpls_intf_group(ctrl, ref_gid, dst_mac, src_mac, vid, index, subtype=0):
+def add_mpls_intf_group(ctrl, ref_gid, dst_mac, src_mac, vid, index, subtype=0, send_barrier=False):
     action=[]
     action.append(ofp.action.set_field(ofp.oxm.eth_src(src_mac)))
     action.append(ofp.action.set_field(ofp.oxm.eth_dst(dst_mac)))
@@ -1606,6 +1677,10 @@ def add_mpls_intf_group(ctrl, ref_gid, dst_mac, src_mac, vid, index, subtype=0):
                                     buckets=buckets
                                    )
     ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
+
     return mpls_group_id, request
 
 def add_mpls_tunnel_label_group(
@@ -1668,7 +1743,8 @@ def add_mpls_label_group(ctrl, subtype, index, ref_gid,
                          set_ttl=None,
                          cpy_ttl_outward=False,
                          oam_lm_tx_count=False,
-                         set_pri_from_table=False
+                         set_pri_from_table=False,
+                         send_barrier=False
                          ):
     """
     @ref_gid: only can be mpls intf group or mpls tunnel label 1/2 group
@@ -1719,6 +1795,9 @@ def add_mpls_label_group(ctrl, subtype, index, ref_gid,
                                     buckets=buckets
                                    )
     ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
 
     return mpls_group_id, request
 

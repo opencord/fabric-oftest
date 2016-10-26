@@ -19,7 +19,7 @@ def print_port_stats(test, port):
         packet_sent_dropped = item.tx_dropped
         packet_sent_errors  = item.tx_errors
 
-    print "Port %d stats count: tx %d rx %d - tx_dropped %d rx_dropped %d - tx_errors %d rx_errors %d" % (
+    print "\nPort %d stats count: tx %d rx %d - tx_dropped %d rx_dropped %d - tx_errors %d rx_errors %d" % (
         port, packet_sent, packet_rcv, packet_sent_dropped, packet_rcv_dropped, packet_sent_errors, packet_rcv_errors
         )
 

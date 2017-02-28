@@ -100,6 +100,7 @@ class PacketInIPv6Table( base_tests.SimpleDataPlane ):
                 add_one_vlan_table_flow(
                     ctrl=self.controller,
                     of_port=in_port,
+                    out_vlan_id=1,
                     vlan_id=vlan_id,
                     flag=VLAN_TABLE_FLAG_ONLY_TAG
                     )
@@ -217,7 +218,6 @@ class _128UcastUnTagged( base_tests.SimpleDataPlane ):
                     )
             tcpv6_pkt = str( parsed_tcpv6_pkt )
             self.dataplane.send(in_port, tcpv6_pkt)
-            print_port_stats(self, in_port)
             parsed_tcpv6_pkt = simple_tcpv6_packet(
                     pktlen=100,
                     eth_dst=dst_mac_str,
@@ -226,8 +226,6 @@ class _128UcastUnTagged( base_tests.SimpleDataPlane ):
                     ipv6_src=sip,
                     ipv6_hlim=63
                     )
-            time.sleep(2)
-            print_port_stats(self, in_port)
             tcpv6_pkt = str( parsed_tcpv6_pkt )
             verify_packet(self, tcpv6_pkt, out_port )
             verify_no_packet(self, tcpv6_pkt, in_port )
@@ -352,7 +350,6 @@ class _128ECMPVpn( base_tests.SimpleDataPlane ):
                     )
             tcpv6_pkt = str( parsed_tcpv6_pkt )
             self.dataplane.send(in_port, tcpv6_pkt)
-            print_port_stats(self, in_port)
             parsed_mplsv6_pkt = mplsv6_packet(
                     pktlen=104,
                     eth_dst=dst_mac_str,
@@ -363,8 +360,6 @@ class _128ECMPVpn( base_tests.SimpleDataPlane ):
                     label=[ label ]
                     )
             mplsv6_pkt = str( parsed_mplsv6_pkt )
-            time.sleep(2)
-            print_port_stats(self, in_port)
             verify_packet(self, mplsv6_pkt, out_port )
             verify_no_packet(self, mplsv6_pkt, in_port )
             verify_no_other_packets(self)
@@ -376,7 +371,6 @@ class _128ECMPVpn( base_tests.SimpleDataPlane ):
 
 class _128ECMPL3( base_tests.SimpleDataPlane ):
     """ Verifies /128 IP routing and ECMP """
-
 
     def runTest( self ):
         try:
@@ -474,7 +468,6 @@ class _128ECMPL3( base_tests.SimpleDataPlane ):
                     )
             tcpv6_pkt = str( parsed_tcpv6_pkt )
             self.dataplane.send(in_port, tcpv6_pkt)
-            print_port_stats(self, in_port)
             parsed_tcpv6_pkt = simple_tcpv6_packet(
                     pktlen=100,
                     eth_dst=dst_mac_str,
@@ -484,8 +477,6 @@ class _128ECMPL3( base_tests.SimpleDataPlane ):
                     ipv6_hlim=63
                     )
             tcpv6_pkt = str( parsed_tcpv6_pkt )
-            time.sleep(2)
-            print_port_stats(self, in_port)
             verify_packet(self, tcpv6_pkt, out_port )
             verify_no_packet(self, tcpv6_pkt, in_port )
             verify_no_other_packets(self)
@@ -587,7 +578,6 @@ class _64UcastUntagged( base_tests.SimpleDataPlane ):
                     )
             tcpv6_pkt = str( parsed_tcpv6_pkt )
             self.dataplane.send(in_port, tcpv6_pkt)
-            print_port_stats(self, in_port)
             parsed_tcpv6_pkt = simple_tcpv6_packet(
                     pktlen=100,
                     eth_dst=dst_mac_str,
@@ -596,8 +586,6 @@ class _64UcastUntagged( base_tests.SimpleDataPlane ):
                     ipv6_src=sip,
                     ipv6_hlim=63
                     )
-            time.sleep(2)
-            print_port_stats(self, in_port)
             tcpv6_pkt = str( parsed_tcpv6_pkt )
             verify_packet(self, tcpv6_pkt, out_port )
             verify_no_packet(self, tcpv6_pkt, in_port )
@@ -721,7 +709,6 @@ class _64ECMPVpn( base_tests.SimpleDataPlane ):
                     )
             tcpv6_pkt = str( parsed_tcpv6_pkt )
             self.dataplane.send(in_port, tcpv6_pkt)
-            print_port_stats(self, in_port)
             parsed_mplsv6_pkt = mplsv6_packet(
                     pktlen=104,
                     eth_dst=dst_mac_str,
@@ -732,8 +719,6 @@ class _64ECMPVpn( base_tests.SimpleDataPlane ):
                     label=[ label ]
                     )
             mplsv6_pkt = str( parsed_mplsv6_pkt )
-            time.sleep(2)
-            print_port_stats(self, in_port)
             verify_packet(self, mplsv6_pkt, out_port )
             verify_no_packet(self, mplsv6_pkt, in_port )
             verify_no_other_packets(self)
@@ -824,6 +809,7 @@ class _64ECMPL3( base_tests.SimpleDataPlane ):
             add_one_vlan_table_flow(
                 ctrl=self.controller,
                 of_port=in_port,
+                out_vlan_id=1,
                 vlan_id=vlan_id,
                 flag=VLAN_TABLE_FLAG_ONLY_TAG
                 )
@@ -831,6 +817,7 @@ class _64ECMPL3( base_tests.SimpleDataPlane ):
             add_one_vlan_table_flow(
                 ctrl=self.controller,
                 of_port=in_port,
+                out_vlan_id=1,
                 vlan_id=vlan_id,
                 flag=VLAN_TABLE_FLAG_ONLY_UNTAG
                 )
@@ -843,7 +830,6 @@ class _64ECMPL3( base_tests.SimpleDataPlane ):
                     )
             tcpv6_pkt = str( parsed_tcpv6_pkt )
             self.dataplane.send(in_port, tcpv6_pkt)
-            print_port_stats(self, in_port)
             parsed_tcpv6_pkt = simple_tcpv6_packet(
                     pktlen=100,
                     eth_dst=dst_mac_str,
@@ -853,8 +839,6 @@ class _64ECMPL3( base_tests.SimpleDataPlane ):
                     ipv6_hlim=63
                     )
             tcpv6_pkt = str( parsed_tcpv6_pkt )
-            time.sleep(2)
-            print_port_stats(self, in_port)
             verify_packet(self, tcpv6_pkt, out_port )
             verify_no_packet(self, tcpv6_pkt, in_port )
             verify_no_other_packets(self)
@@ -955,7 +939,6 @@ class _0UcastV6( base_tests.SimpleDataPlane ):
                     )
             tcpv6_pkt = str( parsed_tcpv6_pkt )
             self.dataplane.send(in_port, tcpv6_pkt)
-            print_port_stats(self, in_port)
             parsed_tcpv6_pkt = simple_tcpv6_packet(
                     pktlen=100,
                     eth_dst=dst_mac_str,
@@ -964,8 +947,6 @@ class _0UcastV6( base_tests.SimpleDataPlane ):
                     ipv6_src=sip,
                     ipv6_hlim=63
                     )
-            time.sleep(2)
-            print_port_stats(self, in_port)
             tcpv6_pkt = str( parsed_tcpv6_pkt )
             verify_packet(self, tcpv6_pkt, out_port )
             verify_no_packet(self, tcpv6_pkt, in_port )
@@ -1075,7 +1056,6 @@ class _MPLSTerminationV6( base_tests.SimpleDataPlane ):
                     )
             mplsv6_pkt = str( parsed_mplsv6_pkt )
             self.dataplane.send(in_port, mplsv6_pkt)
-            print_port_stats(self, in_port)
             parsed_tcpv6_pkt = simple_tcpv6_packet(
                     pktlen=100,
                     eth_dst=dst_mac_str,
@@ -1085,8 +1065,6 @@ class _MPLSTerminationV6( base_tests.SimpleDataPlane ):
                     ipv6_hlim=63
                     )
             tcpv6_pkt = str( parsed_tcpv6_pkt )
-            time.sleep(2)
-            print_port_stats(self, in_port)
             verify_packet(self, tcpv6_pkt, out_port )
             verify_no_packet(self, tcpv6_pkt, in_port )
             verify_no_other_packets(self)

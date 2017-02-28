@@ -143,7 +143,7 @@ class PacketInArp( base_tests.SimpleDataPlane ):
 
 class PacketInIPTable( base_tests.SimpleDataPlane ):
     """
-        Verify Packet-in message from IP table when controller action is used
+    Verify Packet-in message from IP table when controller action is used
     Send a packet to each dataplane port and verify that a packet
     in message is received from the controller for each
     #todo verify you stop receiving after adding rule
@@ -327,7 +327,7 @@ class Mtu1500( base_tests.SimpleDataPlane ):
             vlan_id = 18
             for port in ports:
                 L2gid, msg = add_one_l2_interface_group( self.controller, port, vlan_id, True, False )
-                add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+                add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 Groups.put( L2gid )
                 add_bridge_flow( self.controller, [ 0x00, 0x12, 0x34, 0x56, 0x78, port ], vlan_id, L2gid,
                         True )
@@ -378,7 +378,7 @@ class _32UcastTagged( base_tests.SimpleDataPlane ):
                 l3_msg = add_l3_unicast_group( self.controller, port, vlanid=vlan_id, id=vlan_id,
                         src_mac=intf_src_mac, dst_mac=dst_mac )
                 # add vlan flow table
-                add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+                add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add unicast routing flow
@@ -445,7 +445,7 @@ class _32VPN( base_tests.SimpleDataPlane ):
                 # ecmp_msg=add_l3_ecmp_group(self.controller, vlan_id, [mpls_label_gid])
                 do_barrier( self.controller )
                 # add vlan flow table
-                add_one_vlan_table_flow( self.controller, port, vlan_id, vrf=2,
+                add_one_vlan_table_flow( self.controller, port, 1, vlan_id, vrf=2,
                         flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
@@ -513,7 +513,7 @@ class _32EcmpVpn( base_tests.SimpleDataPlane ):
                 ecmp_msg = add_l3_ecmp_group( self.controller, vlan_id, [ mpls_label_gid ] )
                 do_barrier( self.controller )
                 # add vlan flow table
-                add_one_vlan_table_flow( self.controller, port, vlan_id, vrf=0,
+                add_one_vlan_table_flow( self.controller, port, 1, vlan_id, vrf=0,
                         flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
@@ -578,7 +578,7 @@ class _32ECMPL3( base_tests.SimpleDataPlane ):
                         src_mac=intf_src_mac, dst_mac=dst_mac )
                 ecmp_msg = add_l3_ecmp_group( self.controller, id, [ l3_msg.group_id ] )
                 # add vlan flow table
-                add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+                add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add unicast routing flow
@@ -644,7 +644,7 @@ class _24VPN( base_tests.SimpleDataPlane ):
                 # ecmp_msg=add_l3_ecmp_group(self.controller, vlan_id, [mpls_label_gid])
                 do_barrier( self.controller )
                 # add vlan flow table
-                add_one_vlan_table_flow( self.controller, port, vlan_id, vrf=0,
+                add_one_vlan_table_flow( self.controller, port, 1, vlan_id, vrf=0,
                         flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
@@ -711,7 +711,7 @@ class _24EcmpVpn( base_tests.SimpleDataPlane ):
                 ecmp_msg = add_l3_ecmp_group( self.controller, id, [ mpls_label_gid ] )
                 do_barrier( self.controller )
                 # add vlan flow table
-                add_one_vlan_table_flow( self.controller, port, vlan_id, vrf=0,
+                add_one_vlan_table_flow( self.controller, port, 1, vlan_id, vrf=0,
                         flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
@@ -828,7 +828,7 @@ class _24ECMPL3( base_tests.SimpleDataPlane ):
                         src_mac=intf_src_mac, dst_mac=dst_mac )
                 ecmp_msg = add_l3_ecmp_group( self.controller, id, [ l3_msg.group_id ] )
                 # add vlan flow table
-                add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+                add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add unicast routing flow
@@ -1003,17 +1003,6 @@ class L3McastToL3( base_tests.SimpleDataPlane ):
 
                 verify_no_other_packets( self )
 
-            parsed_pkt = simple_udp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=vlan_id,
-                    eth_dst=dst_mac_str, eth_src=port1_mac_str, ip_ttl=64, ip_src=src_ip_str,
-                    ip_dst=dst_ip_str )
-            pkt = str( parsed_pkt )
-            self.dataplane.send( port1, pkt )
-            for port in config[ "port_map" ].keys( ):
-                if port == port2 or port == port1:
-                    verify_no_packet( self, pkt, port )
-                    continue
-                verify_packet( self, pkt, port )
-            verify_no_other_packets( self )
         finally:
             delete_all_flows( self.controller )
             delete_groups( self.controller, Groups )
@@ -1388,7 +1377,7 @@ class _MplsFwd( base_tests.SimpleDataPlane ):
                 ecmp_gid, ecmp_msg = add_mpls_forwarding_group( self.controller,
                         subtype=OFDPA_MPLS_GROUP_SUBTYPE_ECMP, index=id, ref_gids=[mpls_label_gid] )
                 # add vlan flow table
-                add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+                add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
                 #add_mpls_flow( self.controller, ecmp_gid, port, goto_table=29 )
@@ -1462,7 +1451,7 @@ class _MplsTermination( base_tests.SimpleDataPlane ):
                 # add L3 ecmp group
                 ecmp_msg = add_l3_ecmp_group( self.controller, id, [ l3_msg.group_id ] )
                 # add vlan flow table
-                add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+                add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
                 add_mpls_flow( self.controller, ecmp_msg.group_id, mpls_label )
@@ -1529,7 +1518,7 @@ class _24UcastTagged( base_tests.SimpleDataPlane ):
                 l3_msg = add_l3_unicast_group( self.controller, port, vlanid=vlan_id, id=vlan_id,
                         src_mac=intf_src_mac, dst_mac=dst_mac )
                 # add vlan flow table
-                add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+                add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add unicast routing flow
@@ -1589,7 +1578,7 @@ class _0Ucast( base_tests.SimpleDataPlane ):
                 l3_msg = add_l3_unicast_group( self.controller, port, vlanid=vlan_id + 1, id=vlan_id,
                         src_mac=intf_src_mac, dst_mac=dst_mac )
                 # add vlan flow table
-                add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+                add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add unicast routing flow
@@ -1802,7 +1791,7 @@ class EcmpGroupMod( base_tests.SimpleDataPlane ):
                 Groups._put( l3_msg.group_id )
                 ecmp_msg = add_l3_ecmp_group( self.controller, ports[ 0 ], [ l3_msg.group_id ] )
                 # add vlan flow table
-                add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+                add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add unicast routing flow
@@ -1894,8 +1883,8 @@ class Untagged( base_tests.SimpleDataPlane ):
             ports = sorted( config[ "port_map" ].keys( ) )
             for port in ports:
                 vlan_id = Untagged.MAX_INTERNAL_VLAN - port
-                add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
-                add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_UNTAG )
+                add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+                add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_UNTAG )
                 for other_port in ports:
                     if other_port == port:
                         continue

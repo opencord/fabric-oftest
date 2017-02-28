@@ -2,6 +2,7 @@
 Check README file
 """
 import Queue
+import time
 
 from oftest import config
 import inspect
@@ -1698,4 +1699,134 @@ class DoubleTaggedPWTermination( base_tests.SimpleDataPlane ):
             delete_all_flows( self.controller )
             delete_groups( self.controller, Groups )
             delete_groups( self.controller, Groups2 )
+            delete_all_groups( self.controller )
+
+class BoSBug( base_tests.SimpleDataPlane ):
+    """
+    This test is meant to verify the forwarding of the default traffic
+    when the rule for the PW transport (BoS=0) has been installed in the
+    switch, together with the rule for the transport of default routing
+    traffic. There is a bug in OFDPA 3.0EA4, which requires BOS=0 flow
+    to be installed before BOS=1 flow to generate correct packets. Incoming
+    packet has 1 label, and there is no VLAN tag in the incoming packet.
+    The expected behvior is the Pop of the outer MPLS label and plain IP
+    packet should exit from the switch.
+    """
+    def runTest( self ):
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 1:
+                logging.info( "Port count less than 1, can't run this case" )
+                assert (False)
+                return
+            ports           = config[ "port_map" ].keys( )
+            in_port         = ports[0]
+            out_port        = ports[1]
+            out_vlan        = 4094
+            src_mac         = [ 0x00, 0x00, 0x00, 0x00, 0x11, 0x01 ]
+            src_mac_str     = ':'.join( [ '%02X' % x for x in src_mac ] )
+            dst_mac         = [ 0x00, 0x00, 0x00, 0x11, 0x11, 0x01 ]
+            dst_mac_str     = ':'.join( [ '%02X' % x for x in dst_mac ] )
+            mpls_label      = 100
+            # Add l2 interface group, we have to pop the VLAN;
+            l2_intf_gid, l2_intf_msg = add_one_l2_interface_group(
+                ctrl=self.controller,
+                port=out_port,
+                vlan_id=out_vlan,
+                is_tagged=False,
+                send_barrier=False
+                )
+            Groups._put( l2_intf_gid )
+            # add MPLS interface group
+            mpls_intf_gid, mpls_intf_msg = add_mpls_intf_group(
+                ctrl=self.controller,
+                ref_gid=l2_intf_gid,
+                dst_mac=dst_mac,
+                src_mac=src_mac,
+                vid=out_vlan,
+                index=in_port
+                )
+            Groups._put( mpls_intf_gid )
+            # Add L3 Unicast  group
+            l3_msg = add_l3_unicast_group(
+                ctrl=self.controller,
+                port=out_port,
+                vlanid=out_vlan,
+                id=in_port,
+                src_mac=src_mac,
+                dst_mac=dst_mac
+                )
+            Groups._put( l3_msg.group_id )
+            # Add L3 ecmp group
+            ecmp_msg = add_l3_ecmp_group(
+                ctrl=self.controller,
+                id=in_port,
+                l3_ucast_groups=[ l3_msg.group_id ]
+                )
+            Groups._put( ecmp_msg.group_id )
+            # Add MPLS flow with BoS=1
+            add_mpls_flow(
+                ctrl=self.controller,
+                action_group_id=ecmp_msg.group_id,
+                label=mpls_label
+                )
+            # add MPLS flow with BoS=0
+            add_mpls_flow_pw(
+                ctrl=self.controller,
+                action_group_id=mpls_intf_gid,
+                label=mpls_label,
+                ethertype=0x8847,
+                tunnel_index=1,
+                bos=0
+                )
+            # add Termination flow
+            add_termination_flow(
+                ctrl=self.controller,
+                in_port=in_port,
+                eth_type=0x8847,
+                dst_mac=src_mac,
+                vlanid=out_vlan,
+                goto_table=23
+                )
+            # add VLAN flows
+            add_one_vlan_table_flow(
+                ctrl=self.controller,
+                of_port=in_port,
+                vlan_id=out_vlan,
+                flag=VLAN_TABLE_FLAG_ONLY_TAG,
+                )
+            add_one_vlan_table_flow(
+                ctrl=self.controller,
+                of_port=in_port,
+                vlan_id=out_vlan,
+                flag=VLAN_TABLE_FLAG_ONLY_UNTAG
+                )
+            # Packet generation with sleep
+            time.sleep(2)
+            label = (mpls_label, 0, 1, 32)
+            parsed_pkt = mpls_packet(
+                pktlen=104,
+                vlan_vid=out_vlan,
+                ip_ttl=63,
+                eth_dst=src_mac_str,
+                label=[ label]
+            )
+            pkt = str( parsed_pkt )
+            self.dataplane.send( in_port, pkt )
+            # we geneate the expected pw packet
+            parsed_pkt = simple_tcp_packet(
+                pktlen=100,
+                vlan_vid=out_vlan,
+                ip_ttl=31,
+                eth_dst=dst_mac_str,
+                eth_src=src_mac_str,
+            )
+            pkt = str( parsed_pkt )
+            # Assertions
+            verify_packet( self, pkt, out_port )
+            verify_no_packet( self, pkt, in_port )
+            verify_no_other_packets( self )
+        finally:
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
             delete_all_groups( self.controller )

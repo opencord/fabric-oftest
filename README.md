@@ -90,34 +90,35 @@ On the controller side:
 
 The following tests are implemented and these are their results.
 
-Test Results       | i12_1.7 | 2.0 GA | 3.0 EA0
--------            | ------- | ------ | -------
-/0Ucast            | X       | ok     | ok
-/24UnicastTagged   | ok      | ok     | ok
-/32UnicastTagged   | ok      | ok     | ok
-/24ECMPL3          | ok      | ok     | ok
-/32ECMPL3          | ok      | ok     | ok
-/24ECMPVPN         | ok      | ok     | ok
-/32ECMPVPN         | ok      | ok     | ok
-/32VPN             | ok      | ok     | ok
-/24VPN             | ok      | ok     | ok
-EcmpGroupMod       | X       | X      | ok
-PacketInArp        | ok      | ok     | ok
-MTU1500            | ok      | ok     | ok
-MplsTermination    | ok      | ok     | ok
-MplsFwd            | X       | ok     | ok
-L2FloodQinQ        | ok      | ok     | ok
-L2UnicastTagged    | ok      | ok     | ok
-L3McastToL3        | ok      | X      | ok
-L3McastToL2_1*     | ?       | ?      | ok
-L3McastToL2_2**    | ?       | ?      | ok
-L3McastToL2_3***   | ?       | ?      | ok
-L3McastToL2_4****  | ok      | ?      | ok
-L3McastToL2_5***** | ?       | ?      | ok
-FloodGroupMod      | X       | X      | ok
-PacketInUDP        | ok      | ok     | ok
-Unfiltered         | X       | ok     | X
-Untagged           | ok      | n/a    | ok
+Test Results       | i12_1.7 | 2.0 GA | 3.0 EA0 | 3.0 EA4 |
+-------            | ------- | ------ | ------- | ------- |
+/0Ucast            | X       | ok     | ok      | ok      |
+/24UnicastTagged   | ok      | ok     | ok      | ok      |
+/32UnicastTagged   | ok      | ok     | ok      | ok      |
+/24ECMPL3          | ok      | ok     | ok      | ok      |
+/32ECMPL3          | ok      | ok     | ok      | ok      |
+/24ECMPVPN         | ok      | ok     | ok      | ok      |
+/32ECMPVPN         | ok      | ok     | ok      | ok      |
+/32VPN             | ok      | ok     | ok      | ok      |
+/24VPN             | ok      | ok     | ok      | ok      |
+EcmpGroupMod       | X       | X      | ok      | ok      |
+PacketInArp        | ok      | ok     | ok      | ok      |
+MTU1500            | ok      | ok     | ok      | ok      |
+MplsTermination    | ok      | ok     | ok      | ok      |
+MplsFwd            | X       | ok     | ok      | ok      |
+L2FloodQinQ        | ok      | ok     | ok      | ok      |
+L2UnicastTagged    | ok      | ok     | ok      | ok      |
+L3McastToL3        | ok      | X      | ok      | ok      |
+L3McastToL2_1*     | ?       | ?      | ok      | ok      |
+L3McastToL2_2**    | ?       | ?      | ok      | ok      |
+L3McastToL2_3***   | ?       | ?      | ok      | ok      |
+L3McastToL2_4****  | ok      | ?      | ok      | ok      |
+L3McastToL2_5***** | ?       | ?      | ok      | ok      |
+FloodGroupMod      | X       | X      | ok      | ok      |
+PacketInUDP        | ok      | ok     | ok      | ok      |
+Unfiltered         | X       | ok     | X       | ok      |
+Untagged           | ok      | n/a    | ok      | ok      |
+PacketInIPTable    | X       | X      | ok      | ok      |
 
 *       Untag -> Untag (4094 as internal vlan)
 **      Untag -> Tag
@@ -131,13 +132,13 @@ n/a means test is not available for that version of the pipeline.
 
 The following tests are implemented in vlan_flows.py and these are their results.
 
-Test Results                | 3.0 EA0
------------------           | -------
-L2ForwardingStackedVLAN1    | ok
-L2ForwardingStackedVLAN2    | ok
-L2ForwardingStackedVLAN3    | ok
-L2ForwardingStackedVLAN4    | ok
-L2ForwardingStackedVLAN5    | ok
+Test Results                | 3.0 EA0 | 3.0 EA4 |
+------------------------    | ------- | ------- |
+L2ForwardingStackedVLAN     | ok      | ok      |
+L2ForwardingStackedVLAN2    | ok      | ok      |
+L2ForwardingStackedVLAN3    | ok      | ok      |
+L2ForwardingStackedVLAN4    | ok      | ok      |
+L2ForwardingStackedVLAN5    | ok      | ok      |
 
 For major details on the test look the comments in the code.
 
@@ -145,28 +146,30 @@ For major details on the test look the comments in the code.
 
 The following tests are implemented in pw_flows.py and these are their results.
 
-Test Results                            | 3.0 EA0
-----------------------------------      | -------
-UntaggedPWInitiation_2_Labels           | ok
-Untagged2PWInitiation_2_Labels          | ok
-UntaggedPWInitiation_3_Labels           | ok
-Untagged2PWInitiation_3_Labels          | ok
-TaggedPWInitiation_2_Labels             | ?
-Tagged2PWInitiation_2_Labels            | ?
-TaggedPWInitiation_3_Labels             | ?
-Tagged2PWInitiation_3_Labels            | ?
-DoubleTaggedPWInitiation_2_Labels       | ?
-DoubleTagged2PWInitiation_2_Labels      | ?
-DoubleTaggedPWInitiation_3_Labels       | ?
-DoubleTagged2PWInitiation_3_Labels      | ?
-IntraCO_2_Labels                        | ok
-IntraCO_3_Labels                        | ok
-InterCO                                 | ok
-UntaggedPWTermination                   | ok
-Untagged2PWTermination                  | ?
-TaggedPWTermination                     | ok
-DoubleTaggedPWTermination               | ok
+Test Results                            | 3.0 EA0 | 3.0 EA4 |
+----------------------------------      | ------- | ------- |
+UntaggedPWInitiation_2_Labels           | ok      | ok      |
+Untagged2PWInitiation_2_Labels          | ok      | ok      |
+UntaggedPWInitiation_3_Labels           | ok      | ok      |
+Untagged2PWInitiation_3_Labels          | ok      | ok      |
+TaggedPWInitiation_2_Labels             | x       | ok*     |
+Tagged2PWInitiation_2_Labels            | x       | ok*     |
+TaggedPWInitiation_3_Labels             | x       | ok*     |
+Tagged2PWInitiation_3_Labels            | x       | ok*     |
+DoubleTaggedPWInitiation_2_Labels       | x       | ok*     |
+DoubleTagged2PWInitiation_2_Labels      | x       | ok*     |
+DoubleTaggedPWInitiation_3_Labels       | x       | ok*     |
+DoubleTagged2PWInitiation_3_Labels      | x       | ok*     |
+IntraCO_2_Labels                        | ok      | ok*     |
+IntraCO_3_Labels                        | ok      | ok*     |
+InterCO                                 | ok      | ok*     |
+UntaggedPWTermination                   | ok      | ok      |
+Untagged2PWTermination                  | x       | x       |
+TaggedPWTermination                     | ok      | ok      |
+DoubleTaggedPWTermination               | ok      | ok      |
+BoSBug                                  | x       | x       |
 
+* The test may fail intermittently
 
 For major details on the test look the comments in the code.
 
@@ -174,17 +177,17 @@ For major details on the test look the comments in the code.
 
 The following tests are implemented in ipv6_flows.py and these are their results.
 
-Test Results                | 3.0 EA0
-----------------------      | -------
-PacketInICMPv6              | ok
-PacketInIPv6Table           | ok
-_128UcastUnTagged           | ok
-_128ECMPVpn                 | ok
-_128ECMPL3                  | ok
-_64UcastUnTagged            | ok
-_64ECMPVpn                  | ok
-_64ECMPL3                   | ok
-_0UcastV6                   | ok
-_MPLSTerminationV6          | ok
+Test Results                | 3.0 EA0 | 3.0 EA4 |
+----------------------      | ------- | ------- |
+PacketInICMPv6              | ok      | ok      |
+PacketInIPv6Table           | ok      | ok      |
+_128UcastUnTagged           | ok      | ok      |
+_128ECMPVpn                 | ok      | ok      |
+_128ECMPL3                  | ok      | ok      |
+_64UcastUntagged            | ok      | ok      |
+_64ECMPVpn                  | ok      | ok      |
+_64ECMPL3                   | ok      | ok      |
+_0UcastV6                   | ok      | ok      |
+_MPLSTerminationV6          | ok      | ok      |
 
 For major details on the test look the comments in the code.

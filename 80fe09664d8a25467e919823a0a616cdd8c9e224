@@ -22,6 +22,30 @@
       "revId": "80fe09664d8a25467e919823a0a616cdd8c9e224",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "da141535_4d0cf994",
+        "filename": "ofdpa/pw_flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1778,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2017-02-28T19:00:12Z",
+      "side": 1,
+      "message": "If my understanding is correct, I\u0027d suggest adding more information such as\n\"There is a bug in 3.0-ea4-pw, which requires BOS\u003d0 flow to be installed before BOS\u003d1 flow to generate correct packets\"",
+      "parentUuid": "da141535_0d3f2127",
+      "range": {
+        "startLine": 1764,
+        "startChar": 12,
+        "endLine": 1778,
+        "endChar": 17
+      },
+      "revId": "80fe09664d8a25467e919823a0a616cdd8c9e224",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }

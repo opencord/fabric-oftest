@@ -148,9 +148,9 @@ def fill_mcast_pipeline_L3toL2(
 
         L2_Groups = []
         # add vlan flows table
-        add_one_vlan_table_flow( controller, in_port, port_to_in_vlan[in_port], flag=VLAN_TABLE_FLAG_ONLY_TAG )
+        add_one_vlan_table_flow( controller, in_port, 1, port_to_in_vlan[in_port], flag=VLAN_TABLE_FLAG_ONLY_TAG )
         if not is_ingress_tagged:
-            add_one_vlan_table_flow( controller, in_port, port_to_in_vlan[in_port], flag=VLAN_TABLE_FLAG_ONLY_UNTAG )
+            add_one_vlan_table_flow( controller, in_port, 1, port_to_in_vlan[in_port], flag=VLAN_TABLE_FLAG_ONLY_UNTAG )
         elif is_vlan_translated:
             add_one_vlan_table_flow_translation( controller, in_port, port_to_in_vlan[in_port], port_to_out_vlan[in_port], flag=VLAN_TABLE_FLAG_ONLY_TAG)
         # add termination flow
@@ -279,7 +279,7 @@ def fill_mcast_pipeline_L3toL3(
         # add termination flow
         add_termination_flow( controller, port, 0x0800, switch_mac, port_to_in_vlan[port] )
         # add vlan flow table
-        add_one_vlan_table_flow( controller, port, port_to_in_vlan[port], flag=VLAN_TABLE_FLAG_ONLY_TAG )
+        add_one_vlan_table_flow( controller, port, 1, port_to_in_vlan[port], flag=VLAN_TABLE_FLAG_ONLY_TAG )
 
     return (
         port_to_in_vlan,

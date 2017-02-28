@@ -472,13 +472,13 @@ def add_port_table_flow(ctrl, is_overlay=True):
        NEXT_TABLE=10
 
     request = ofp.message.flow_add(
-		table_id=0,
-		cookie=42,
-		match=match,
-		instructions=[
-		  ofp.instruction.goto_table(NEXT_TABLE)
-		],
-		priority=0)
+        table_id=0,
+        cookie=42,
+        match=match,
+        instructions=[
+          ofp.instruction.goto_table(NEXT_TABLE)
+        ],
+        priority=0)
     logging.info("Add port table, match port %lx" % 0x10000)
     ctrl.message_send(request)
 
@@ -1087,7 +1087,7 @@ def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=
     instructions = []
     instructions.append(ofp.instruction.goto_table(60))
     if send_ctrl:
-        instructions.append(ofp.instruction.apply_actions(
+        instructions.append(ofp.instruction.write_actions(
                             actions=[ofp.action.output( port=ofp.OFPP_CONTROLLER,
                             max_len=ofp.OFPCML_NO_BUFFER)]))
     else:
@@ -1121,7 +1121,7 @@ def add_unicast_v6_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, v
     instructions = []
     instructions.append(ofp.instruction.goto_table(60))
     if send_ctrl:
-        instructions.append(ofp.instruction.apply_actions(
+        instructions.append(ofp.instruction.write_actions(
                             actions=[ofp.action.output( port=ofp.OFPP_CONTROLLER,
                             max_len=ofp.OFPCML_NO_BUFFER)]))
     else:
@@ -1149,23 +1149,23 @@ def add_mpls_flow(ctrl, action_group_id=0x0, label=100 ,ethertype=0x0800, bos=1,
     match.oxm_list.append(ofp.oxm.eth_type(0x8847))
     match.oxm_list.append(ofp.oxm.mpls_label(label))
     match.oxm_list.append(ofp.oxm.mpls_bos(bos))
-    actions = []
-    actions = [ofp.action.dec_mpls_ttl(),
+    write_actions = []
+    write_actions.append(ofp.action.group(action_group_id))
+    apply_actions = []
+    apply_actions = [ofp.action.dec_mpls_ttl(),
                ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf))]
-    if (goto_table == 29):
-            actions.append(ofp.action.group(action_group_id))
-    else:
-            actions.append(ofp.action.set_field(
+    if (goto_table != 29):
+            apply_actions.append(ofp.action.set_field(
                             ofp.oxm.exp2ByteValue(exp_type=23, value=32)))
-            actions.append(ofp.action.group(action_group_id))
-            actions.append(ofp.action.copy_ttl_in())
+            apply_actions.append(ofp.action.copy_ttl_in())
 
     request = ofp.message.flow_add(
             table_id=24,
             cookie=43,
             match=match,
             instructions=[
-                    ofp.instruction.apply_actions(actions=actions),
+                    ofp.instruction.apply_actions(actions=apply_actions),
+                    ofp.instruction.write_actions(actions=write_actions),
                     ofp.instruction.goto_table(goto_table)
                 ],
             buffer_id=ofp.OFP_NO_BUFFER,
@@ -1184,31 +1184,32 @@ def add_mpls_flow_pw(ctrl, action_group_id, label, ethertype, bos, tunnel_index,
     match.oxm_list.append(ofp.oxm.mpls_label(label))
     match.oxm_list.append(ofp.oxm.mpls_bos(bos))
 
-    actions = []
-    actions.append(ofp.action.dec_mpls_ttl())
+    apply_actions = []
+    write_actions = []
+    apply_actions.append(ofp.action.dec_mpls_ttl())
     if popMPLS == True:
-        actions.append(ofp.action.copy_ttl_in())
-        actions.append(ofp.action.pop_mpls(ethertype))
+        apply_actions.append(ofp.action.copy_ttl_in())
+        apply_actions.append(ofp.action.pop_mpls(ethertype))
     if bos==1 and popL2 == True:
-        actions.append(ofp.action.ofdpa_pop_l2_header())
-        actions.append(ofp.action.ofdpa_pop_cw())
-        actions.append(ofp.action.set_field(ofp.oxm.tunnel_id(tunnel_index + ofp.oxm.TUNNEL_ID_BASE)))
+        apply_actions.append(ofp.action.ofdpa_pop_l2_header())
+        apply_actions.append(ofp.action.ofdpa_pop_cw())
+        apply_actions.append(ofp.action.set_field(ofp.oxm.tunnel_id(tunnel_index + ofp.oxm.TUNNEL_ID_BASE)))
         # 0x0002nnnn is for UNI interfaces
-        actions.append(ofp.action.set_field(ofp.oxm.exp4ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_L2_PORT, value=0x00020000 + of_port)))
-        actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_TYPE, value=ofp.oxm.VPWS)))
-    actions.append(ofp.action.group(action_group_id))
+        apply_actions.append(ofp.action.set_field(ofp.oxm.exp4ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_L2_PORT, value=0x00020000 + of_port)))
+        apply_actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_TYPE, value=ofp.oxm.VPWS)))
+    write_actions.append(ofp.action.group(action_group_id))
 
     request = ofp.message.flow_add(
-        table_id=24,
-        cookie=43,
-        match=match,
-        instructions=[
-        ofp.instruction.apply_actions(actions=actions),
-        ofp.instruction.goto_table(goto_table)
-        ],
-        buffer_id=ofp.OFP_NO_BUFFER,
-        priority=1
-        )
+            table_id=24,
+            cookie=43,
+            match=match,
+            instructions=[
+                    ofp.instruction.apply_actions(actions=apply_actions),
+                    ofp.instruction.write_actions(actions=write_actions),
+                    ofp.instruction.goto_table(goto_table)
+                ],
+            buffer_id=ofp.OFP_NO_BUFFER,
+            priority=1)
     logging.info("Inserting MPLS flow , label %ld", label)
     ctrl.message_send(request)
 
@@ -1483,16 +1484,16 @@ def get_vtep_lport_config_xml(dp_id, lport, src_ip, dst_ip, next_hop_id, vnid, u
                      <pause>symmetric</pause>
                    </advertised-peer>
                 </features>
-			  <ofdpa10:vtep xmlns:ofdpa10="urn:bcm:ofdpa10:accton01">
-				<ofdpa10:src-ip>SRC_IP</ofdpa10:src-ip>
-				<ofdpa10:dest-ip>DST_IP</ofdpa10:dest-ip>
-				<ofdpa10:udp-src-port>UDP_SRC_PORT</ofdpa10:udp-src-port>
-				<ofdpa10:vni xc:operation="OPERATION">
+              <ofdpa10:vtep xmlns:ofdpa10="urn:bcm:ofdpa10:accton01">
+                <ofdpa10:src-ip>SRC_IP</ofdpa10:src-ip>
+                <ofdpa10:dest-ip>DST_IP</ofdpa10:dest-ip>
+                <ofdpa10:udp-src-port>UDP_SRC_PORT</ofdpa10:udp-src-port>
+                <ofdpa10:vni xc:operation="OPERATION">
                     <ofdpa10:id>VNID</ofdpa10:id>
                 </ofdpa10:vni>
-				<ofdpa10:nexthop-id>NEXT_HOP_ID</ofdpa10:nexthop-id>
-				<ofdpa10:ttl>TTL</ofdpa10:ttl>
-			  </ofdpa10:vtep>
+                <ofdpa10:nexthop-id>NEXT_HOP_ID</ofdpa10:nexthop-id>
+                <ofdpa10:ttl>TTL</ofdpa10:ttl>
+              </ofdpa10:vtep>
              </port>
             </resources>
             <logical-switches>
@@ -1596,7 +1597,7 @@ def send_edit_config(switch_ip, xml, target='runing'):
             logging.info("Fail to set xml %s", xml)
             return False
 
-	#return m.get_config(source='running').data_xml
+    #return m.get_config(source='running').data_xml
     return True
 
 def send_delete_config(switch_ip, xml, target='runing'):
@@ -1613,14 +1614,14 @@ def send_delete_config(switch_ip, xml, target='runing'):
             logging.info("Fail to set xml %s", xml)
             return False
 
-	#return m.get_config(source='running').data_xml
+    #return m.get_config(source='running').data_xml
     return True
 
 def get_edit_config(switch_ip, target='runing'):
     NETCONF_ACCOUNT="netconfuser"
     NETCONF_PASSWD="netconfuser"
     with manager.connect_ssh(host=switch_ip, port=830, username=NETCONF_ACCOUNT, password=NETCONF_PASSWD, hostkey_verify=False ) as m:
-	    return m.get_config(source='running').data_xml
+        return m.get_config(source='running').data_xml
 
 
 """
@@ -1665,8 +1666,7 @@ def add_mpls_intf_group(ctrl, ref_gid, dst_mac, src_mac, vid, index, subtype=0, 
     action=[]
     action.append(ofp.action.set_field(ofp.oxm.eth_src(src_mac)))
     action.append(ofp.action.set_field(ofp.oxm.eth_dst(dst_mac)))
-    if vid != 1:
-        action.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vid)))
+    action.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vid)))
     action.append(ofp.action.group(ref_gid))
 
     buckets = [ofp.bucket(actions=action)]
@@ -1814,20 +1814,21 @@ def add_mpls_l2_port_flow(ctrl, of_port, mpls_l2_port, tunnel_index, ref_gid, qo
     match.oxm_list.append(ofp.oxm.tunnel_id(tunnel_index + ofp.oxm.TUNNEL_ID_BASE))
 
 
-    action = []
-    action.append(ofp.action.group(ref_gid))
+    write_actions = []
+    write_actions.append(ofp.action.group(ref_gid))
+    apply_actions = []
     assert(qos_index>=0)
-    action.append(ofp.action.set_field(ofp.oxm.exp1ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_QOS_INDEX, value=qos_index)))
+    apply_actions.append(ofp.action.set_field(ofp.oxm.exp1ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_QOS_INDEX, value=qos_index)))
 
     request = ofp.message.flow_add(
             table_id=MPLS_L2_PORT_FLOW_TABLE,
             cookie=42,
             match=match,
             instructions=[
-                    ofp.instruction.write_actions(
-                        actions=action
-                        ),
-                    ofp.instruction.goto_table(MPLS_L2_PORT_PCP_TRUST_FLOW_TABLE)                ],
+                    ofp.instruction.apply_actions(actions=apply_actions),
+                    ofp.instruction.write_actions(actions=write_actions),
+                    ofp.instruction.goto_table(MPLS_L2_PORT_PCP_TRUST_FLOW_TABLE)
+                    ],
             buffer_id=ofp.OFP_NO_BUFFER,
             priority=1)
     logging.info("Inserting flow %d mpls_l2_port, %d tunnel_id, action %x group and go to table %d", mpls_l2_port, tunnel_id, ref_gid, MPLS_L2_PORT_DSCP_TRUST_FLOW_TABLE)
@@ -1838,13 +1839,13 @@ def add_mpls_l2_port_flow(ctrl, of_port, mpls_l2_port, tunnel_index, ref_gid, qo
 
 def add_mpls_forwarding_group(ctrl, subtype, index, ref_gids,
                               watch_port=None,
-							  watch_group=ofp.OFPP_ANY,
-							  push_vlan=None,
+                              watch_group=ofp.OFPP_ANY,
+                              push_vlan=None,
                               pop_vlan=None,
                               set_vid=None):
     assert(subtype == OFDPA_MPLS_GROUP_SUBTYPE_FAST_FAILOVER_GROUP
-	       or subtype == OFDPA_MPLS_GROUP_SUBTYPE_ECMP
-		   or subtype == OFDPA_MPLS_GROUP_SUBTYPE_L2_TAG)
+           or subtype == OFDPA_MPLS_GROUP_SUBTYPE_ECMP
+           or subtype == OFDPA_MPLS_GROUP_SUBTYPE_L2_TAG)
 
     buckets=[]
     if subtype == OFDPA_MPLS_GROUP_SUBTYPE_FAST_FAILOVER_GROUP:

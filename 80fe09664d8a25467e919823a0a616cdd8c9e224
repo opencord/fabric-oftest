@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da141535_0d3f2127",
+        "filename": "ofdpa/pw_flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1778,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2017-02-28T18:57:16Z",
+      "side": 1,
+      "message": "Just to make sure - this is expected to fail with current version (ea4-pw). Am I right?",
+      "range": {
+        "startLine": 1764,
+        "startChar": 12,
+        "endLine": 1778,
+        "endChar": 17
+      },
+      "revId": "80fe09664d8a25467e919823a0a616cdd8c9e224",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

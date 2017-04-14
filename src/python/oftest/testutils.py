@@ -73,6 +73,17 @@ def delete_groups(ctrl, group_queue=Queue()):
         ctrl.message_send(msg)
         do_barrier(ctrl)
 
+def delete_group(ctrl, group_id):
+    """
+    Delete a single group
+    @param ctrl The controller object for the test
+    :param group_id
+    """
+    logging.info("Deleting a single group with groupId:" + str(group_id))
+    msg = ofp.message.group_delete(group_id=group_id)
+    ctrl.message_send(msg)
+    do_barrier(ctrl)
+
 def required_wildcards(parent):
     w = test_param_get('required_wildcards', default='default')
     if w == 'l3-l4':

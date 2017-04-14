@@ -8,7 +8,7 @@ OFTest is a Python based framework for OpenFlow switch testing.
 
 In this project we use OFTest to ensure OpenFlow conformance of the switches used to implement the network infrastructure of the OpenCord project.
 
-At this moment the switches supported are Accton switches. For more information abot that check the wiki page at wiki.opencord.org
+At this moment the switches supported are OF-DPA based Accton switches. For more information, check the wiki page at wiki.opencord.org/display/CORD/Underlay+Fabric
 
 This code base was forked from [macauleycheng](github.com/macauleycheng/oftest) which was forked from [floodlight](github.com/floodlight/oftest). This documentationn aims to describe the specific test cases developed for OpenCord. To get started on the basics of OFTest please check their documentation.
 
@@ -24,7 +24,7 @@ i19           | i19        | Archived
 i12           | i12        | Archived
 i12_1.7       | cord-1.0   | Released
 2.0 GA        | 2.0-ga     | Archived
-**3.0 EA0**   | **master** | **Developing <- current branch**
+**3.0 EA4**   | **master** | **Developing <- current branch**
 
 The test case collection for OpenCord are under the folder ofdpa. They are listed under the section Test case collection.
 
@@ -41,18 +41,12 @@ sudo apt-get install python-ecdsa git
 
 ## Start Testing
 
-On the switch side:
+On the switch side (for OF-DPA version 3.0 EA4):
 
-1. Purge the switch flow/group table by running
-
-	```
-	client_cfg_purge
-	```
-
-2. Connect the switch to the testing controller
+1. Connect the switch to the VM running OFTest on the management network
 
 	```
-	brcm-indigo-ofdpa-ofagent -t <controller_ip>
+	launcher ofagentapp  -t <controller_ip>
 	```
 
 On the controller side:
@@ -63,22 +57,23 @@ On the controller side:
 	git clone -b master git://github.com/opencord/fabric-oftest
 	```
 
-2. Run **all test cases** in OFTest
+2. Run all test cases (that are not disabled) in a sequence
 
 	```
 	sudo ./oft -V1.3 --test-dir=ofdpa flows -i 24@eth1 -i 12@eth2
 	```
-	This command assumes you connected the switch port 24 to interface eth1 on the OFtest server and port 12 to eth2
+	This command assumes you connected the switch port 24 to interface eth1 on the OFtest server and port 12 to eth2.
+	It runs all the tests that are in ofdpa/flows.py
 
 ## Useful commands
 
 * List all available test cases
 
 	```
-	./oft --list --test-dir=ofdpa flows
+	./oft -V1.3 --list --test-dir=ofdpa flows
 	```
 
-* Run only specific test case
+* Run only specific test case. Can also be used to run tests that are currently disabled.
 
 	```
 	sudo ./oft -V1.3 --test-dir=ofdpa flows.PacketInArp -i 24@eth1 -i 12@eth2
@@ -97,15 +92,15 @@ Test Results       | i12_1.7 | 2.0 GA | 3.0 EA0 | 3.0 EA4 |
 /32UnicastTagged   | ok      | ok     | ok      | ok      |
 /24ECMPL3          | ok      | ok     | ok      | ok      |
 /32ECMPL3          | ok      | ok     | ok      | ok      |
-/24ECMPVPN         | ok      | ok     | ok      | ok      |
-/32ECMPVPN         | ok      | ok     | ok      | ok      |
-/32VPN             | ok      | ok     | ok      | ok      |
-/24VPN             | ok      | ok     | ok      | ok      |
+/24ECMPVPN         | ok      | ok     | ok      | ok~      |
+/32ECMPVPN         | ok      | ok     | ok      | ok~      |
+/32VPN             | ok      | ok     | ok      | ok~      |
+/24VPN             | ok      | ok     | ok      | ok~      |
 EcmpGroupMod       | X       | X      | ok      | ok      |
 PacketInArp        | ok      | ok     | ok      | ok      |
 MTU1500            | ok      | ok     | ok      | ok      |
-MplsTermination    | ok      | ok     | ok      | ok      |
-MplsFwd            | X       | ok     | ok      | ok      |
+MplsTermination    | ok      | ok     | ok      | ok~      |
+MplsFwd            | X       | ok     | ok      | ok~      |
 L2FloodQinQ        | ok      | ok     | ok      | ok      |
 L2UnicastTagged    | ok      | ok     | ok      | ok      |
 L3McastToL3        | ok      | X      | ok      | ok      |
@@ -118,13 +113,17 @@ FloodGroupMod      | X       | X      | ok      | ok      |
 PacketInUDP        | ok      | ok     | ok      | ok      |
 Unfiltered         | X       | ok     | X       | ok      |
 Untagged           | ok      | n/a    | ok      | ok      |
-PacketInIPTable    | X       | X      | ok      | ok      |
+PacketInIPTable    | X       | X      | ok      | ok~      |
 
+```
+~       Tests marked with tilda are currently disabled because of a bug which causes
+        interference with other tests. The @disabled flag will be removed once the bug is fixed.
 *       Untag -> Untag (4094 as internal vlan)
 **      Untag -> Tag
 ***     Tag   -> Untag
 ****    Tag   -> Tag
 *****   Tag   -> Tag (Translated)
+```
 
 n/a means test is not available for that version of the pipeline.
 

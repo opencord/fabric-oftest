@@ -1,0 +1,556 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "ba092121_ceba3c0a",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 430,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "We should update the readme",
+      "range": {
+        "startLine": 425,
+        "startChar": 0,
+        "endLine": 430,
+        "endChar": 7
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_ae3708b0",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 499,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "We should update the readme",
+      "range": {
+        "startLine": 495,
+        "startChar": 0,
+        "endLine": 499,
+        "endChar": 7
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_6e58d0fa",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 568,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "Is it disabled ?",
+      "range": {
+        "startLine": 568,
+        "startChar": 1,
+        "endLine": 568,
+        "endChar": 9
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_8e3c4495",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 573,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "Update the README, if it is not disabled",
+      "range": {
+        "startLine": 568,
+        "startChar": 0,
+        "endLine": 573,
+        "endChar": 7
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_2e4bf82c",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 588,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "better to shift (+100)",
+      "range": {
+        "startLine": 588,
+        "startChar": 12,
+        "endLine": 588,
+        "endChar": 30
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_4e462c25",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 597,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "this is not safe, it is better to shift the mpls label (+1000) to avoid accidentally the reserved mpls labels when changing the ports.",
+      "range": {
+        "startLine": 597,
+        "startChar": 47,
+        "endLine": 597,
+        "endChar": 70
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_0e48342c",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 608,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "you can use send_barrier\u003dTrue and then eliminate do_barrier after",
+      "range": {
+        "startLine": 608,
+        "startChar": 12,
+        "endLine": 608,
+        "endChar": 102
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_ee54e0cb",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 613,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "Can be eliminated",
+      "range": {
+        "startLine": 613,
+        "startChar": 12,
+        "endLine": 613,
+        "endChar": 41
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_ce511cda",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 632,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "This can lead to errors if there is noise on the interfaces",
+      "range": {
+        "startLine": 632,
+        "startChar": 12,
+        "endLine": 632,
+        "endChar": 43
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_ae5ee8e7",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 644,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "this can be eliminated",
+      "range": {
+        "startLine": 642,
+        "startChar": 0,
+        "endLine": 644,
+        "endChar": 25
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_8e6324b1",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 646,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "Did you forget disable ? If Yes please update also the README",
+      "range": {
+        "startLine": 646,
+        "startChar": 0,
+        "endLine": 646,
+        "endChar": 5
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_4e5d0ce9",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 711,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "Is it disabled ? If not please update the README",
+      "range": {
+        "startLine": 710,
+        "startChar": 0,
+        "endLine": 711,
+        "endChar": 49
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_2e72d87c",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 733,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "better to shift",
+      "range": {
+        "startLine": 733,
+        "startChar": 22,
+        "endLine": 733,
+        "endChar": 29
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_0e6f1494",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 752,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "can be eliminated if we use send_barrier\u003dTrue in add_unicast_routing_flow",
+      "range": {
+        "startLine": 752,
+        "startChar": 12,
+        "endLine": 752,
+        "endChar": 41
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_ee6bc083",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 774,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "can be eliminated",
+      "range": {
+        "startLine": 774,
+        "startChar": 12,
+        "endLine": 774,
+        "endChar": 25
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_ce68fc89",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 780,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "please update the readme",
+      "range": {
+        "startLine": 778,
+        "startChar": 0,
+        "endLine": 780,
+        "endChar": 76
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_ae05c8c3",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 848,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "Update the readme",
+      "range": {
+        "startLine": 846,
+        "startChar": 0,
+        "endLine": 848,
+        "endChar": 68
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_8e0a04d1",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1515,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "Update README",
+      "range": {
+        "startLine": 1513,
+        "startChar": 0,
+        "endLine": 1515,
+        "endChar": 62
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_6e0fb0e2",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1591,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "Update readme",
+      "range": {
+        "startLine": 1590,
+        "startChar": 0,
+        "endLine": 1591,
+        "endChar": 53
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_4e14ecf4",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1664,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "Is this disabled ? If not please update the readme",
+      "range": {
+        "startLine": 1663,
+        "startChar": 0,
+        "endLine": 1664,
+        "endChar": 56
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_2ef9b8c8",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1701,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "you can use send_barrier flag",
+      "range": {
+        "startLine": 1701,
+        "startChar": 12,
+        "endLine": 1701,
+        "endChar": 75
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_0ef6f4d7",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1705,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "it can be eliminated",
+      "range": {
+        "startLine": 1705,
+        "startChar": 12,
+        "endLine": 1705,
+        "endChar": 41
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_ee02a0b3",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1731,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "it can be eliminated",
+      "range": {
+        "startLine": 1731,
+        "startChar": 12,
+        "endLine": 1731,
+        "endChar": 25
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ba092121_ceffdca9",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 2048,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2017-04-20T10:11:27Z",
+      "side": 1,
+      "message": "if it is not necessary please delete",
+      "range": {
+        "startLine": 2048,
+        "startChar": 0,
+        "endLine": 2048,
+        "endChar": 111
+      },
+      "revId": "1084904d7d2f3ae7864fefe8ce57989d050d0090",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

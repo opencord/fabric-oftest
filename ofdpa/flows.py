@@ -585,24 +585,26 @@ class One_32EcmpVpn( base_tests.SimpleDataPlane ):
             ports = config[ "port_map" ].keys( )
             # add l2 interface group
             id = ports[1]
-            vlan_id = ports[1] + 20
+            in_offset = 19
+            out_offset = 20
+            vlan_id = ports[1] + out_offset
             l2_gid, l2_msg = add_one_l2_interface_group( self.controller, ports[1], vlan_id, True, True )
-            dst_mac[ 5 ] = vlan_id
+            dst_mac[ 5 ] = ports[1]
             # add MPLS interface group
             mpls_gid, mpls_msg = add_mpls_intf_group( self.controller, l2_gid, dst_mac, intf_src_mac,
                                                       vlan_id, id )
             # add MPLS L3 VPN group
             mpls_label_gid, mpls_label_msg = add_mpls_label_group( self.controller,
                         subtype=OFDPA_MPLS_GROUP_SUBTYPE_L3_VPN_LABEL, index=id, ref_gid=mpls_gid,
-                        push_mpls_header=True, set_mpls_label=ports[1] + 20, set_bos=1, set_ttl=32 )
+                        push_mpls_header=True, set_mpls_label=ports[1] + out_offset, set_bos=1, set_ttl=32 )
             # add ECMP group
             ecmp_msg = add_l3_ecmp_group( self.controller, vlan_id, [ mpls_label_gid ] )
             do_barrier( self.controller )
             # add vlan flow table
-            add_one_vlan_table_flow( self.controller, ports[0], 1, vlan_id=ports[0] + 10, vrf=0,
+            add_one_vlan_table_flow( self.controller, ports[0], 1, vlan_id=ports[0] + in_offset, vrf=0,
                                      flag=VLAN_TABLE_FLAG_ONLY_TAG )
             # add termination flow
-            add_termination_flow( self.controller, ports[0], 0x0800, intf_src_mac, vlanid=ports[0] + 10 )
+            add_termination_flow( self.controller, ports[0], 0x0800, intf_src_mac, vlanid=ports[0] + in_offset )
             # add routing flow
             dst_ip = dip + (vlan_id << 8)
             add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffffff, ecmp_msg.group_id, send_barrier=True )
@@ -616,17 +618,17 @@ class One_32EcmpVpn( base_tests.SimpleDataPlane ):
             in_port = ports[0]
             out_port = ports[1]
             ip_src = '192.168.%02d.1' % (in_port)
-            ip_dst = '192.168.%02d.1' % (out_port)
-            parsed_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=(in_port + 20),
+            ip_dst = '192.168.%02d.1' % (out_port+out_offset)
+            parsed_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=(in_port + in_offset),
                                             eth_dst=switch_mac, ip_ttl=64, ip_src=ip_src, ip_dst=ip_dst )
             pkt = str( parsed_pkt )
             self.dataplane.send( in_port, pkt )
             # build expect packet
             mac_dst = '00:00:00:22:22:%02X' % (out_port)
-            label = (out_port, 0, 1, 32)
-            exp_pkt = mpls_packet( pktlen=104, dl_vlan_enable=True, vlan_vid=(out_port + 20), ip_ttl=63,
+            label = (out_port+out_offset, 0, 1, 32)
+            exp_pkt = mpls_packet( pktlen=104, dl_vlan_enable=True, vlan_vid=(out_port + out_offset), ip_ttl=63,
                                    ip_src=ip_src, ip_dst=ip_dst, eth_dst=mac_dst, eth_src=switch_mac,
-                                   label=[ label+20 ] )
+                                   label=[ label ] )
             pkt = str( exp_pkt )
             verify_packet( self, pkt, out_port )
             #verify_no_other_packets( self )
@@ -725,20 +727,21 @@ class One_32ECMPL3( base_tests.SimpleDataPlane ):
             ports = config[ "port_map" ].keys( )
             inport = ports[0]
             outport = ports[1]
-
-            vlan_id = outport + 20
+            in_offset = 19
+            out_offset = 20
+            vlan_id = outport + out_offset
             id = outport
             # add l2 interface group, l3 unicast and ecmp group for outport
             l2_gid, msg = add_one_l2_interface_group( self.controller, outport, vlan_id=vlan_id,
                                                       is_tagged=True, send_barrier=False )
-            dst_mac[ 5 ] = vlan_id
+            dst_mac[ 5 ] = outport
             l3_msg = add_l3_unicast_group( self.controller, outport, vlanid=vlan_id, id=id,
                                            src_mac=intf_src_mac, dst_mac=dst_mac )
             ecmp_msg = add_l3_ecmp_group( self.controller, id, [ l3_msg.group_id ] )
             # add vlan flow table
-            add_one_vlan_table_flow( self.controller, of_port=inport, vlan_id=inport+20, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+            add_one_vlan_table_flow( self.controller, of_port=inport, vlan_id=inport+in_offset, flag=VLAN_TABLE_FLAG_ONLY_TAG )
             # add termination flow
-            add_termination_flow( self.controller, in_port=inport, eth_type=0x0800, dst_mac=intf_src_mac, vlanid=inport+20 )
+            add_termination_flow( self.controller, in_port=inport, eth_type=0x0800, dst_mac=intf_src_mac, vlanid=inport+in_offset )
             # add unicast routing flow
             dst_ip = dip + (vlan_id << 8)
             add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffffff, ecmp_msg.group_id, send_barrier=True )
@@ -749,14 +752,14 @@ class One_32ECMPL3( base_tests.SimpleDataPlane ):
             switch_mac = ':'.join( [ '%02X' % x for x in intf_src_mac ] )
             mac_src = '00:00:00:22:22:%02X' % inport
             ip_src = '192.168.%02d.1' % inport
-            ip_dst = '192.168.%02d.1' % outport
-            parsed_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=inport+20,
+            ip_dst = '192.168.%02d.1' % (outport+out_offset)
+            parsed_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=inport+in_offset,
                                             eth_dst=switch_mac, eth_src=mac_src, ip_ttl=64, ip_src=ip_src, ip_dst=ip_dst )
             pkt = str( parsed_pkt )
             self.dataplane.send( inport, pkt )
             # build expected packet
             mac_dst = '00:00:00:22:22:%02X' % outport
-            exp_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=outport+20,
+            exp_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=outport+out_offset,
                                          eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=63, ip_src=ip_src, ip_dst=ip_dst )
             pkt = str( exp_pkt )
             verify_packet( self, pkt, outport )

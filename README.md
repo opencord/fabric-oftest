@@ -79,41 +79,47 @@ On the controller side:
 	sudo ./oft -V1.3 --test-dir=ofdpa flows.PacketInArp -i 24@eth1 -i 12@eth2
 	```
 
+* Run specific test case for a specific switch type (only special case of switch type supported are Qumran based switches)
+
+	```
+	sudo ./oft -V1.3 -Y qmx --test-dir=ofdpa flows.PacketInArp -i 24@eth1 -i 12@eth2
+	```
+
 ---
 
 # Test Result Summary
 
 The following tests are implemented and these are their results.
 
-Test Results       | i12_1.7 | 2.0 GA | 3.0 EA0 | 3.0 EA4 |
--------            | ------- | ------ | ------- | ------- |
-/0Ucast            | X       | ok     | ok      | ok      |
-/24UnicastTagged   | ok      | ok     | ok      | ok      |
-/32UnicastTagged   | ok      | ok     | ok      | ok      |
-/24ECMPL3          | ok      | ok     | ok      | ok      |
-/32ECMPL3          | ok      | ok     | ok      | ok      |
-/24ECMPVPN         | ok      | ok     | ok      | ok~      |
-/32ECMPVPN         | ok      | ok     | ok      | ok~      |
-/32VPN             | ok      | ok     | ok      | ok~      |
-/24VPN             | ok      | ok     | ok      | ok~      |
-EcmpGroupMod       | X       | X      | ok      | ok      |
-PacketInArp        | ok      | ok     | ok      | ok      |
-MTU1500            | ok      | ok     | ok      | ok      |
-MplsTermination    | ok      | ok     | ok      | ok~      |
-MplsFwd            | X       | ok     | ok      | ok~      |
-L2FloodQinQ        | ok      | ok     | ok      | ok      |
-L2UnicastTagged    | ok      | ok     | ok      | ok      |
-L3McastToL3        | ok      | X      | ok      | ok      |
-L3McastToL2_1*     | ?       | ?      | ok      | ok      |
-L3McastToL2_2**    | ?       | ?      | ok      | ok      |
-L3McastToL2_3***   | ?       | ?      | ok      | ok      |
-L3McastToL2_4****  | ok      | ?      | ok      | ok      |
-L3McastToL2_5***** | ?       | ?      | ok      | ok      |
-FloodGroupMod      | X       | X      | ok      | ok      |
-PacketInUDP        | ok      | ok     | ok      | ok      |
-Unfiltered         | X       | ok     | X       | ok      |
-Untagged           | ok      | n/a    | ok      | ok      |
-PacketInIPTable    | X       | X      | ok      | ok~      |
+Test Results       | i12_1.7 | 2.0 GA | 3.0 EA0 | 3.0 EA4 | 3.0 EA4 QMX |
+-------            | ------- | ------ | ------- | ------- |-------------
+/0Ucast            | X       | ok     | ok      | ok      | X           |
+/24UnicastTagged   | ok      | ok     | ok      | ok      | X           |
+/32UnicastTagged   | ok      | ok     | ok      | ok      | X           |
+/24ECMPL3          | ok      | ok     | ok      | ok      | X           |
+/32ECMPL3          | ok      | ok     | ok      | ok      | X           |
+/24ECMPVPN~        | ok      | ok     | ok      | ok      | X           |
+/32ECMPVPN~        | ok      | ok     | ok      | ok      | X           |
+/32VPN~            | ok      | ok     | ok      | ok      | X           |
+/24VPN~            | ok      | ok     | ok      | ok      | X           |
+EcmpGroupMod       | X       | X      | ok      | ok      | X           |
+PacketInArp        | ok      | ok     | ok      | ok      | ok          |
+MTU1500            | ok      | ok     | ok      | ok      | ok          |
+MplsTermination~   | ok      | ok     | ok      | ok      | X           |
+MplsFwd~           | X       | ok     | ok      | ok      | ok          |
+L2FloodQinQ        | ok      | ok     | ok      | ok      | X           |
+L2UnicastTagged    | ok      | ok     | ok      | ok      | ok          |
+L3McastToL3        | ok      | X      | ok      | ok      | X           |
+L3McastToL2_1*     | ?       | ?      | ok      | ok      | X           |
+L3McastToL2_2**    | ?       | ?      | ok      | ok      | X           |
+L3McastToL2_3***   | ?       | ?      | ok      | ok      | X           |
+L3McastToL2_4****  | ok      | ?      | ok      | ok      | X           |
+L3McastToL2_5***** | ?       | ?      | ok      | ok      | X           |
+FloodGroupMod      | X       | X      | ok      | ok      | X           |
+PacketInUDP        | ok      | ok     | ok      | ok      | ok          |
+Unfiltered         | X       | ok     | X       | ok      | ok          |
+Untagged           | ok      | n/a    | ok      | ok      | ok          |
+PacketInIPTable~   | X       | X      | ok      | ok      | X           |
 
 ```
 ~       Tests marked with tilda are currently disabled because of a bug which causes

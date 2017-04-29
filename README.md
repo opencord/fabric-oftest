@@ -79,6 +79,12 @@ On the controller side:
 	sudo ./oft -V1.3 --test-dir=ofdpa flows.PacketInArp -i 24@eth1 -i 12@eth2
 	```
 
+* Run specific test case for a specific switch type (only special case of switch type supported are Qumran based switches)
+
+	```
+	sudo ./oft -V1.3 -Y qmx --test-dir=ofdpa flows.PacketInArp -i 24@eth1 -i 12@eth2
+	```
+
 ---
 
 # Test Result Summary

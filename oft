@@ -72,6 +72,7 @@ CONFIG_DEFAULT = {
     "controller_host"    : "0.0.0.0",  # For passive bind
     "controller_port"    : 6653,
     "switch_ip"          : None,  # If not none, actively connect to switch
+    "switch_type"          : None,  # If not none, adapt flows to pipeline differences for switch type
     "platform"           : "eth",
     "platform_args"      : None,
     "platform_dir"       : os.path.join(ROOT_DIR, "platforms"),
@@ -173,6 +174,8 @@ prefixing them with the '^' character.
                       type="int", help="Port number to listen on (default %default)")
     group.add_option("-S", "--switch-ip", dest="switch_ip",
                       help="If set, actively connect to this switch by IP")
+    group.add_option("-Y", "--switch-type", dest="switch_type",
+                      help="If set to qmx, flows will adapt to pipline differences")
     group.add_option("-P", "--platform", help="Platform module name (default %default)")
     group.add_option("-a", "--platform-args", help="Custom arguments for the platform")
     group.add_option("--platform-dir", type="string", help="Directory containing platform modules")

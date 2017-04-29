@@ -210,7 +210,7 @@ class L2FloodQinQ( base_tests.SimpleDataPlane ):
         Groups = Queue.LifoQueue( )
         try:
             ports = sorted( config[ "port_map" ].keys( ) )
-            vlan_id = 1
+            vlan_id = 100
 
             for port in ports:
                 L2gid, l2msg = add_one_l2_interface_group( self.controller, port, vlan_id, True, False )
@@ -243,6 +243,7 @@ class L2FloodQinQ( base_tests.SimpleDataPlane ):
             delete_all_flows( self.controller )
             delete_groups( self.controller, Groups )
             delete_all_groups( self.controller )
+
 
 
 @disabled
@@ -372,14 +373,13 @@ class _32UcastTagged( base_tests.SimpleDataPlane ):
             if len( config[ "port_map" ] ) < 2:
                 logging.info( "Port count less than 2, can't run this case" )
                 return
-
             intf_src_mac = [ 0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc ]
             dst_mac = [ 0x00, 0x00, 0x00, 0x22, 0x22, 0x00 ]
             dip = 0xc0a80001
             ports = config[ "port_map" ].keys( )
             for port in ports:
-                # add l2 interface group
                 vlan_id = port + test_id
+                # add l2 interface group and l3 unicast group
                 l2gid, msg = add_one_l2_interface_group( self.controller, port, vlan_id=vlan_id,
                         is_tagged=True, send_barrier=False )
                 dst_mac[ 5 ] = vlan_id
@@ -388,7 +388,10 @@ class _32UcastTagged( base_tests.SimpleDataPlane ):
                 # add vlan flow table
                 add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
-                add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
+                if config["switch_type"] == "qmx":
+                    add_termination_flow( self.controller, 0, 0x0800, intf_src_mac, vlan_id )
+                else:
+                    add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add unicast routing flow
                 dst_ip = dip + (vlan_id << 8)
                 add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffffff, l3_msg.group_id )
@@ -458,7 +461,10 @@ class _32VPN( base_tests.SimpleDataPlane ):
                 add_one_vlan_table_flow( self.controller, port, 1, vlan_id, vrf=2,
                         flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
-                add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
+                if config["switch_type"] == "qmx":
+                    add_termination_flow( self.controller, 0, 0x0800, intf_src_mac, vlan_id )
+                else:
+                    add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add routing flow
                 dst_ip = dip + (vlan_id << 8)
                 add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffffff, mpls_label_gid, vrf=2 )
@@ -528,7 +534,10 @@ class _32EcmpVpn( base_tests.SimpleDataPlane ):
                 add_one_vlan_table_flow( self.controller, port, 1, vlan_id, vrf=0,
                         flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
-                add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
+                if config["switch_type"] == "qmx":
+                    add_termination_flow( self.controller, 0, 0x0800, intf_src_mac, vlan_id )
+                else:
+                    add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add routing flow
                 dst_ip = dip + (vlan_id << 8)
                 add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffffff, ecmp_msg.group_id )
@@ -604,7 +613,10 @@ class One_32EcmpVpn( base_tests.SimpleDataPlane ):
             add_one_vlan_table_flow( self.controller, ports[0], 1, vlan_id=ports[0] + in_offset, vrf=0,
                                      flag=VLAN_TABLE_FLAG_ONLY_TAG )
             # add termination flow
-            add_termination_flow( self.controller, ports[0], 0x0800, intf_src_mac, vlanid=ports[0] + in_offset )
+            if config["switch_type"] == "qmx":
+                add_termination_flow( self.controller, 0, 0x0800, intf_src_mac, vlanid=ports[0] + in_offset )
+            else:
+                add_termination_flow( self.controller, ports[0], 0x0800, intf_src_mac, vlanid=ports[0] + in_offset )
             # add routing flow
             dst_ip = dip + (vlan_id << 8)
             add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffffff, ecmp_msg.group_id, send_barrier=True )
@@ -672,7 +684,10 @@ class _32ECMPL3( base_tests.SimpleDataPlane ):
                 # add vlan flow table
                 add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
-                add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
+                if config["switch_type"] == "qmx":
+                    add_termination_flow( self.controller, 0, 0x0800, intf_src_mac, vlan_id )
+                else:
+                    add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add unicast routing flow
                 dst_ip = dip + (vlan_id << 8)
                 add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffffff, ecmp_msg.group_id )
@@ -741,7 +756,10 @@ class One_32ECMPL3( base_tests.SimpleDataPlane ):
             # add vlan flow table
             add_one_vlan_table_flow( self.controller, of_port=inport, vlan_id=inport+in_offset, flag=VLAN_TABLE_FLAG_ONLY_TAG )
             # add termination flow
-            add_termination_flow( self.controller, in_port=inport, eth_type=0x0800, dst_mac=intf_src_mac, vlanid=inport+in_offset )
+            if config["switch_type"] == "qmx":
+                add_termination_flow( self.controller, 0, 0x0800, intf_src_mac, vlanid=inport+in_offset )
+            else:
+                add_termination_flow( self.controller, in_port=inport, eth_type=0x0800, dst_mac=intf_src_mac, vlanid=inport+in_offset )
             # add unicast routing flow
             dst_ip = dip + (vlan_id << 8)
             add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffffff, ecmp_msg.group_id, send_barrier=True )
@@ -806,7 +824,10 @@ class _24VPN( base_tests.SimpleDataPlane ):
                 add_one_vlan_table_flow( self.controller, port, 1, vlan_id, vrf=0,
                         flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
-                add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
+                if config["switch_type"] == "qmx":
+                    add_termination_flow( self.controller, 0, 0x0800, intf_src_mac, vlan_id )
+                else:
+                    add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add routing flow
                 dst_ip = dip + (vlan_id << 8)
                 add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffff00, mpls_label_gid )
@@ -873,7 +894,10 @@ class _24EcmpVpn( base_tests.SimpleDataPlane ):
                 add_one_vlan_table_flow( self.controller, port, 1, vlan_id, vrf=0,
                         flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
-                add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
+                if config["switch_type"] == "qmx":
+                    add_termination_flow( self.controller, 0, 0x0800, intf_src_mac, vlan_id )
+                else:
+                    add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add routing flow
                 dst_ip = dip + (vlan_id << 8)
                 # add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0, mpls_label_gid, vrf=2)
@@ -989,7 +1013,10 @@ class _24ECMPL3( base_tests.SimpleDataPlane ):
                 # add vlan flow table
                 add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
-                add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
+                if config["switch_type"] == "qmx":
+                    add_termination_flow( self.controller, 0, 0x0800, intf_src_mac, vlan_id )
+                else:
+                    add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add unicast routing flow
                 dst_ip = dip + (vlan_id << 8)
                 add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffff00, ecmp_msg.group_id )
@@ -1048,7 +1075,10 @@ class MPLSBUG( base_tests.SimpleDataPlane ):
             # add vlan flow table
             add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_BOTH )
             # add termination flow
-            add_termination_flow( self.controller, port, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
+            if config["switch_type"] == "qmx":
+                add_termination_flow( self.controller, 0, 0x08847, intf_src_mac, vlan_id, goto_table=24 )
+            else:
+                add_termination_flow( self.controller, port, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
             # add mpls flow
             add_mpls_flow( self.controller, l3_msg.group_id, port )
             # add termination flow
@@ -1541,7 +1571,10 @@ class _MplsFwd( base_tests.SimpleDataPlane ):
                 # add vlan flow table
                 add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
-                add_termination_flow( self.controller, port, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
+                if config["switch_type"] == "qmx":
+                    add_termination_flow( self.controller, 0, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
+                else:
+                    add_termination_flow( self.controller, port, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
                 #add_mpls_flow( self.controller, ecmp_gid, port, goto_table=29 )
                 add_mpls_flow( self.controller, mpls_label_gid, mpls_label, goto_table=29 )
                 dst_ip = dip + (vlan_id << 8)
@@ -1615,7 +1648,10 @@ class _MplsTermination( base_tests.SimpleDataPlane ):
                 # add vlan flow table
                 add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
-                add_termination_flow( self.controller, port, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
+                if config["switch_type"] == "qmx":
+                    add_termination_flow( self.controller, 0, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
+                else:
+                    add_termination_flow( self.controller, port, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
                 add_mpls_flow( self.controller, ecmp_msg.group_id, mpls_label )
                 # add_mpls_flow(self.controller, label=port)
                 dst_ip = dip + (vlan_id << 8)
@@ -1693,7 +1729,10 @@ class One_MplsTermination( base_tests.SimpleDataPlane ):
             # add vlan flow table
             add_one_vlan_table_flow( self.controller, inport, 1, invlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
             # add tmac flow
-            add_termination_flow( self.controller, inport, 0x8847, intf_src_mac, invlan_id, goto_table=24 )
+            if config["switch_type"] == "qmx":
+                add_termination_flow( self.controller, 0, 0x8847, intf_src_mac, invlan_id, goto_table=24 )
+            else:
+                add_termination_flow( self.controller, inport, 0x8847, intf_src_mac, invlan_id, goto_table=24 )
             # add mpls termination flow
             add_mpls_flow( self.controller, ecmp_msg.group_id, mpls_label, send_barrier=True )
             Groups._put( l2_gid )
@@ -1752,7 +1791,10 @@ class _24UcastTagged( base_tests.SimpleDataPlane ):
                 # add vlan flow table
                 add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
-                add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
+                if config["switch_type"] == "qmx":
+                    add_termination_flow( self.controller, 0, 0x0800, intf_src_mac, vlan_id )
+                else:
+                    add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add unicast routing flow
                 dst_ip = dip + (vlan_id << 8)
                 add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffff00, l3_msg.group_id )
@@ -1812,7 +1854,10 @@ class _0Ucast( base_tests.SimpleDataPlane ):
                 # add vlan flow table
                 add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
-                add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
+                if config["switch_type"] == "qmx":
+                    add_termination_flow( self.controller, 0, 0x0800, intf_src_mac, vlan_id )
+                else:
+                    add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add unicast routing flow
                 dst_ip = dip + (vlan_id << 8)
                 add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffffff, l3_msg.group_id )
@@ -2027,7 +2072,10 @@ class EcmpGroupMod( base_tests.SimpleDataPlane ):
                 # add vlan flow table
                 add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
-                add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
+                if config["switch_type"] == "qmx":
+                    add_termination_flow( self.controller, 0, 0x0800, intf_src_mac, vlan_id )
+                else:
+                    add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add unicast routing flow
                 dst_ip = dip + (vlan_id << 8)
                 dst_ips += [dst_ip]

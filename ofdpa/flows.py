@@ -214,7 +214,7 @@ class L2FloodQinQ( base_tests.SimpleDataPlane ):
 
             for port in ports:
                 L2gid, l2msg = add_one_l2_interface_group( self.controller, port, vlan_id, True, False )
-                add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+                add_one_vlan_table_flow( self.controller, port, vlan_id=vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 Groups.put( L2gid )
 
             msg = add_l2_flood_group( self.controller, ports, vlan_id, vlan_id )
@@ -1691,7 +1691,7 @@ class _MplsTermination( base_tests.SimpleDataPlane ):
             delete_all_flows( self.controller )
             delete_groups( self.controller, Groups )
             delete_all_groups( self.controller )
-            print("Done")
+
 
 @disabled
 class One_MplsTermination( base_tests.SimpleDataPlane ):

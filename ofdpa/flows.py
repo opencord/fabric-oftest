@@ -1860,7 +1860,7 @@ class _0Ucast( base_tests.SimpleDataPlane ):
                     add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add unicast routing flow
                 dst_ip = dip + (vlan_id << 8)
-                add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffffff, l3_msg.group_id )
+                add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffffff, l3_msg.group_id, priority=2 )
                 Groups.put( l2gid )
                 Groups.put( l3_msg.group_id )
             l3_gid = encode_l3_unicast_group_id( ports[ 0 ] )

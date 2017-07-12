@@ -170,7 +170,7 @@ class PacketInIPTable( base_tests.SimpleDataPlane ):
                 l3_msg = add_l3_unicast_group( self.controller, port, vlanid=vlan_id, id=vlan_id,
                         src_mac=intf_src_mac, dst_mac=dst_mac )
                 # add vlan flow table
-                add_one_vlan_table_flow( self.controller, port, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+                add_one_vlan_table_flow( self.controller, port, vlan_id=vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
                 # add termination flow
                 add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add unicast routing flow

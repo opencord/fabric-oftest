@@ -1221,7 +1221,7 @@ def add_mpls_flow_pw(ctrl, action_group_id, label, ethertype, bos, tunnel_index,
 def add_mcast4_routing_flow(ctrl, vlan_id, src_ip, src_ip_mask, dst_ip, action_group_id, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(0x0800))
-    match.oxm_list.append(ofp.oxm.vlan_vid(vlan_id))
+    match.oxm_list.append(ofp.oxm.vlan_vid(0x1000 + vlan_id))
     if src_ip_mask!=0:
         match.oxm_list.append(ofp.oxm.ipv4_src_masked(src_ip, src_ip_mask))
     else:

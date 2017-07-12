@@ -1076,7 +1076,7 @@ def add_termination_flow(ctrl, in_port, eth_type, dst_mac, vlanid, goto_table=No
 
     return request
 
-def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=0, send_ctrl=False, send_barrier=False):
+def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=0, send_ctrl=False, send_barrier=False, priority = 1):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(eth_type))
     if vrf != 0:
@@ -1100,7 +1100,7 @@ def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=
             match=match,
             instructions=instructions,
             buffer_id=ofp.OFP_NO_BUFFER,
-            priority=1)
+            priority=priority)
 
     logging.info("Inserting unicast routing flow eth_type %lx, dip %ld",eth_type, dst_ip)
     ctrl.message_send(request)

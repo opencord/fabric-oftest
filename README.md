@@ -35,7 +35,7 @@ Following packages need to be installed before running OFTest:
 ```
 sudo apt-get install python python-pip python-dev python-lxml -y
 sudo pip install ncclient
-sudo pip install scapy pycripto
+sudo pip install scapy pycrypto
 sudo apt-get install python-ecdsa git
 ```
 

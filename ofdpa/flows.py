@@ -340,6 +340,150 @@ class L2UnicastTagged( base_tests.SimpleDataPlane ):
             delete_all_groups( self.controller )
 
 
+class Bridging( base_tests.SimpleDataPlane ):
+    """
+    Verify bridging works including flooding with different vlans
+    ports[0] has vlan 31 untagged
+    ports[1] has vlan 31 untagged (native) and vlan 41 tagged
+    ARP request should be flooded
+    ARP reply should be forwarded by bridging rule
+    Both arp messages should also be copied to controller
+    """
+
+    def runTest( self ):
+        Groupd = Queue.LifoQueue()
+        try:
+            if len( config[ "port_map" ] ) < 2:
+                logging.info( "Port count less than 2, can't run this case" )
+                return
+            ports = sorted( config[ "port_map" ].keys() )
+            vlan_p0_untagged = 31
+            vlan_p1_tagged = 31
+            vlan_p1_native = 41
+
+            #l2 interface groups and table 10 flows
+            L2p0gid, l2msg0 = add_one_l2_interface_group( self.controller, ports[0], vlan_p0_untagged,
+                                                          is_tagged=False, send_barrier=False )
+            add_one_vlan_table_flow( self.controller, ports[0], vlan_id=vlan_p0_untagged, flag=VLAN_TABLE_FLAG_ONLY_BOTH,
+                                     send_barrier=True)
+            L2p1gid, l2msg1 = add_one_l2_interface_group( self.controller, ports[1], vlan_p1_tagged,
+                                                          is_tagged=True, send_barrier=False )
+            add_one_vlan_table_flow( self.controller, ports[1], vlan_id=vlan_p1_tagged, flag=VLAN_TABLE_FLAG_ONLY_TAG,
+                                     send_barrier=True)
+            L2p1gid2, l2msg3 = add_one_l2_interface_group( self.controller, ports[1], vlan_p1_native,
+                                                          is_tagged=False, send_barrier=False )
+            add_one_vlan_table_flow( self.controller, ports[1], vlan_id=vlan_p1_native, flag=VLAN_TABLE_FLAG_ONLY_BOTH,
+                                     send_barrier=True)
+            #flooding groups
+            Floodmsg31 = add_l2_flood_group( self.controller, ports, vlan_p0_untagged, id=0 )
+            Floodmsg41 = add_l2_flood_group( self.controller, [ ports[1] ], vlan_p1_native, id=0 )
+
+            #add bridging flows for flooding groups
+            add_bridge_flow( self.controller, dst_mac=None, vlanid=vlan_p0_untagged, group_id=Floodmsg31.group_id )
+            add_bridge_flow( self.controller, dst_mac=None, vlanid=vlan_p1_native, group_id=Floodmsg41.group_id )
+            do_barrier( self.controller )
+
+            # add bridging flows for dstMac+vlan
+            add_bridge_flow( self.controller, [ 0x00, 0x11, 0x22, 0x33, 0x44, 0x55 ], vlan_p0_untagged, L2p0gid, True )
+            add_bridge_flow( self.controller, [ 0x00, 0x66, 0x77, 0x88, 0x99, 0xaa ], vlan_p1_tagged, L2p1gid, True )
+            add_bridge_flow( self.controller, [ 0x00, 0x66, 0x77, 0x88, 0x99, 0xaa ], vlan_p1_native, L2p1gid2, True )
+
+            # add terminationMac flow
+            router_mac = [ 0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc ]
+            if config["switch_type"] == "qmx":
+                add_termination_flow( self.controller, 0, 0x0800, router_mac, vlan_p0_untagged )
+                add_termination_flow( self.controller, 0, 0x0800, router_mac, vlan_p1_native )
+            else:
+                add_termination_flow( self.controller, ports[0], 0x0800, router_mac, vlan_p0_untagged )
+                add_termination_flow( self.controller, ports[1], 0x0800, router_mac, vlan_p1_tagged )
+                add_termination_flow( self.controller, ports[1], 0x0800, router_mac, vlan_p1_native )
+
+            # add acl rule for arp
+            match = ofp.match( )
+            match.oxm_list.append( ofp.oxm.eth_type( 0x0806 ) )
+            request = ofp.message.flow_add( table_id=60, cookie=42, match=match, instructions=[
+                ofp.instruction.apply_actions( actions=[
+                    ofp.action.output( port=ofp.OFPP_CONTROLLER, max_len=ofp.OFPCML_NO_BUFFER ) ] ), ],
+                    buffer_id=ofp.OFP_NO_BUFFER, priority=1 )
+            self.controller.message_send( request )
+            do_barrier( self.controller )
+
+            #acl rule for gateway ip
+            match = ofp.match( )
+            match.oxm_list.append( ofp.oxm.eth_type( 0x0800 ) )
+            match.oxm_list.append( ofp.oxm.ipv4_dst( 0xc0a80003 ) )
+            request = ofp.message.flow_add( table_id=60, cookie=42, match=match, instructions=[
+                ofp.instruction.apply_actions( actions=[
+                    ofp.action.output( port=ofp.OFPP_CONTROLLER, max_len=ofp.OFPCML_NO_BUFFER ) ] ),
+                ofp.instruction.clear_actions() ],
+                    buffer_id=ofp.OFP_NO_BUFFER, priority=1 )
+            self.controller.message_send( request )
+            do_barrier( self.controller )
+
+            # send ARP request
+            parsed_arp_pkt = simple_arp_packet(pktlen=80,
+                                               eth_dst='ff:ff:ff:ff:ff:ff',
+                                               eth_src='00:66:77:88:99:aa',
+                                               vlan_vid=vlan_p1_tagged,
+                                               vlan_pcp=0,
+                                               arp_op=1,
+                                               ip_snd='192.168.0.2',
+                                               ip_tgt='192.168.0.1',
+                                               hw_snd='00:66:77:88:99:aa',
+                                               hw_tgt='00:00:00:00:00:00')
+            arp_pkt_to_send = str( parsed_arp_pkt )
+            logging.info( "sending arp request to port %d", ports[1] )
+            self.dataplane.send( ports[1], arp_pkt_to_send )
+            verify_packet_in( self, arp_pkt_to_send, ports[1], ofp.OFPR_ACTION )
+            parsed_arp_pkt_untagged = simple_arp_packet(pktlen=76,
+                                               eth_dst='ff:ff:ff:ff:ff:ff',
+                                               eth_src='00:66:77:88:99:aa',
+                                               vlan_vid=0,
+                                               vlan_pcp=0,
+                                               arp_op=1,
+                                               ip_snd='192.168.0.2',
+                                               ip_tgt='192.168.0.1',
+                                               hw_snd='00:66:77:88:99:aa',
+                                               hw_tgt='00:00:00:00:00:00')
+            arp_pkt_dest = str( parsed_arp_pkt_untagged )
+            verify_packet( self, arp_pkt_dest, ports[0] )
+            #verify_no_other_packets( self )
+
+            # send ARP reply
+            parsed_arp_pkt = simple_arp_packet(pktlen=76,
+                                               eth_dst='00:66:77:88:99:aa',
+                                               eth_src='00:11:22:33:44:55',
+                                               vlan_vid=0,
+                                               vlan_pcp=0,
+                                               arp_op=2,
+                                               ip_snd='192.168.0.1',
+                                               ip_tgt='192.168.0.2',
+                                               hw_snd='00:11:22:33:44:55',
+                                               hw_tgt='00:66:77:88:99:aa')
+            arp_pkt_to_send = str( parsed_arp_pkt )
+            logging.info( "sending arp reply to port %d", ports[0] )
+            self.dataplane.send( ports[0], arp_pkt_to_send )
+            verify_packet_in( self, arp_pkt_to_send, ports[0], ofp.OFPR_ACTION )
+            parsed_arp_pkt_tagged = simple_arp_packet(pktlen=80,
+                                               eth_dst='00:66:77:88:99:aa',
+                                               eth_src='00:11:22:33:44:55',
+                                               vlan_vid=vlan_p1_tagged,
+                                               vlan_pcp=0,
+                                               arp_op=2,
+                                               ip_snd='192.168.0.1',
+                                               ip_tgt='192.168.0.2',
+                                               hw_snd='00:11:22:33:44:55',
+                                               hw_tgt='00:66:77:88:99:aa')
+            arp_pkt_dest = str( parsed_arp_pkt_tagged )
+            verify_packet( self, arp_pkt_dest, ports[1] )
+
+        finally:
+            delete_all_flows( self.controller )
+            delete_all_groups( self.controller )
+            print("done")
+
+
+
 class Mtu1500( base_tests.SimpleDataPlane ):
     """
     Verifies basic mtu limits

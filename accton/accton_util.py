@@ -717,8 +717,8 @@ def add_one_vlan_table_flow(ctrl, of_port, out_vlan_id=1, vlan_id=1, vrf=0, flag
         match.oxm_list.append(ofp.oxm.vlan_vid_masked(0x1000+vlan_id,0x1fff))
 
         actions=[]
-        if vrf!=0:
-            actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf))) 
+        if config["switch_type"] != 'xpliant' and vrf != 0:
+            actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
 
         #actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(value=vlan_id)))
 
@@ -1092,10 +1092,10 @@ def add_termination_flow(ctrl, in_port, eth_type, dst_mac, vlanid, goto_table=No
 
     return request
 
-def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=0, send_ctrl=False, send_barrier=False):
+def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=0, send_ctrl=False, send_barrier=False, priority = 1):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(eth_type))
-    if vrf != 0:
+    if config["switch_type"] != 'xpliant' and vrf != 0:
         match.oxm_list.append(ofp.oxm.exp2ByteValue(ofp.oxm.OFDPA_EXP_TYPE_VRF, vrf))
 
     match.oxm_list.append(ofp.oxm.ipv4_dst_masked(dst_ip, mask))
@@ -1116,7 +1116,7 @@ def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=
             match=match,
             instructions=instructions,
             buffer_id=ofp.OFP_NO_BUFFER,
-            priority=1)
+            priority=priority)
 
     logging.info("Inserting unicast routing flow eth_type %lx, dip %ld",eth_type, dst_ip)
     ctrl.message_send(request)
@@ -1194,6 +1194,34 @@ def add_mpls_flow(ctrl, action_group_id=0x0, label=100 ,ethertype=0x0800, bos=1,
 
     return request
 
+def xpliant_add_mpls_flow(ctrl, action_group_id=0x0, label=100 ,ethertype=0x0800, bos=1, vrf=1, goto_table=27, send_barrier=False):
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.eth_type(0x8847))
+    match.oxm_list.append(ofp.oxm.mpls_label(label))
+
+    apply_actions = []
+    apply_actions.append(ofp.action.group(action_group_id))
+    apply_actions.append(ofp.action.dec_mpls_ttl())
+    if (goto_table != 29):
+        apply_actions.append(ofp.action.pop_mpls(ethertype))
+
+    request = ofp.message.flow_add(
+            table_id=24,
+            cookie=43,
+            match=match,
+            instructions=[
+                    ofp.instruction.apply_actions(actions=apply_actions),
+                ],
+            buffer_id=ofp.OFP_NO_BUFFER,
+            priority=1)
+    logging.info("Inserting MPLS flow , label %ld", label)
+    ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
+
+    return request
+
 def add_mpls_flow_pw(ctrl, action_group_id, label, ethertype, bos, tunnel_index, goto_table=MPLS_TYPE_FLOW_TABLE, popMPLS=True, popL2=False, of_port=0, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(0x8847))
@@ -1237,7 +1265,7 @@ def add_mpls_flow_pw(ctrl, action_group_id, label, ethertype, bos, tunnel_index,
 def add_mcast4_routing_flow(ctrl, vlan_id, src_ip, src_ip_mask, dst_ip, action_group_id, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(0x0800))
-    match.oxm_list.append(ofp.oxm.vlan_vid(vlan_id))
+    match.oxm_list.append(ofp.oxm.vlan_vid(0x1000 + vlan_id))
     if src_ip_mask!=0:
         match.oxm_list.append(ofp.oxm.ipv4_src_masked(src_ip, src_ip_mask))
     else:

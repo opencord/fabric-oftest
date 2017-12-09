@@ -1736,7 +1736,10 @@ class _MplsFwd( base_tests.SimpleDataPlane ):
                 else:
                     add_termination_flow( self.controller, port, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
                 #add_mpls_flow( self.controller, ecmp_gid, port, goto_table=29 )
-                add_mpls_flow( self.controller, mpls_label_gid, mpls_label, goto_table=29 )
+                if config["switch_type"] != 'xpliant':
+                    add_mpls_flow( self.controller, mpls_label_gid, mpls_label, goto_table=29 )
+                else:
+                    xpliant_add_mpls_flow( self.controller, mpls_label_gid, mpls_label, goto_table=29 )
                 dst_ip = dip + (vlan_id << 8)
                 Groups._put( l2_gid )
                 Groups._put( mpls_gid )
@@ -1812,7 +1815,12 @@ class _MplsTermination( base_tests.SimpleDataPlane ):
                     add_termination_flow( self.controller, 0, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
                 else:
                     add_termination_flow( self.controller, port, 0x8847, intf_src_mac, vlan_id, goto_table=24 )
-                add_mpls_flow( self.controller, ecmp_msg.group_id, mpls_label )
+
+                if config["switch_type"] != 'xpliant':
+                    add_mpls_flow( self.controller, ecmp_msg.group_id, mpls_label )
+                else:
+                    xpliant_add_mpls_flow( self.controller, ecmp_msg.group_id, mpls_label )
+
                 # add_mpls_flow(self.controller, label=port)
                 dst_ip = dip + (vlan_id << 8)
                 # add_unicast_routing_flow(self.controller, 0x0800, dst_ip, 0xffffff00,
@@ -1842,8 +1850,12 @@ class _MplsTermination( base_tests.SimpleDataPlane ):
                     self.dataplane.send( in_port, pkt )
                     # build expect packet
                     mac_dst = '00:00:00:22:22:%02X' % (out_port)
+                    if config["switch_type"] != 'xpliant':
+                        ip_ttl=31
+                    else:
+                        ip_ttl=64
                     exp_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=(out_vlan_vid),
-                            eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=31, ip_src=ip_src, ip_dst=ip_dst )
+                            eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=ip_ttl, ip_src=ip_src, ip_dst=ip_dst )
                     pkt = str( exp_pkt )
                     verify_packet( self, pkt, out_port )
                     verify_no_other_packets( self )
@@ -2020,7 +2032,7 @@ class _0Ucast( base_tests.SimpleDataPlane ):
                     add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add unicast routing flow
                 dst_ip = dip + (vlan_id << 8)
-                add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffffff, l3_msg.group_id )
+                add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffffff, l3_msg.group_id, priority=2 )
                 Groups.put( l2gid )
                 Groups.put( l3_msg.group_id )
             l3_gid = encode_l3_unicast_group_id( ports[ 0 ] )
@@ -2289,9 +2301,11 @@ class EcmpGroupMod( base_tests.SimpleDataPlane ):
             exp_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=ports[ 0 ],
                                          eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=63, ip_src=ip_src,
                                          ip_dst=ip_dst,tcp_dport=tcp )
-            pkt = str( exp_pkt )
-            verify_packet( self, pkt, ports[ 0 ] )
-            verify_no_other_packets( self )
+            # Expects packet on the input port
+            if config["switch_type"] != 'xpliant':
+                pkt = str( exp_pkt )
+                verify_packet( self, pkt, ports[ 0 ] )
+                verify_no_other_packets( self )
 
             # third part of the test - edit the group to completely remove bucket. Packet sent
             # should be dropped by the switch
@@ -2313,7 +2327,7 @@ class EcmpGroupMod( base_tests.SimpleDataPlane ):
             # original egress port, and verify packet is received on egress switch port
             l3_gid = encode_l3_unicast_group_id( ports[ 1 ] )
             mod_l3_ecmp_group( self.controller, ports[ 0 ], [ l3_gid ] )
-            time.sleep(0.1)
+            do_barrier(self.controller)
             in_port = ports[0]
             out_port = ports[1]
             logging.info("Sending packet to port: " + str(in_port) + ", expected egress on port: " + str(out_port))

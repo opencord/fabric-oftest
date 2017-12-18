@@ -2,6 +2,29 @@
   "comments": [
     {
       "key": {
+        "uuid": "bd061a27_d441aae5",
+        "filename": "accton/accton_util.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1200,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2017-12-18T18:42:28Z",
+      "side": 1,
+      "message": "It seems the only difference is that you are dropping BOS matching and Copy TTL In action. I\u0027d prefer reusing add_mpls_flow() and put the\nif config[\"switch_type\"] !\u003d \u0027xpliant\u0027\ncheck over there, rather than having a duplicated method",
+      "range": {
+        "startLine": 1199,
+        "startChar": 0,
+        "endLine": 1200,
+        "endChar": 52
+      },
+      "revId": "f0bc9ed9fab4eccd588f4104e01cee022d827ef5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f3389967_6bdc91c4",
         "filename": "accton/accton_util.py",
         "patchSetId": 1

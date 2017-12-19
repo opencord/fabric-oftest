@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "eda17c1e_cb0fa1cd",
+        "filename": "accton/accton_util.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1200,
+      "author": {
+        "id": 1000344
+      },
+      "writtenOn": "2017-12-19T20:16:32Z",
+      "side": 1,
+      "message": "Hi Charles,\n\nUsing [\"switch_type\"] !\u003d \u0027xpliant\u0027 check few times in one method makes it complicated.\n\nIMHO using a separated method is more plain way.",
+      "parentUuid": "bd061a27_d441aae5",
+      "range": {
+        "startLine": 1199,
+        "startChar": 0,
+        "endLine": 1200,
+        "endChar": 52
+      },
+      "revId": "f0bc9ed9fab4eccd588f4104e01cee022d827ef5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f3389967_6bdc91c4",
         "filename": "accton/accton_util.py",
         "patchSetId": 1
@@ -53,6 +77,24 @@
       "writtenOn": "2017-12-16T23:54:54Z",
       "side": 1,
       "message": "Why 64? Is it the TTL of the inner IP packet?",
+      "revId": "f0bc9ed9fab4eccd588f4104e01cee022d827ef5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "64744726_c9cf42f3",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1712,
+      "author": {
+        "id": 1000344
+      },
+      "writtenOn": "2017-12-19T20:16:32Z",
+      "side": 1,
+      "message": "Hi Saurav,\n\nFor now we are not supporting copy \u0026 decrement of TTL.",
+      "parentUuid": "b972b35b_6982fdad",
       "revId": "f0bc9ed9fab4eccd588f4104e01cee022d827ef5",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false

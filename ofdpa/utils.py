@@ -732,6 +732,7 @@ def fill_pw_termination_pipeline(
             is_tagged=False,
             send_barrier=False
             )
+
     Groups._put( l2_intf_gid )
     add_mpls_flow_pw(
         ctrl=controller,

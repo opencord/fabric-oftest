@@ -879,7 +879,10 @@ def add_one_vlan_table_flow_pw(ctrl, of_port, tunnel_index, new_vlan_id=1, vlan_
 
         actions=[]
         if vlan_id > 1:
+    #        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vlan_id)))
+    #        actions.append(ofp.action.set_field(ofp.action.push_vlan(0x8100)))
             actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vlan_id)))
+
         actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_TYPE, value=ofp.oxm.VPWS)))
         actions.append(ofp.action.set_field(ofp.oxm.tunnel_id(tunnel_index + ofp.oxm.TUNNEL_ID_BASE)))
         # 0x0000nnnn is for UNI interfaces
@@ -961,6 +964,7 @@ def add_one_vlan_1_table_flow(ctrl, of_port, new_outer_vlan_id=-1, outer_vlan_id
     return request
 
 def add_one_vlan_1_table_flow_pw(ctrl, of_port, tunnel_index, new_outer_vlan_id=-1, outer_vlan_id=1, inner_vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_TAG, send_barrier=False):
+
     # table 11: vlan 1 table
     # goto to table 13
     match = ofp.match()
@@ -971,9 +975,9 @@ def add_one_vlan_1_table_flow_pw(ctrl, of_port, tunnel_index, new_outer_vlan_id=
     actions=[]
     actions.append(ofp.action.push_vlan(0x8100))
     if new_outer_vlan_id != -1:
-        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+new_outer_vlan_id)))
+	actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+new_outer_vlan_id)))
     else:
-        actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+outer_vlan_id)))
+	actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+outer_vlan_id)))
 
     actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_TYPE, value=ofp.oxm.VPWS)))
     actions.append(ofp.action.set_field(ofp.oxm.tunnel_id(tunnel_index + ofp.oxm.TUNNEL_ID_BASE)))
@@ -981,19 +985,18 @@ def add_one_vlan_1_table_flow_pw(ctrl, of_port, tunnel_index, new_outer_vlan_id=
     actions.append(ofp.action.set_field(ofp.oxm.exp4ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_L2_PORT, value=0x00000000 + of_port)))
 
     request = ofp.message.flow_add(
-        table_id=11,
-        cookie=42,
-        match=match,
-        instructions=[
-            ofp.instruction.apply_actions(
-                 actions=actions
-            ),
-            ofp.instruction.goto_table(MPLS_L2_PORT_FLOW_TABLE)
-        ],
-        priority=0)
+	table_id=11,
+	cookie=42,
+	match=match,
+	instructions=[
+	    ofp.instruction.apply_actions(
+		 actions=actions
+	    ),
+	    ofp.instruction.goto_table(MPLS_L2_PORT_FLOW_TABLE)
+	],
+	priority=0)
     logging.info("Add vlan 1 double tagged %d-%d packets on port %d and go to table %d" %( outer_vlan_id, inner_vlan_id, of_port, MPLS_L2_PORT_FLOW_TABLE))
     ctrl.message_send(request)
-
     if send_barrier:
         do_barrier(ctrl)
 

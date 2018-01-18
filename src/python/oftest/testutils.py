@@ -450,7 +450,10 @@ def mpls_packet(pktlen=100,
                       ip_ihl=None,
                       ip_options=False,
                       label=None,
-                      inner_payload=True
+                      inner_payload=True,
+		      encapsulated_ethernet=False,
+		      encapsulated_eth_src='01:02:03:04:05:11',
+		      encapsulated_eth_dst='01:02:03:04:05:22'
                       ):
     if MINSIZE > pktlen:
         pktlen = MINSIZE
@@ -469,10 +472,16 @@ def mpls_packet(pktlen=100,
 
     #add innder payload
     if inner_payload!=None:
-        pkt=pkt / \
-            scapy.IP(src=ip_src, dst=ip_dst, tos=ip_tos, ttl=ip_ttl, ihl=ip_ihl)/ \
-            scapy.TCP(sport=tcp_sport, dport=tcp_dport, flags=tcp_flags)
-    
+        if not encapsulated_ethernet:
+        	pkt=pkt / \
+           	   scapy.IP(src=ip_src, dst=ip_dst, tos=ip_tos, ttl=ip_ttl, ihl=ip_ihl)/ \
+            	   scapy.TCP(sport=tcp_sport, dport=tcp_dport, flags=tcp_flags)
+        else:
+	       	pkt=pkt / \
+		   scapy.Ether(dst=encapsulated_eth_dst, src=encapsulated_eth_src)/ \
+           	   scapy.IP(src=ip_src, dst=ip_dst, tos=ip_tos, ttl=ip_ttl, ihl=ip_ihl)/ \
+            	   scapy.TCP(sport=tcp_sport, dport=tcp_dport, flags=tcp_flags)
+		
     pkt = pkt/("D" * (pktlen - len(pkt)))
 
     return pkt

@@ -66,8 +66,8 @@ def match_exp_pkt(self, exp_pkt, pkt):
         return True
     else:      
         if self.config["dump_packet"]:
-            self.logger.debug("rx pkt    ->"+(":".join("{:02x}".format(ord(c)) for c in pkt)))
-            self.logger.debug("expect pkt->"+(":".join("{:02x}".format(ord(c)) for c in exp_pkt)))
+            self.logger.debug("rx pkt    ->"+(" ".join("{:02x}".format(ord(c)) for c in pkt)))
+            self.logger.debug("expect pkt->"+(" ".join("{:02x}".format(ord(c)) for c in exp_pkt)))
 
         return False
 

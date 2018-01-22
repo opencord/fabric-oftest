@@ -1089,7 +1089,6 @@ def add_termination_flow(ctrl, in_port, eth_type, dst_mac, vlanid, goto_table=No
 
     logging.info("Inserting termination flow inport %d, eth_type %lx, vlan %d, mac %s", in_port, eth_type, vlanid, dst_mac)
     ctrl.message_send(request)
-
     if send_barrier:
         do_barrier(ctrl)
 
@@ -1163,7 +1162,7 @@ def add_unicast_v6_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, v
 
     return request
 
-def add_mpls_flow(ctrl, action_group_id=0x0, label=100 ,ethertype=0x0800, bos=1, vrf=1, goto_table=27, send_barrier=False):
+def add_mpls_flow(ctrl, action_group_id=0x0, label=100 ,ethertype=0x0800, bos=1, vrf=1, goto_table=27, dec_ttl=False, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(0x8847))
     match.oxm_list.append(ofp.oxm.mpls_label(label))
@@ -1224,6 +1223,38 @@ def xpliant_add_mpls_flow(ctrl, action_group_id=0x0, label=100 ,ethertype=0x0800
         do_barrier(ctrl)
 
     return request
+
+def add_mpls_flow_swap(ctrl, action_group_id, label, ethertype, bos, goto_table=MPLS_TYPE_FLOW_TABLE, of_port=0, send_barrier=False):
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.eth_type(0x8847))
+    match.oxm_list.append(ofp.oxm.mpls_label(label))
+    match.oxm_list.append(ofp.oxm.mpls_bos(1))
+
+    apply_actions = []
+    write_actions = []
+    apply_actions.append(ofp.action.dec_mpls_ttl())
+    write_actions.append(ofp.action.group(action_group_id))
+
+    request = ofp.message.flow_add(
+            table_id=24,
+            cookie=43,
+            match=match,
+            instructions=[
+                    ofp.instruction.apply_actions(actions=apply_actions),
+                    ofp.instruction.write_actions(actions=write_actions),
+                    ofp.instruction.goto_table(goto_table)
+                ],
+            buffer_id=ofp.OFP_NO_BUFFER,
+            priority=1)
+
+    logging.info("Inserting MPLS flow , label %ld", label)
+    ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
+
+    return request
+
 
 def add_mpls_flow_pw(ctrl, action_group_id, label, ethertype, bos, tunnel_index, goto_table=MPLS_TYPE_FLOW_TABLE, popMPLS=True, popL2=False, of_port=0, send_barrier=False):
     match = ofp.match()
@@ -1723,11 +1754,12 @@ def add_mpls_intf_group(ctrl, ref_gid, dst_mac, src_mac, vid, index, subtype=0, 
                                     group_id=mpls_group_id,
                                     buckets=buckets
                                    )
+
+    logging.debug("Adding MPLS interface group %02x, src_mac %s , dst_mac %s , vid %d", mpls_group_id, src_mac, dst_mac, vid)
     ctrl.message_send(request)
 
     if send_barrier:
         do_barrier(ctrl)
-
     return mpls_group_id, request
 
 def add_mpls_tunnel_label_group(
@@ -1771,6 +1803,7 @@ def add_mpls_swap_label_group(
                                     group_id=mpls_group_id,
                                     buckets=buckets
                                    )
+    logging.debug("Adding MPLS Swap group %02x, label %d", mpls_group_id, label)
     ctrl.message_send(request)
 
     return mpls_group_id, request

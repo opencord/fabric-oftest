@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "83a3024b_b25cb417",
+        "filename": "accton/accton_util.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1758,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2018-01-22T21:47:33Z",
+      "side": 1,
+      "message": "Will be helpful if you can print group id and some group info here.",
+      "range": {
+        "startLine": 1758,
+        "startChar": 4,
+        "endLine": 1758,
+        "endChar": 48
+      },
+      "revId": "c52c3b167a89801b72ba3d85b3bf91f3833f91f5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "574704c2_8ba37f62",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 2473,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2018-01-22T21:47:33Z",
+      "side": 1,
+      "message": "There are some extra spaces and tabs.",
+      "range": {
+        "startLine": 2473,
+        "startChar": 0,
+        "endLine": 2473,
+        "endChar": 2
+      },
+      "revId": "c52c3b167a89801b72ba3d85b3bf91f3833f91f5",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

@@ -2410,3 +2410,102 @@ class Untagged( base_tests.SimpleDataPlane ):
             delete_all_flows( self.controller )
             delete_groups( self.controller, groups )
             delete_all_groups( self.controller )
+
+class MPLSSwapTest( base_tests.SimpleDataPlane ):
+    """
+    MPLS switching with the same label used.
+    Used for interconnecting spines between different fabrics where
+    the label should not be popped, but swapepd with the same label.
+    """
+
+    def runTest( self ):
+        try:
+            delete_all_flows( self.controller )
+            delete_all_groups( self.controller )
+
+            if len( config[ "port_map" ] ) < 2:
+                logging.info( "Port count less than 3, can't run this case" )
+                assert (False)
+                return
+
+            input_src_mac = [ 0x00, 0x00, 0x5e, 0x01, 0x01, 0x01 ]
+            input_src_mac_str = ':'.join( [ '%02X' % x for x in input_src_mac ] )
+
+            input_dst_mac = [ 0x00, 0x00, 0x5e, 0x01, 0x01, 0x02 ]
+            input_dst_mac_str = ':'.join( [ '%02X' % x for x in input_dst_mac ] )
+
+            output_dst_mac = [ 0x00, 0x00, 0x5e, 0x01, 0x01, 0x03 ]
+            output_dst_mac_str = ':'.join( [ '%02X' % x for x in output_dst_mac ] )
+
+            mpls_label = 1000
+
+            src_ip = 0xc0a80101
+            src_ip_str = "192.168.1.1"
+            dst_ip = 0xe0010101
+            dst_ip_str = "224.1.1.1"
+
+            src_port = config[ "port_map" ].keys( )[ 0 ]
+            dst_port = config[ "port_map" ].keys( )[ 1 ]
+
+            out_vlan = 4094
+
+            add_one_l2_interface_group( self.controller, dst_port, vlan_id=out_vlan, is_tagged=False,
+                       		 	send_barrier=True )
+
+            # add vlan flow table
+            add_one_vlan_table_flow( self.controller, src_port, out_vlan_id=out_vlan, vlan_id=out_vlan, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+            add_one_vlan_table_flow( self.controller, src_port, out_vlan_id=out_vlan, vlan_id=out_vlan, flag=VLAN_TABLE_FLAG_ONLY_UNTAG )
+
+            # add termination flow
+
+            if config["switch_type"] == "qmx":
+                logging.debug("MPLSSwitching : Adding flow for qmx, without input port")
+                add_termination_flow( self.controller, 0, eth_type=0x08847, dst_mac=input_dst_mac, vlanid=out_vlan, goto_table=23)
+            else:
+                add_termination_flow( self.controller, in_port=src_port,
+				  eth_type=0x8847, dst_mac=input_dst_mac, vlanid=out_vlan, goto_table=23)
+
+	    # add groups that will be used now
+            l2_gid = encode_l2_interface_group_id( out_vlan, dst_port)
+            mpls_gid, mpls_msg = add_mpls_intf_group( self.controller, l2_gid,
+						      output_dst_mac, input_dst_mac,
+                    	  			      out_vlan, dst_port, send_barrier=True)
+            index = 60
+            mpls_swap_gid, mpls_swap_msg = add_mpls_swap_label_group( self.controller, mpls_gid,
+	 	            					      5, index, mpls_label)
+
+            # add flow to mpls table
+            add_mpls_flow_swap( self.controller, mpls_swap_gid, mpls_label, 0x8847, 1, send_barrier=True)
+
+            # we generate the packet which carries a single label
+            label = (mpls_label, 0, 1, 63)
+            parsed_pkt = mpls_packet(
+                pktlen=104,
+                label=[label],
+                eth_src=input_src_mac_str,
+                eth_dst=input_dst_mac_str,
+                )
+            pkt = str( parsed_pkt )
+            self.dataplane.send( src_port, pkt )
+
+            label = (mpls_label, 0, 1, 62)
+            parsed_pkt = mpls_packet(
+                pktlen=104,
+                label=[label],
+                eth_src=input_dst_mac_str,
+                eth_dst=output_dst_mac_str,
+                )
+            pkt = str( parsed_pkt )
+
+            verify_packet( self, pkt, dst_port )
+            verify_no_packet( self, pkt, src_port )
+            verify_no_other_packets( self )
+
+            delete_all_flows( self.controller )
+            delete_all_groups( self.controller )
+
+        finally:
+            delete_all_flows( self.controller )
+            delete_all_groups( self.controller )
+
+

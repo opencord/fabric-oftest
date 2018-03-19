@@ -38,6 +38,7 @@ VLAN_TABLE_FLAG_ONLY_BOTH =3
 VLAN_TABLE_FLAG_ONLY_STACKED=5
 VLAN_TABLE_FLAG_PRIORITY=6
 VLAN_TABLE_FLAG_ONLY_UNTAG_PRIORITY=7
+VLAN_TABLE_FLAG_ONLY_POP_VLAN=8
 
 PORT_FLOW_TABLE=0
 VLAN_FLOW_TABLE=10
@@ -51,6 +52,13 @@ UCAST_ROUTING_FLOW_TABLE=30
 MCAST_ROUTING_FLOW_TABLE=40
 BRIDGE_FLOW_TABLE=50
 ACL_FLOW_TABLE=60
+
+EGRESS_VLAN_FLOW_TABLE=210
+EGRESS_VLAN_1_FLOW_TABLE=211
+EGRESS_MAINTENANCE_POINT_FLOW_TABLE=226
+EGRESS_DSCP_TABLE=230
+EGRESS_TPID_TABLE=235
+EGRESS_SOURCE_MAC_LEARNING_TABLE=254
 
 def convertIP4toStr(ip_addr):
     a=(ip_addr&0xff000000)>>24
@@ -336,8 +344,12 @@ def add_l2_rewrite_group(ctrl, port, vlanid, id, src_mac, dst_mac):
     ctrl.message_send(request)
     return request
 
-def add_l3_unicast_group(ctrl, port, vlanid, id, src_mac, dst_mac, send_barrier=False):
-    group_id = encode_l2_interface_group_id(vlanid, port)
+def add_l3_unicast_group(ctrl, port, vlanid, id, src_mac, dst_mac, send_barrier=False, gid=None):
+
+    if (not gid):
+        group_id = encode_l2_interface_group_id(vlanid, port)
+    else:
+        group_id = gid
 
     action=[]
     if src_mac is not None:
@@ -708,8 +720,39 @@ def add_one_vlan_table_flow_translation(ctrl, of_port, vlan_id=1, new_vlan_id=-1
         logging.info("Add vlan %d tagged packets on port %d and go to table 20" %( vlan_id, of_port))
         ctrl.message_send(request)
 
+
+def add_one_egress_vlan_table_flow(ctrl, of_port, match_vlan, inner_vlan, outer_vlan):
+
+    # used for translating single to double tagged packets only
+
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.exp4ByteValue(ofp.oxm.OFDPA_EXP_TYPE_ACTSET_OUTPUT, of_port))
+    match.oxm_list.append(ofp.oxm.exp1ByteValue(ofp.oxm.OFDPA_EXP_TYPE_ALLOW_VLAN_TRANSLATION, 1))
+    match.oxm_list.append(ofp.oxm.vlan_vid_masked(0x1000+match_vlan,0x1fff))
+
+    actions=[]
+    actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+inner_vlan)))
+    actions.append(ofp.action.push_vlan(0x8100))
+    actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+outer_vlan)))
+
+    request = ofp.message.flow_add(
+            table_id=EGRESS_VLAN_FLOW_TABLE,
+            cookie=42,
+            match=match,
+            instructions=[
+                ofp.instruction.apply_actions(
+                     actions=actions
+                ),
+                ofp.instruction.goto_table(EGRESS_DSCP_TABLE)
+            ],
+            priority=0)
+
+    ctrl.message_send(request)
+
+    return
+
 def add_one_vlan_table_flow(ctrl, of_port, out_vlan_id=1, vlan_id=1, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_BOTH, send_barrier=False):
-    # table 10: vlan
+
     # goto to table 20
     if (flag == VLAN_TABLE_FLAG_ONLY_TAG) or (flag == VLAN_TABLE_FLAG_ONLY_BOTH) or (flag == 4):
         match = ofp.match()
@@ -737,6 +780,7 @@ def add_one_vlan_table_flow(ctrl, of_port, out_vlan_id=1, vlan_id=1, vrf=0, flag
         ctrl.message_send(request)
 
     if (flag == VLAN_TABLE_FLAG_ONLY_UNTAG) or (flag == VLAN_TABLE_FLAG_ONLY_BOTH):
+
         match = ofp.match()
         match.oxm_list.append(ofp.oxm.in_port(of_port))
         match.oxm_list.append(ofp.oxm.vlan_vid_masked(0, 0x1fff))
@@ -745,6 +789,7 @@ def add_one_vlan_table_flow(ctrl, of_port, out_vlan_id=1, vlan_id=1, vrf=0, flag
         if vrf!=0:
             actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=1, value=vrf)))
 
+        # actions.append(ofp.action.push_vlan(0x8100))
         actions.append(ofp.action.set_field(ofp.oxm.vlan_vid(0x1000+vlan_id)))
 
         request = ofp.message.flow_add(
@@ -796,8 +841,9 @@ def add_one_vlan_table_flow(ctrl, of_port, out_vlan_id=1, vlan_id=1, vrf=0, flag
         match.oxm_list.append(ofp.oxm.vlan_vid_masked(0x1000+vlan_id,0x1fff))
 
         actions=[]
-        actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_OVID, value=0x1000+vlan_id)))
+        # actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_OVID, value=0x1000+vlan_id)))
         actions.append(ofp.action.pop_vlan())
+        actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_OVID, value=0x1000+vlan_id)))
 
         request = ofp.message.flow_add(
             table_id=10,
@@ -908,6 +954,7 @@ def add_one_vlan_table_flow_pw(ctrl, of_port, tunnel_index, new_vlan_id=1, vlan_
     return request
 
 def add_one_vlan_1_table_flow(ctrl, of_port, new_outer_vlan_id=-1, outer_vlan_id=1, inner_vlan_id=1, flag=VLAN_TABLE_FLAG_ONLY_TAG, send_barrier=False):
+
     # table 11: vlan 1 table
     # goto to table 20
     if flag == VLAN_TABLE_FLAG_ONLY_TAG:
@@ -938,6 +985,7 @@ def add_one_vlan_1_table_flow(ctrl, of_port, new_outer_vlan_id=-1, outer_vlan_id
         ctrl.message_send(request)
 
     if flag == VLAN_TABLE_FLAG_ONLY_UNTAG:
+
         match = ofp.match()
         match.oxm_list.append(ofp.oxm.in_port(of_port))
         match.oxm_list.append(ofp.oxm.vlan_vid_masked(0x1000+inner_vlan_id,0x1fff))
@@ -957,6 +1005,33 @@ def add_one_vlan_1_table_flow(ctrl, of_port, new_outer_vlan_id=-1, outer_vlan_id
             priority=0)
         logging.info("Add vlan 1 double tagged %d-%d packets on port %d and go to table %d" %( outer_vlan_id, inner_vlan_id, of_port, TERMINATION_FLOW_TABLE))
         ctrl.message_send(request)
+
+    if flag == VLAN_TABLE_FLAG_ONLY_POP_VLAN:
+
+        print("INSTALLIN IN TABLE 11!")
+
+        match = ofp.match()
+        match.oxm_list.append(ofp.oxm.in_port(of_port))
+        match.oxm_list.append(ofp.oxm.vlan_vid_masked(0x1000+inner_vlan_id,0x1fff))
+        match.oxm_list.append(ofp.oxm.exp2ByteValue(ofp.oxm.OFDPA_EXP_TYPE_OVID, 0x1000+outer_vlan_id))
+
+        actions=[]
+        actions.append(ofp.action.pop_vlan())
+
+        request = ofp.message.flow_add(
+            table_id=11,
+            cookie=42,
+            match=match,
+            instructions=[
+                ofp.instruction.apply_actions(
+                     actions=actions
+                ),
+                ofp.instruction.goto_table(TERMINATION_FLOW_TABLE)
+            ],
+            priority=0)
+        logging.info("Add vlan 1 double tagged %d-%d packets on port %d and go to table %d" %( outer_vlan_id, inner_vlan_id, of_port, TERMINATION_FLOW_TABLE))
+        ctrl.message_send(request)
+
 
     if send_barrier:
         do_barrier(ctrl)

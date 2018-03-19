@@ -125,6 +125,7 @@ def simple_tcp_packet(pktlen=100,
                       eth_src='00:06:07:08:09:0a',
                       dl_vlan_enable=False,
                       vlan_vid=0,
+                      outer_vlan=None,
                       vlan_pcp=0,
                       dl_vlan_cfi=0,
                       ip_src='192.168.0.1',
@@ -165,10 +166,13 @@ def simple_tcp_packet(pktlen=100,
 
     # Note Dot1Q.id is really CFI
     if (dl_vlan_enable):
-        pkt = scapy.Ether(dst=eth_dst, src=eth_src)/ \
-            scapy.Dot1Q(prio=vlan_pcp, id=dl_vlan_cfi, vlan=vlan_vid)/ \
-            scapy.IP(src=ip_src, dst=ip_dst, tos=ip_tos, ttl=ip_ttl, ihl=ip_ihl)/ \
-            scapy.TCP(sport=tcp_sport, dport=tcp_dport, flags=tcp_flags)
+        pkt = scapy.Ether( dst=eth_dst, src=eth_src )
+        if outer_vlan:
+            pkt = pkt/scapy.Dot1Q(prio=vlan_pcp, id=dl_vlan_cfi, vlan=outer_vlan)
+
+        pkt = pkt/scapy.Dot1Q( prio=vlan_pcp, id=dl_vlan_cfi, vlan=vlan_vid )/ \
+              scapy.IP(src=ip_src, dst=ip_dst, tos=ip_tos, ttl=ip_ttl, ihl=ip_ihl)/ \
+              scapy.TCP(sport=tcp_sport, dport=tcp_dport, flags=tcp_flags)
     else:
         if not ip_options:
             pkt = scapy.Ether(dst=eth_dst, src=eth_src)/ \

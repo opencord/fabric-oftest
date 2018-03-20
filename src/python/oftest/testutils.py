@@ -304,6 +304,7 @@ def simple_tcp_packet_two_vlan(pktlen=100,
                       in_dl_vlan_enable=False,
                       out_vlan_vid=0,
                       out_vlan_pcp=0,
+                      out_vlan_tpid=0x8100,
                       out_dl_vlan_cfi=0,
                       in_vlan_vid=0,
                       in_vlan_pcp=0,
@@ -346,7 +347,7 @@ def simple_tcp_packet_two_vlan(pktlen=100,
 
     # Note Dot1Q.id is really CFI
     if (out_dl_vlan_enable and in_dl_vlan_enable):
-        pkt = scapy.Ether(dst=eth_dst, src=eth_src)/ \
+        pkt = scapy.Ether(dst=eth_dst, src=eth_src, type=out_vlan_tpid)/ \
             scapy.Dot1Q(prio=out_vlan_pcp, id=out_dl_vlan_cfi, vlan=out_vlan_vid)
 
         if in_dl_vlan_enable:

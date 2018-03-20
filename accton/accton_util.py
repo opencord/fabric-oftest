@@ -1,4 +1,3 @@
-
 # Copyright 2017-present Open Networking Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -52,6 +51,9 @@ UCAST_ROUTING_FLOW_TABLE=30
 MCAST_ROUTING_FLOW_TABLE=40
 BRIDGE_FLOW_TABLE=50
 ACL_FLOW_TABLE=60
+EGRESS_TPID_FLOW_TABLE = 235
+
+ONF_EXPERIMENTER_ID = 0x4F4E4600
 
 EGRESS_VLAN_FLOW_TABLE=210
 EGRESS_VLAN_1_FLOW_TABLE=211
@@ -2037,6 +2039,35 @@ def add_mpls_forwarding_group(ctrl, subtype, index, ref_gids,
     ctrl.message_send(request)
     return mpls_group_id, request
 
+def add_one_egress_vlan_tpid_table_flow(ctrl, of_port):
+    # Used for changing ethertype of outer vlan header to 0x88a8
+
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.exp4ByteValue(ofp.oxm.OFDPA_EXP_TYPE_ACTSET_OUTPUT, of_port, ONF_EXPERIMENTER_ID))
+    match.oxm_list.append(ofp.oxm.vlan_vid_masked(ofp.OFPVID_PRESENT, ofp.OFPVID_PRESENT))
+
+    actions = []
+    actions.append(ofp.action.copy_field(
+        12, 0, 0, ['\x80\x00\x0c\x02', ofp.oxm.exp4ByteReg(oxm_field = 1).pack()])) # VLAN_VID, PACKET_REG(1)
+    actions.append(ofp.action.pop_vlan())
+    actions.append(ofp.action.push_vlan(0x88a8))
+    actions.append(ofp.action.copy_field(
+        12, 0, 0, [ofp.oxm.exp4ByteReg(oxm_field = 1).pack(), '\x80\x00\x0c\x02'])) # PACKET_REG(1), VLAN_VID
+
+    request = ofp.message.flow_add(
+        table_id=EGRESS_TPID_FLOW_TABLE,
+        cookie=42,
+        match=match,
+        instructions=[
+            ofp.instruction.apply_actions(
+                actions=actions
+            ),
+        ],
+        priority=0)
+
+    ctrl.message_send(request)
+
+    return
 
 """
 display

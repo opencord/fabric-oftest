@@ -6271,10 +6271,11 @@ oxm.subtypes[0xffff0008] = exp2ByteValue
 class exp4ByteValue(oxm):
     type_len = 0xffff0008
 
-    def __init__(self, exp_type=0, value=None):
+    def __init__(self, exp_type=0, value=None, experimenter=OFDPA_EXPERIMETER):
         if value != None:
             self.value = value
             self.exp_type=exp_type
+            self.experimenter = experimenter
         else:
             self.value = 0
         return
@@ -6282,7 +6283,7 @@ class exp4ByteValue(oxm):
     def pack(self):
         packed = []
         packed.append(struct.pack("!L", self.type_len | (self.exp_type <<9)))
-        packed.append(struct.pack("!L", OFDPA_EXPERIMETER))
+        packed.append(struct.pack("!L", self.experimenter))
         packed.append(struct.pack("!L", self.value))
         return ''.join(packed)
 
@@ -6314,3 +6315,14 @@ class exp4ByteValue(oxm):
         q.text('}')
 
 oxm.subtypes[0xffff000a] = exp4ByteValue
+
+class exp4ByteReg( oxm ):
+    type_len = 0x80010000
+
+    def __init__( self, oxm_field=0 ):
+        self.oxm_field = oxm_field
+
+    def pack( self ):
+        packed = [ ]
+        packed.append( struct.pack( "!L", self.type_len | (self.oxm_field << 9) ) )
+        return ''.join( packed )

@@ -2119,3 +2119,87 @@ class ofdpa_oam_set_counter_field(ofdpa):
         q.text('}')
 
 ofdpa.subtypes[OFDPA_ACT_OAM_SET_COUNTER_FIELDS] = ofdpa_oam_set_counter_field
+
+class copy_field(action):
+    type = 65535
+    experimenter = 0x4f4e4600  # ONF_EXPERIMENTER_ID
+    exp_type = 3200            # ONFTFP_ET_WRITE_COPYFIELD
+
+    def __init__(self, n_bits=None, src_offset=None, dst_offset=None, oxm_ids=None):
+        if n_bits != None:
+            self.n_bits = n_bits
+        else:
+            self.n_bits = 0
+        if src_offset != None:
+            self.src_offset = src_offset
+        else:
+            self.src_offset = 0
+        if dst_offset != None:
+            self.dst_offset = dst_offset
+        else:
+            self.dst_offset = 0
+        if oxm_ids != None:
+            self.oxm_ids = oxm_ids
+        else:
+            self.oxm_ids = [ ]
+        return
+
+    def pack( self ):
+        packed = [ ]
+        packed.append( struct.pack( "!H", self.type ) )
+        packed.append( struct.pack( "!H", 0 ) )  # placeholder for len at index 1
+        packed.append( struct.pack( "!L", self.experimenter ) )
+        packed.append( struct.pack( "!H", self.exp_type ) )
+        packed.append( '\x00' * 2 )
+        packed.append( struct.pack( "!H", self.n_bits ) )
+        packed.append( struct.pack( "!H", self.src_offset ) )
+        packed.append( struct.pack( "!H", self.dst_offset ) )
+        packed.append( '\x00' * 2 )
+        packed.append( "".join(self.oxm_ids ) )
+        length = sum( [ len( x ) for x in packed ] )
+        packed[ 1 ] = struct.pack( "!H", length )
+        return ''.join( packed )
+
+    @staticmethod
+    def unpack( reader ):
+        obj = copy_field()
+        _type = reader.read( "!H" )[ 0 ]
+        _len = reader.read( "!H" )[ 0 ]
+        orig_reader = reader
+        reader = orig_reader.slice( _len, 4 )
+        obj.n_bits = reader.read( "!H" )[ 0 ]
+        obj.src_offset = reader.read( "!H" )[ 0 ]
+        obj.dst_offset = reader.read( "!H" )[ 0 ]
+        reader.skip( 2 )
+        obj.oxm_ids = loxi.generic_util.unpack_list( reader, ofp.oxm.oxm.unpack )
+        return obj
+
+    def __eq__( self, other ):
+        if type( self ) != type( other ): return False
+        if self.n_bits != other.n_bits: return False
+        if self.src_offset != other.src_offset: return False
+        if self.dst_offset != other.dst_offset: return False
+        if self.oxm_ids != other.oxm_ids: return False
+        return True
+
+    def pretty_print( self, q ):
+        q.text( "copy_field {" )
+        with q.group():
+            with q.indent( 2 ):
+                q.breakable()
+                q.text( "n_bits = " )
+                q.text( "%#x" % self.n_bits )
+                q.text( "," )
+                q.breakable()
+                q.text( "src_offset = " )
+                q.text( "%#x" % self.src_offset )
+                q.text( "," )
+                q.breakable()
+                q.text( "dst_offset = " )
+                q.text( "%#x" % self.dst_offset )
+                q.text( "," )
+                q.breakable()
+                q.text( "oxm_ids = " )
+                q.pp( self.oxm_ids )
+            q.breakable()
+        q.text( '}' )

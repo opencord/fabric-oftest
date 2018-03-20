@@ -2952,3 +2952,98 @@ class UntaggedToDoubleMultipleSubscribers ( base_tests.SimpleDataPlane ):
             delete_groups( self.controller, Groups )
             delete_all_groups( self.controller )
 
+class UntaggedToDoubleChangeEthertype ( base_tests.SimpleDataPlane ):
+
+    def runTest( self ):
+        Groups = Queue.LifoQueue()
+        try:
+            if len( config[ "port_map" ] ) < 2:
+                logging.info( "Port count less than 2, can't run this case" )
+                return
+
+            input_src_mac = [ 0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc ]
+            input_src_mac_str = ':'.join( [ '%02X' % x for x in input_src_mac ] )
+
+            input_dst_mac = [ 0x00, 0x00, 0x00, 0x22, 0x22, 0x00 ]
+            input_dst_mac_str = ':'.join( [ '%02X' % x for x in input_dst_mac ] )
+
+            output_dst_mac = [ 0x00, 0x00, 0x00, 0x33, 0x33, 0x00 ]
+            output_dst_mac_str = ':'.join( [ '%02X' % x for x in output_dst_mac ] )
+
+            dip = 0xc0a80001
+            ports = config[ "port_map" ].keys( )
+
+            inner_vlan = 66
+            outer_vlan = 77
+            id = 10
+
+            port = ports[0]
+            out_port = ports[1]
+
+            # add l2 unfiltered interface group
+            l2_gid, l2_msg = add_one_l2_unfiltered_group( self.controller, out_port, True)
+
+            l3_msg = add_l3_unicast_group( self.controller, out_port, vlanid=4094, id=id,
+                        src_mac=input_dst_mac, dst_mac=output_dst_mac, gid=l2_gid)
+
+            do_barrier( self.controller )
+
+            # add vlan flow table
+            add_one_vlan_table_flow( self.controller, port, 1, 4094,
+                    flag=VLAN_TABLE_FLAG_ONLY_BOTH )
+
+            # add termination flow
+            if config["switch_type"] == "qmx":
+                add_termination_flow( self.controller, 0, 0x0800, input_dst_mac, 4094 )
+            else:
+                add_termination_flow( self.controller, port, 0x0800, input_dst_mac, 4094 )
+
+            add_unicast_routing_flow( self.controller, 0x0800, dip, 0xffffffff, l3_msg.group_id,
+                    vrf=0 )
+
+            add_one_egress_vlan_table_flow( self.controller, out_port, 4094 , inner_vlan, outer_vlan)
+
+            Groups._put( l2_gid )
+            Groups._put( l3_msg.group_id )
+
+            # add vlan flow table
+            add_one_egress_vlan_tpid_table_flow( self.controller, out_port, outer_vlan+0x1000 )
+            do_barrier( self.controller )
+
+            ip_src = '192.168.5.5'
+            ip_dst = '192.168.0.1'
+            parsed_pkt = simple_tcp_packet( pktlen=100,
+                                            dl_vlan_enable=False,
+                                            eth_dst=input_dst_mac_str,
+                                            eth_src=input_src_mac_str,
+                                            ip_ttl=64,
+                                            ip_src=ip_src,
+                                            ip_dst=ip_dst )
+            pkt = str( parsed_pkt )
+
+            print("Input Packet %s" % format_packet(pkt))
+
+            self.dataplane.send( port, pkt )
+
+            # build expect packet
+            exp_pkt = simple_tcp_packet_two_vlan( pktlen=108,
+                                                  out_dl_vlan_enable=True,
+                                                  out_vlan_vid=outer_vlan,
+                                                  out_vlan_tpid=0x88a8,
+                                                  in_dl_vlan_enable=True,
+                                                  in_vlan_vid=inner_vlan,
+                                                  eth_dst=output_dst_mac_str,
+                                                  eth_src=input_dst_mac_str,
+                                                  ip_ttl=63,
+                                                  ip_src=ip_src,
+                                                  ip_dst=ip_dst )
+            pkt = str( exp_pkt )
+
+            print("Expected Packet %s" % format_packet(pkt))
+
+            verify_packet( self, pkt, out_port )
+            verify_no_other_packets( self )
+        finally:
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
+            delete_all_groups( self.controller )

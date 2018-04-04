@@ -2651,6 +2651,7 @@ class MPLSSwapTest( base_tests.SimpleDataPlane ):
                 eth_dst=input_dst_mac_str,
                 )
             pkt = str( parsed_pkt )
+
             self.dataplane.send( src_port, pkt )
 
             label = (mpls_label, 0, 1, 62)
@@ -3121,9 +3122,10 @@ class UntaggedToDoubleChangeEthertype ( base_tests.SimpleDataPlane ):
 
     def runTest( self ):
         Groups = Queue.LifoQueue()
+
         try:
             if len( config[ "port_map" ] ) < 2:
-                logging.info( "Port count less than 2, can't run this case" )
+                logging.info( "port count less than 2, can't run this case" )
                 return
 
             input_src_mac = [ 0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc ]
@@ -3212,3 +3214,142 @@ class UntaggedToDoubleChangeEthertype ( base_tests.SimpleDataPlane ):
             delete_all_flows( self.controller )
             delete_groups( self.controller, Groups )
             delete_all_groups( self.controller )
+
+class _MplsFwdInterfaceProblem_PW( base_tests.SimpleDataPlane ):
+    """
+    Reproduces the pseudowire bug with the wrongly set destination mac address.
+    """
+    def runTest( self ):
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 1:
+                logging.info( "Port count less than 1, can't run this case" )
+                assert (False)
+                return
+
+            macs_to_test = [( [ 0x00, 0x00, 0x00, 0x11, 0x11, 0x00 ], [ 0x00, 0x00, 0x00, 0x22, 0x22, 0x00 ],  '00:00:00:11:11:00',  '00:00:00:22:22:00'),
+                            ( [ 0x00, 0x00, 0x00, 0x11, 0x22, 0x00 ], [ 0x00, 0x00, 0x00, 0x33, 0x33, 0x00 ],  '00:00:00:11:22:00',  '00:00:00:33:33:00'),
+                            ( [ 0x00, 0x00, 0x00, 0x11, 0x33, 0x00 ], [ 0x00, 0x00, 0x00, 0x44, 0x44, 0x00 ],  '00:00:00:11:33:00',  '00:00:00:44:44:00'),
+                            ( [ 0x00, 0x00, 0x00, 0x11, 0x44, 0x00 ], [ 0x00, 0x00, 0x00, 0x55, 0x55, 0x00 ],  '00:00:00:11:44:00',  '00:00:00:55:55:00'),
+                            ( [ 0x00, 0x00, 0x00, 0x11, 0x55, 0x00 ], [ 0x00, 0x00, 0x00, 0x66, 0x66, 0x00 ],  '00:00:00:11:55:00',  '00:00:00:66:66:00')]
+
+            for dummy_dst_mac, dst_mac, mac_dst_dummy, mac_dst in macs_to_test:
+
+                dip = 0xc0a80001
+                intf_src_mac = [ 0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc ]
+
+                out_port = 12
+                port = 24
+                # Shift MPLS label and VLAN ID by 16 to avoid reserved values
+                vlan_id = port + 16
+                mpls_label = port + 16
+
+                in_port = 24
+                ip_src = '192.168.%02d.1' % (in_port)
+
+                # create dummy groups
+                id = port
+                l2_gid, l2_msg = add_one_l2_interface_group( self.controller, out_port, vlan_id, False, False)
+                mpls_gid, mpls_msg = add_mpls_intf_group( self.controller, l2_gid, dummy_dst_mac, intf_src_mac,
+                       vlan_id, id, send_barrier=True)
+                do_barrier( self.controller )
+
+                # PW Case.
+                raw_input("Press anything to move on with pseudowire rules, after that you should see the updated groups in the switch.")
+                logging.info("Installing entries for pseudowire!")
+                switch_mac = ':'.join( [ '%02X' % x for x in intf_src_mac ] )
+                mpls_label      = 100
+                mpls_label_SR2 = 100 + 10
+                mpls_label_PW = 100 + 15
+
+                print("Install MPLS intf group for dst mac {0}", dst_mac)
+                # add MPLS interface group
+                mpls_intf_gid, mpls_intf_msg = add_mpls_intf_group(
+                    ctrl=self.controller,
+                    ref_gid=l2_gid,
+                    dst_mac=dst_mac,
+                    src_mac=intf_src_mac,
+                    vid=vlan_id,
+                    index=id,
+                    add=False,
+                    send_barrier=True
+                    )
+
+                # add MPLS flow with BoS=0
+                add_mpls_flow_pw(
+                    ctrl=self.controller,
+                    action_group_id=mpls_intf_gid,
+                    label=mpls_label_SR2,
+                    ethertype=0x8847,
+                    tunnel_index=1,
+                    bos=0
+                    )
+
+                # add Termination flow
+                add_termination_flow(
+                    ctrl=self.controller,
+                    in_port=in_port,
+                    eth_type=0x8847,
+                    dst_mac=intf_src_mac,
+                    vlanid=vlan_id,
+                    goto_table=23
+                    )
+
+                # add VLAN flows
+                add_one_vlan_table_flow(
+                    ctrl=self.controller,
+                    of_port=in_port,
+                    vlan_id=vlan_id,
+                    flag=VLAN_TABLE_FLAG_ONLY_TAG,
+                    )
+                add_one_vlan_table_flow(
+                    ctrl=self.controller,
+                    of_port=in_port,
+                    vlan_id=vlan_id,
+                    flag=VLAN_TABLE_FLAG_ONLY_UNTAG
+                    )
+                # Packet generation with sleep
+                time.sleep(2)
+                label_SR2 = (mpls_label_SR2, 0, 0, 32)
+                label_2 = (mpls_label_PW, 0, 1, 32)
+
+                # set to false to test if routing traffic
+                # comes through
+                raw_input("Press enter to send the packet, inspect the groups in the switch!")
+                print("Sending packet with dst mac {0} and labels {1}".format(switch_mac, [label_SR2, label_2]))
+                parsed_pkt = mpls_packet(
+                    pktlen=104,
+                    ip_ttl=63,
+                    label=[label_SR2, label_2],
+                    encapsulated_ethernet = True,
+                    eth_dst=switch_mac
+                )
+
+                pkt = str( parsed_pkt )
+                self.dataplane.send( in_port, pkt )
+
+                expected_label = (mpls_label_PW, 0, 1, 31)
+                print("Expecting packet with dst mac {0} and labels {1}".format(mac_dst, [label_2]))
+                parsed_pkt =  mpls_packet(
+                    pktlen=100,
+                    ip_ttl=63,
+                    eth_dst=mac_dst,
+                    eth_src=switch_mac,
+                    label=[ expected_label ],
+                    encapsulated_ethernet = True
+                )
+
+                pkt = str( parsed_pkt )
+                verify_packet( self, pkt, out_port )
+                verify_no_packet( self, pkt, in_port )
+
+                delete_all_flows( self.controller )
+                delete_groups( self.controller, Groups )
+                delete_all_groups( self.controller )
+
+        finally:
+                delete_all_flows( self.controller )
+                delete_groups( self.controller, Groups )
+                delete_all_groups( self.controller )
+
+

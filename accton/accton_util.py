@@ -1293,7 +1293,6 @@ def add_mpls_flow(ctrl, action_group_id=0x0, label=100 ,ethertype=0x0800, bos=1,
                 ],
             buffer_id=ofp.OFP_NO_BUFFER,
             priority=1)
-    logging.info("Inserting MPLS flow , label %ld", label)
     ctrl.message_send(request)
 
     if send_barrier:
@@ -1380,6 +1379,7 @@ def add_mpls_flow_pw(ctrl, action_group_id, label, ethertype, bos, tunnel_index,
         # 0x0002nnnn is for UNI interfaces
         apply_actions.append(ofp.action.set_field(ofp.oxm.exp4ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_L2_PORT, value=0x00020000 + of_port)))
         apply_actions.append(ofp.action.set_field(ofp.oxm.exp2ByteValue(exp_type=ofp.oxm.OFDPA_EXP_TYPE_MPLS_TYPE, value=ofp.oxm.VPWS)))
+
     write_actions.append(ofp.action.group(action_group_id))
 
     request = ofp.message.flow_add(
@@ -1845,7 +1845,7 @@ def encode_mpls_forwarding_group_id(subtype, index):
     return index + (10 << OFDPA_GROUP_TYPE_SHIFT)+(subtype<<OFDPA_MPLS_SUBTYPE_SHIFT)
 
 
-def add_mpls_intf_group(ctrl, ref_gid, dst_mac, src_mac, vid, index, subtype=0, send_barrier=False):
+def add_mpls_intf_group(ctrl, ref_gid, dst_mac, src_mac, vid, index, subtype=0, send_barrier=False, add=True):
     action=[]
     action.append(ofp.action.set_field(ofp.oxm.eth_src(src_mac)))
     action.append(ofp.action.set_field(ofp.oxm.eth_dst(dst_mac)))
@@ -1855,10 +1855,17 @@ def add_mpls_intf_group(ctrl, ref_gid, dst_mac, src_mac, vid, index, subtype=0, 
     buckets = [ofp.bucket(actions=action)]
 
     mpls_group_id =encode_mpls_interface_group_id(subtype, index)
-    request = ofp.message.group_add(group_type=ofp.OFPGT_INDIRECT,
-                                    group_id=mpls_group_id,
-                                    buckets=buckets
-                                   )
+    if add:
+        request = ofp.message.group_add(group_type=ofp.OFPGT_INDIRECT,
+                                        group_id=mpls_group_id,
+                                        buckets=buckets
+                                       )
+    else:
+        request = ofp.message.group_modify(group_type=ofp.OFPGT_INDIRECT,
+                                        group_id=mpls_group_id,
+                                        buckets=buckets
+                                       )
+
 
     logging.debug("Adding MPLS interface group %02x, src_mac %s , dst_mac %s , vid %d", mpls_group_id, src_mac, dst_mac, vid)
     ctrl.message_send(request)

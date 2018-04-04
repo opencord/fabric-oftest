@@ -6186,6 +6186,7 @@ class exp1ByteValue(oxm):
     def pack(self):
         packed = []
         packed.append(struct.pack("!L", self.type_len | (self.exp_type <<9)))
+        print(self.type_len | (self.exp_type <<9), '02x')
         packed.append(struct.pack("!L", OFDPA_EXPERIMETER))
         #packed.append(struct.pack("!H", self.exp_type))
         packed.append(struct.pack("!b", self.value))

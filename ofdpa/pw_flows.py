@@ -1894,7 +1894,6 @@ class IntermediateTransport( base_tests.SimpleDataPlane ):
 
             verify_no_other_packets( self )
         finally:
-
             delete_all_flows( self.controller )
             delete_groups( self.controller, Groups )
             delete_all_groups( self.controller )
@@ -2179,6 +2178,179 @@ class ClearAll( base_tests.SimpleDataPlane ):
     def runTest( self ):
     	delete_all_flows( self.controller )
     	delete_all_groups( self.controller )
+
+class IntermediateTransportBug( base_tests.SimpleDataPlane ):
+    """
+    This test is meant to verify that the alternative approach for handling
+    pseudowires in spine switches. Specifically, in the mpls table we install
+    2 rules , the match(SR1, BoS=1) and match(SR2, BoS=0). The match(SR2, BoS=0)
+    should match and the packet should be forwarded through the port and the label
+    for SR2 should be removed.
+    """
+    def runTest( self ):
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 1:
+                logging.info( "Port count less than 1, can't run this case" )
+                assert (False)
+                return
+            ports           = config[ "port_map" ].keys( )
+            in_port         = ports[0]
+            out_port        = ports[1]
+            out_vlan        = 4094
+            src_mac         = [ 0x00, 0x00, 0x00, 0x00, 0x11, 0x01 ]
+            src_mac_str     = ':'.join( [ '%02X' % x for x in src_mac ] )
+            dst_mac         = [ 0x00, 0x00, 0x00, 0x11, 0x11, 0x01 ]
+            dst_mac_str     = ':'.join( [ '%02X' % x for x in dst_mac ] )
+            mpls_label      = 100
+            mpls_label_SR1 = 100 + 5
+            mpls_label_SR2 = 100 + 10
+            mpls_label_PW = 100 + 15
+
+            # Add l2 interface group, we have to pop the VLAN;
+            l2_intf_gid, l2_intf_msg = add_one_l2_interface_group(
+                ctrl=self.controller,
+                port=out_port,
+                vlan_id=out_vlan,
+                is_tagged=False,
+                send_barrier=False
+                )
+            Groups._put( l2_intf_gid )
+
+            # add MPLS interface group
+            mpls_intf_gid, mpls_intf_msg = add_mpls_intf_group(
+                ctrl=self.controller,
+                ref_gid=l2_intf_gid,
+                dst_mac=dst_mac,
+                src_mac=src_mac,
+                vid=out_vlan,
+                index=in_port
+                )
+            Groups._put( mpls_intf_gid )
+
+            # Add L3 Unicast  group
+            l3_msg = add_l3_unicast_group(
+                ctrl=self.controller,
+                port=out_port,
+                vlanid=out_vlan,
+                id=in_port,
+                src_mac=src_mac,
+                dst_mac=dst_mac
+                )
+            Groups._put( l3_msg.group_id )
+
+            # Add L3 ecmp group
+            ecmp_msg = add_l3_ecmp_group(
+                ctrl=self.controller,
+                id=in_port,
+                l3_ucast_groups=[ l3_msg.group_id ]
+                )
+            Groups._put( ecmp_msg.group_id )
+
+            # Add MPLS flow with BoS=1
+            add_mpls_flow(
+                ctrl=self.controller,
+                action_group_id=ecmp_msg.group_id,
+                label=mpls_label_SR1
+                )
+
+            # add MPLS flow with BoS=0
+            add_mpls_flow_pw(
+                ctrl=self.controller,
+                action_group_id=mpls_intf_gid,
+                label=mpls_label_SR2,
+                ethertype=0x8847,
+                tunnel_index=1,
+                bos=0
+                )
+
+            # add Termination flow
+            add_termination_flow(
+                ctrl=self.controller,
+                in_port=in_port,
+                eth_type=0x8847,
+                dst_mac=src_mac,
+                vlanid=out_vlan,
+                goto_table=23
+                )
+            # add VLAN flows
+            add_one_vlan_table_flow(
+                ctrl=self.controller,
+                of_port=in_port,
+                vlan_id=out_vlan,
+                flag=VLAN_TABLE_FLAG_ONLY_TAG,
+                )
+            add_one_vlan_table_flow(
+                ctrl=self.controller,
+                of_port=in_port,
+                vlan_id=out_vlan,
+                flag=VLAN_TABLE_FLAG_ONLY_UNTAG
+                )
+            # Packet generation with sleep
+            time.sleep(2)
+            label_SR1 = (mpls_label_SR1, 0, 1, 32)
+            label_SR2 = (mpls_label_SR2, 0, 0, 32)
+            label_2 = (mpls_label_PW, 0, 1, 32)
+
+	    # set to false to test if routing traffic
+	    # comes through
+
+	    pw = True
+            if pw:
+		    parsed_pkt = mpls_packet(
+			pktlen=104,
+			ip_ttl=63,
+			eth_dst=src_mac_str,
+			label=[label_SR2, label_2],
+			encapsulated_ethernet = True
+		    )
+
+		    pkt = str( parsed_pkt )
+
+		    self.dataplane.send( in_port, pkt )
+
+		    expected_label = (mpls_label_PW, 0, 1, 31)
+		    # we geneate the expected pw packet
+		    parsed_pkt =  mpls_packet(
+			pktlen=100,
+			ip_ttl=63,
+			eth_dst=dst_mac_str,
+			eth_src=src_mac_str,
+			label=[ expected_label ],
+			encapsulated_ethernet = True
+		    )
+
+		    pkt = str( parsed_pkt )
+		    verify_packet( self, pkt, out_port )
+		    verify_no_packet( self, pkt, in_port )
+	    else:
+		    # packet for routing traffic
+		    parsed_pkt_2 = mpls_packet(
+			pktlen=104,
+			ip_ttl=63,
+			eth_dst=src_mac_str,
+			label=[ label_SR1 ]
+		    )
+		    pkt_2 = str(parsed_pkt_2)
+		    self.dataplane.send( in_port, pkt_2 )
+
+		    # we geneate the expected routed packet
+		    parsed_pkt_2 = simple_tcp_packet(
+			pktlen=100,
+			ip_ttl=31,
+			eth_dst=dst_mac_str,
+			eth_src=src_mac_str,
+		    )
+		    pkt_2 = str(parsed_pkt_2)
+
+		    verify_packet( self, pkt_2, out_port)
+		    verify_no_packet( self, pkt_2, in_port )
+
+            verify_no_other_packets( self )
+        finally:
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
+            delete_all_groups( self.controller )
 
 
 

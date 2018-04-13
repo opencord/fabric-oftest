@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "56ba64ae_b2d6d50d",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 2476,
+      "author": {
+        "id": 1000346
+      },
+      "writtenOn": "2018-04-13T05:46:37Z",
+      "side": 1,
+      "message": "remove it",
+      "range": {
+        "startLine": 2476,
+        "startChar": 0,
+        "endLine": 2476,
+        "endChar": 12
+      },
+      "revId": "28cfae00a3122569ec691976c84bebc6f74b78b1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

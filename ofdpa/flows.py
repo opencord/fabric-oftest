@@ -25,6 +25,7 @@ import logging
 import oftest.base_tests as base_tests
 import ofp
 import time
+from oftest.oft12.testutils import delete_all_flows_one_table
 from oftest.testutils import *
 from accton_util import *
 from utils import *
@@ -1311,6 +1312,7 @@ class L3McastToL3( base_tests.SimpleDataPlane ):
                 port_to_out_vlan,
                 port_to_src_mac_str,
                 port_to_dst_mac_str,
+                port_to_src_ip,
                 port_to_src_ip_str,
                 port_to_intf_src_mac_str,
                 Groups) = fill_mcast_pipeline_L3toL3(
@@ -1380,6 +1382,7 @@ class L3McastToL2UntagToUntag( base_tests.SimpleDataPlane ):
                 port_to_out_vlan,
                 port_to_src_mac_str,
                 port_to_dst_mac_str,
+                port_to_src_ip,
                 port_to_src_ip_str,
                 Groups) = fill_mcast_pipeline_L3toL2(
                 self.controller,
@@ -1445,6 +1448,7 @@ class L3McastToL2UntagToTag( base_tests.SimpleDataPlane ):
                 port_to_out_vlan,
                 port_to_src_mac_str,
                 port_to_dst_mac_str,
+                port_to_src_ip,
                 port_to_src_ip_str,
                 Groups) = fill_mcast_pipeline_L3toL2(
                 self.controller,
@@ -1513,6 +1517,7 @@ class L3McastToL2TagToUntag( base_tests.SimpleDataPlane ):
                 port_to_out_vlan,
                 port_to_src_mac_str,
                 port_to_dst_mac_str,
+                port_to_src_ip,
                 port_to_src_ip_str,
                 Groups) = fill_mcast_pipeline_L3toL2(
                 self.controller,
@@ -1579,6 +1584,7 @@ class L3McastToL2TagToTag( base_tests.SimpleDataPlane ):
                 port_to_out_vlan,
                 port_to_src_mac_str,
                 port_to_dst_mac_str,
+                port_to_src_ip,
                 port_to_src_ip_str,
                 Groups) = fill_mcast_pipeline_L3toL2(
                 self.controller,
@@ -1648,6 +1654,7 @@ class L3McastToL2TagToTagTranslated( base_tests.SimpleDataPlane ):
                 port_to_out_vlan,
                 port_to_src_mac_str,
                 port_to_dst_mac_str,
+                port_to_src_ip,
                 port_to_src_ip_str,
                 Groups) = fill_mcast_pipeline_L3toL2(
                 self.controller,
@@ -1691,6 +1698,107 @@ class L3McastToL2TagToTagTranslated( base_tests.SimpleDataPlane ):
                         verify_no_packet( self, pkt, in_port )
                         continue
                     verify_packet( self, pkt, out_port )
+                    verify_no_other_packets( self )
+        finally:
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
+            delete_all_groups( self.controller )
+
+class L3McastTrafficThenDrop( base_tests.SimpleDataPlane ):
+    """
+    Mcast routing, in this test case the traffic is untagged.
+    4094 is used as internal vlan_id. We first install aa full pipeline,
+    test that it forwards properly then remove all rules on table 40 and
+    mcast groups and ensure traffic is dropped. Blackhole of mcast traffic
+    if no tree is programmed on the switch.
+    """
+    def runTest( self ):
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 2:
+                logging.info( "Port count less than 2, can't run this case" )
+                assert (False)
+                return
+            ports      = config[ "port_map" ].keys( )
+            dst_ip_str = "224.0.0.1"
+            (
+                port_to_in_vlan,
+                port_to_out_vlan,
+                port_to_src_mac_str,
+                port_to_dst_mac_str,
+                port_to_src_ip,
+                port_to_src_ip_str,
+                Groups) = fill_mcast_pipeline_L3toL2(
+                self.controller,
+                logging,
+                ports,
+                is_ingress_tagged   = False,
+                is_egress_tagged    = False,
+                is_vlan_translated  = False,
+                is_max_vlan         = True
+                )
+
+            for in_port in ports:
+
+                parsed_pkt = simple_udp_packet(
+                    pktlen  = 96,
+                    eth_dst = port_to_dst_mac_str[in_port],
+                    eth_src = port_to_src_mac_str[in_port],
+                    ip_ttl  = 64,
+                    ip_src  = port_to_src_ip_str[in_port],
+                    ip_dst  = dst_ip_str
+                    )
+                pkt = str( parsed_pkt )
+                self.dataplane.send( in_port, pkt )
+
+                for out_port in ports:
+
+                    parsed_pkt = simple_udp_packet(
+                        pktlen  = 96,
+                        eth_dst = port_to_dst_mac_str[in_port],
+                        eth_src = port_to_src_mac_str[in_port],
+                        ip_ttl  = 64,
+                        ip_src  = port_to_src_ip_str[in_port],
+                        ip_dst  = dst_ip_str
+                        )
+                    pkt = str( parsed_pkt )
+                    if out_port == in_port:
+                        verify_no_packet( self, pkt, in_port )
+                        continue
+                    verify_packet( self, pkt, out_port )
+                    verify_no_other_packets( self )
+
+            delete_all_flows_one_table(ctrl=self.controller, logger=logging, table_id=40);
+            delete_all_groups(self.controller)
+
+            for in_port in ports:
+
+                parsed_pkt = simple_udp_packet(
+                    pktlen  = 96,
+                    eth_dst = port_to_dst_mac_str[in_port],
+                    eth_src = port_to_src_mac_str[in_port],
+                    ip_ttl  = 64,
+                    ip_src  = port_to_src_ip_str[in_port],
+                    ip_dst  = dst_ip_str
+                    )
+                pkt = str( parsed_pkt )
+                self.dataplane.send( in_port, pkt )
+
+                for out_port in ports:
+
+                    parsed_pkt = simple_udp_packet(
+                        pktlen  = 96,
+                        eth_dst = port_to_dst_mac_str[in_port],
+                        eth_src = port_to_src_mac_str[in_port],
+                        ip_ttl  = 64,
+                        ip_src  = port_to_src_ip_str[in_port],
+                        ip_dst  = dst_ip_str
+                        )
+                    pkt = str( parsed_pkt )
+                    if out_port == in_port:
+                        verify_no_packet( self, pkt, in_port )
+                        continue
+                    verify_no_packet( self, pkt, out_port )
                     verify_no_other_packets( self )
         finally:
             delete_all_flows( self.controller )

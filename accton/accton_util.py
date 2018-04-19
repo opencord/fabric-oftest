@@ -1404,6 +1404,37 @@ def add_mcast4_routing_flow(ctrl, vlan_id, src_ip, src_ip_mask, dst_ip, action_g
 
     return request
 
+def del_mcast4_table_flow(ctrl, vlan_id, src_ip, src_ip_mask, dst_ip, action_group_id, send_barrier=False):
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.eth_type(0x0800))
+    match.oxm_list.append(ofp.oxm.vlan_vid(0x1000 + vlan_id))
+    if src_ip_mask!=0:
+        match.oxm_list.append(ofp.oxm.ipv4_src_masked(src_ip, src_ip_mask))
+    else:
+        match.oxm_list.append(ofp.oxm.ipv4_src(src_ip))
+
+    match.oxm_list.append(ofp.oxm.ipv4_dst(dst_ip))
+
+    request = ofp.message.flow_delete(
+            table_id=40,
+            cookie=42,
+            match=match,
+            instructions=[
+                    ofp.instruction.write_actions(
+                        actions=[ofp.action.group(action_group_id)]),
+                    ofp.instruction.goto_table(60)
+                ],
+            buffer_id=ofp.OFP_NO_BUFFER,
+            priority=1)
+
+    logging.info("Removing mcast routing flow eth_type %lx, dip %lx, sip %lx, sip_mask %lx",0x0800, dst_ip, src_ip, src_ip_mask)
+    ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
+
+    return request
+
 def add_acl_rule(ctrl, eth_type=None, ip_proto=None, send_barrier=False):
     match = ofp.match()
     if eth_type != None:

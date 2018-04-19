@@ -205,6 +205,7 @@ def fill_mcast_pipeline_L3toL2(
         port_to_out_vlan,
         port_to_src_mac_str,
         port_to_dst_mac_str,
+        port_to_src_ip,
         port_to_src_ip_str,
         Groups
         )
@@ -302,6 +303,7 @@ def fill_mcast_pipeline_L3toL3(
         port_to_out_vlan,
         port_to_src_mac_str,
         port_to_dst_mac_str,
+        port_to_src_ip,
         port_to_src_ip_str,
         port_to_intf_src_mac_str,
         Groups

@@ -1,0 +1,274 @@
+From 52d2c508d0d7e051f32aa7e5582b05d19759ca6c Mon Sep 17 00:00:00 2001
+From: Andrea Campanella <andrea@opennetworking.org>
+Date: Thu, 19 Apr 2018 19:11:49 +0200
+Subject: [PATCH] Adding test for Mcast Drop
+
+Change-Id: I6439ef600f59de115ad75f77a3b6e5bb8d90d61e
+---
+ accton/accton_util.py          |  31 +++++++++++
+ ofdpa/flows.py                 | 115 +++++++++++++++++++++++++++++++++++++++++
+ ofdpa/utils.py                 |   2 +
+ src/python/oftest/testutils.py |  17 ++++++
+ 4 files changed, 165 insertions(+)
+
+diff --git a/accton/accton_util.py b/accton/accton_util.py
+index 5cdfad3..b6a7a50 100755
+--- a/accton/accton_util.py
++++ b/accton/accton_util.py
+@@ -1404,6 +1404,37 @@ def add_mcast4_routing_flow(ctrl, vlan_id, src_ip, src_ip_mask, dst_ip, action_g
+ 
+     return request
+ 
++def del_mcast4_table_flow(ctrl, vlan_id, src_ip, src_ip_mask, dst_ip, action_group_id, send_barrier=False):
++    match = ofp.match()
++    match.oxm_list.append(ofp.oxm.eth_type(0x0800))
++    match.oxm_list.append(ofp.oxm.vlan_vid(0x1000 + vlan_id))
++    if src_ip_mask!=0:
++        match.oxm_list.append(ofp.oxm.ipv4_src_masked(src_ip, src_ip_mask))
++    else:
++        match.oxm_list.append(ofp.oxm.ipv4_src(src_ip))
++
++    match.oxm_list.append(ofp.oxm.ipv4_dst(dst_ip))
++
++    request = ofp.message.flow_delete(
++            table_id=40,
++            cookie=42,
++            match=match,
++            instructions=[
++                    ofp.instruction.write_actions(
++                        actions=[ofp.action.group(action_group_id)]),
++                    ofp.instruction.goto_table(60)
++                ],
++            buffer_id=ofp.OFP_NO_BUFFER,
++            priority=1)
++
++    logging.info("Removing mcast routing flow eth_type %lx, dip %lx, sip %lx, sip_mask %lx",0x0800, dst_ip, src_ip, src_ip_mask)
++    ctrl.message_send(request)
++
++    if send_barrier:
++        do_barrier(ctrl)
++
++    return request
++
+ def add_acl_rule(ctrl, eth_type=None, ip_proto=None, send_barrier=False):
+     match = ofp.match()
+     if eth_type != None:
+diff --git a/ofdpa/flows.py b/ofdpa/flows.py
+index 1ae6280..868c75f 100755
+--- a/ofdpa/flows.py
++++ b/ofdpa/flows.py
+@@ -1311,6 +1311,7 @@ class L3McastToL3( base_tests.SimpleDataPlane ):
+                 port_to_out_vlan,
+                 port_to_src_mac_str,
+                 port_to_dst_mac_str,
++                port_to_src_ip,
+                 port_to_src_ip_str,
+                 port_to_intf_src_mac_str,
+                 Groups) = fill_mcast_pipeline_L3toL3(
+@@ -1380,6 +1381,7 @@ class L3McastToL2UntagToUntag( base_tests.SimpleDataPlane ):
+                 port_to_out_vlan,
+                 port_to_src_mac_str,
+                 port_to_dst_mac_str,
++                port_to_src_ip,
+                 port_to_src_ip_str,
+                 Groups) = fill_mcast_pipeline_L3toL2(
+                 self.controller,
+@@ -1445,6 +1447,7 @@ class L3McastToL2UntagToTag( base_tests.SimpleDataPlane ):
+                 port_to_out_vlan,
+                 port_to_src_mac_str,
+                 port_to_dst_mac_str,
++                port_to_src_ip,
+                 port_to_src_ip_str,
+                 Groups) = fill_mcast_pipeline_L3toL2(
+                 self.controller,
+@@ -1513,6 +1516,7 @@ class L3McastToL2TagToUntag( base_tests.SimpleDataPlane ):
+                 port_to_out_vlan,
+                 port_to_src_mac_str,
+                 port_to_dst_mac_str,
++                port_to_src_ip,
+                 port_to_src_ip_str,
+                 Groups) = fill_mcast_pipeline_L3toL2(
+                 self.controller,
+@@ -1579,6 +1583,7 @@ class L3McastToL2TagToTag( base_tests.SimpleDataPlane ):
+                 port_to_out_vlan,
+                 port_to_src_mac_str,
+                 port_to_dst_mac_str,
++                port_to_src_ip,
+                 port_to_src_ip_str,
+                 Groups) = fill_mcast_pipeline_L3toL2(
+                 self.controller,
+@@ -1648,6 +1653,7 @@ class L3McastToL2TagToTagTranslated( base_tests.SimpleDataPlane ):
+                 port_to_out_vlan,
+                 port_to_src_mac_str,
+                 port_to_dst_mac_str,
++                port_to_src_ip,
+                 port_to_src_ip_str,
+                 Groups) = fill_mcast_pipeline_L3toL2(
+                 self.controller,
+@@ -1697,6 +1703,115 @@ class L3McastToL2TagToTagTranslated( base_tests.SimpleDataPlane ):
+             delete_groups( self.controller, Groups )
+             delete_all_groups( self.controller )
+ 
++class L3McastTrafficThenDrop( base_tests.SimpleDataPlane ):
++    """
++    Mcast routing, in this test case the traffic is untagged.
++    4094 is used as internal vlan_id. The packet goes out
++    untagged.
++    """
++    def runTest( self ):
++        Groups = Queue.LifoQueue( )
++        try:
++            if len( config[ "port_map" ] ) < 2:
++                logging.info( "Port count less than 2, can't run this case" )
++                assert (False)
++                return
++            ports      = config[ "port_map" ].keys( )
++            dst_ip_str = "224.0.0.1"
++            (
++                port_to_in_vlan,
++                port_to_out_vlan,
++                port_to_src_mac_str,
++                port_to_dst_mac_str,
++                port_to_src_ip,
++                port_to_src_ip_str,
++                Groups) = fill_mcast_pipeline_L3toL2(
++                self.controller,
++                logging,
++                ports,
++                is_ingress_tagged   = False,
++                is_egress_tagged    = False,
++                is_vlan_translated  = False,
++                is_max_vlan         = True
++                )
++
++            for in_port in ports:
++
++                parsed_pkt = simple_udp_packet(
++                    pktlen  = 96,
++                    eth_dst = port_to_dst_mac_str[in_port],
++                    eth_src = port_to_src_mac_str[in_port],
++                    ip_ttl  = 64,
++                    ip_src  = port_to_src_ip_str[in_port],
++                    ip_dst  = dst_ip_str
++                    )
++                pkt = str( parsed_pkt )
++                self.dataplane.send( in_port, pkt )
++
++                for out_port in ports:
++
++                    parsed_pkt = simple_udp_packet(
++                        pktlen  = 96,
++                        eth_dst = port_to_dst_mac_str[in_port],
++                        eth_src = port_to_src_mac_str[in_port],
++                        ip_ttl  = 64,
++                        ip_src  = port_to_src_ip_str[in_port],
++                        ip_dst  = dst_ip_str
++                        )
++                    pkt = str( parsed_pkt )
++                    if out_port == in_port:
++                        verify_no_packet( self, pkt, in_port )
++                        continue
++                    verify_packet( self, pkt, out_port )
++                    verify_no_other_packets( self )
++
++            groupsToDelete = Queue.LifoQueue()
++
++            # while (not Groups.empty()):
++            #     group = Groups.get()
++            #     groupsToDelete._put(group)
++            #     print(ports)
++            #     for port in ports:
++            #         del_mcast4_table_flow(self.controller, port_to_in_vlan[port], port_to_src_ip[port],
++            #                             0, 0xe0000001, group)
++            delete_all_flows_one_table(ctrl=self.controller,table_id=40);
++            delete_groups(self.controller, groupsToDelete)
++            delete_all_groups(self.controller)
++
++            for in_port in ports:
++
++                parsed_pkt = simple_udp_packet(
++                    pktlen  = 96,
++                    eth_dst = port_to_dst_mac_str[in_port],
++                    eth_src = port_to_src_mac_str[in_port],
++                    ip_ttl  = 64,
++                    ip_src  = port_to_src_ip_str[in_port],
++                    ip_dst  = dst_ip_str
++                    )
++                pkt = str( parsed_pkt )
++                self.dataplane.send( in_port, pkt )
++
++                for out_port in ports:
++
++                    parsed_pkt = simple_udp_packet(
++                        pktlen  = 96,
++                        eth_dst = port_to_dst_mac_str[in_port],
++                        eth_src = port_to_src_mac_str[in_port],
++                        ip_ttl  = 64,
++                        ip_src  = port_to_src_ip_str[in_port],
++                        ip_dst  = dst_ip_str
++                        )
++                    pkt = str( parsed_pkt )
++                    if out_port == in_port:
++                        verify_no_packet( self, pkt, in_port )
++                        continue
++                    verify_no_packet( self, pkt, out_port )
++                    verify_no_other_packets( self )
++        finally:
++            delete_all_flows( self.controller )
++            delete_groups( self.controller, Groups )
++            delete_all_groups( self.controller )
++
+ @disabled
+ class _MplsFwd( base_tests.SimpleDataPlane ):
+     """ Verify basic MPLS forwarding: Label switch router  """
+diff --git a/ofdpa/utils.py b/ofdpa/utils.py
+index c5cf95f..ce45065 100644
+--- a/ofdpa/utils.py
++++ b/ofdpa/utils.py
+@@ -205,6 +205,7 @@ def fill_mcast_pipeline_L3toL2(
+         port_to_out_vlan,
+         port_to_src_mac_str,
+         port_to_dst_mac_str,
++        port_to_src_ip,
+         port_to_src_ip_str,
+         Groups
+         )
+@@ -302,6 +303,7 @@ def fill_mcast_pipeline_L3toL3(
+         port_to_out_vlan,
+         port_to_src_mac_str,
+         port_to_dst_mac_str,
++        port_to_src_ip,
+         port_to_src_ip_str,
+         port_to_intf_src_mac_str,
+         Groups
+diff --git a/src/python/oftest/testutils.py b/src/python/oftest/testutils.py
+index abf4a27..842c882 100755
+--- a/src/python/oftest/testutils.py
++++ b/src/python/oftest/testutils.py
+@@ -66,6 +66,23 @@ def delete_all_flows(ctrl, send_barrier=True):
+         do_barrier(ctrl)
+     return 0 # for backwards compatibility
+ 
++def delete_all_flows_one_table(ctrl, table_id=0):
++    """
++    Delete all flows on a table
++    @param ctrl The controller object for the test
++    @param logger Logging object
++    @param table_id Table ID
++    """
++    logging.info("Deleting all flows on table ID: " + str(table_id))
++    msg = ofp.message.flow_delete()
++    msg.out_port = ofp.OFPP_ANY
++    msg.out_group = ofp.OFPG_ANY
++    msg.buffer_id = 0xffffffff
++    msg.table_id = table_id
++    logging.debug(msg.show())
++
++    return ctrl.message_send(msg)
++
+ def delete_all_groups(ctrl):
+     """
+     Delete all groups on the switch
+-- 
+2.14.1
+

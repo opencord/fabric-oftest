@@ -46,6 +46,29 @@
       "revId": "c51f89478fad49dff68d4ce094bb5c458d7ae37e",
       "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "aabd6ebe_fb3f61ee",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1775,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2018-04-20T09:13:51Z",
+      "side": 1,
+      "message": "First delete the mcast flows and then delete groups\n\n      del_mcast4_table_flow(self.controller, port_to_in_vlan[port], port_to_src_ip[port],0, 0xe0000001, group)\n      delete_groups( self.controller, Groups )\n      delete_all_groups( self.controller )",
+      "range": {
+        "startLine": 1772,
+        "startChar": 0,
+        "endLine": 1775,
+        "endChar": 60
+      },
+      "revId": "c51f89478fad49dff68d4ce094bb5c458d7ae37e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
     }
   ]
 }

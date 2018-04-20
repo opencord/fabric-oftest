@@ -956,7 +956,7 @@ class L3McastRoute1(base_tests.SimpleDataPlane):
         port2_ucast_msg=add_l3_interface_group(self.controller, port2, port2_out_vlan, 2, intf_src_mac)
         port3_ucast_msg=add_l3_interface_group(self.controller, port3, port3_out_vlan, 3, intf_src_mac)        
         mcat_group_msg=add_l3_mcast_group(self.controller, in_vlan,  2, [port2_ucast_msg.group_id, port3_ucast_msg.group_id])
-        add_mcast4_routing_flow(self.controller, in_vlan, src_ip, 0, dst_ip, mcat_group_msg.group_id)               
+        add_mcast4_routing_flow(self.controller, in_vlan, src_ip, 0, dst_ip, 0, mcat_group_msg.group_id)
         
         parsed_pkt = simple_udp_packet(pktlen=100, 
                                        eth_dst=dst_mac_str,
@@ -1023,7 +1023,7 @@ class L3McastRoute2(base_tests.SimpleDataPlane):
 
         #add l3 interface group
         mcat_group_msg=add_l3_mcast_group(self.controller, vlan_id,  2, l2_intf_group_list)
-        add_mcast4_routing_flow(self.controller, vlan_id, src_ip, 0, dst_ip, mcat_group_msg.group_id)               
+        add_mcast4_routing_flow(self.controller, vlan_id, src_ip, 0, dst_ip, 0, mcat_group_msg.group_id)
 
         parsed_pkt = simple_udp_packet(pktlen=100, 
                                        eth_dst=dst_mac_str,

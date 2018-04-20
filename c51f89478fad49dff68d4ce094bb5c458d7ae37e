@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6aabcd8b_196bcf1e",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 1770,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2018-04-20T08:47:09Z",
+      "side": 1,
+      "message": "Just use delete_groups( self.controller, Groups )",
+      "range": {
+        "startLine": 1768,
+        "startChar": 12,
+        "endLine": 1770,
+        "endChar": 52
+      },
+      "revId": "c51f89478fad49dff68d4ce094bb5c458d7ae37e",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

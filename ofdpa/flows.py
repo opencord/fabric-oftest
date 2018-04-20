@@ -1808,6 +1808,72 @@ class L3McastTrafficThenDrop( base_tests.SimpleDataPlane ):
             delete_groups( self.controller, Groups )
             delete_all_groups( self.controller )
 
+class L3McastToL2UntagToFlooding( base_tests.SimpleDataPlane ):
+    """
+    Mcast routing, in this test case the traffic is untagged.
+    300 is used as vlan_id. The packet goes out
+    tagged.
+    """
+    def runTest( self ):
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 2:
+                logging.info( "Port count less than 2, can't run this case" )
+                assert (False)
+                return
+            ports      = config[ "port_map" ].keys( )
+            dst_ip_str = "224.0.0.35"
+            (
+                port_to_in_vlan,
+                port_to_out_vlan,
+                port_to_src_mac_str,
+                port_to_dst_mac_str,
+                port_to_src_ip,
+                port_to_src_ip_str,
+                Groups) = fill_mcast_flooding_pipeline(
+                self.controller,
+                logging,
+                ports,
+                is_ingress_tagged   = False,
+                is_egress_tagged    = False,
+                is_vlan_translated  = False,
+                is_max_vlan         = False
+                )
+
+            for in_port in ports:
+
+                parsed_pkt = simple_udp_packet(
+                    pktlen  = 96,
+                    eth_dst = port_to_dst_mac_str[in_port],
+                    eth_src = port_to_src_mac_str[in_port],
+                    ip_ttl  = 64,
+                    ip_src  = port_to_src_ip_str[in_port],
+                    ip_dst  = dst_ip_str
+                    )
+                pkt = str( parsed_pkt )
+                self.dataplane.send( in_port, pkt )
+
+                for out_port in ports:
+
+                    parsed_pkt = simple_udp_packet(
+                        pktlen  = 96,
+                        eth_dst = port_to_dst_mac_str[in_port],
+                        eth_src = port_to_src_mac_str[in_port],
+                        ip_ttl  = 64,
+                        ip_src  = port_to_src_ip_str[in_port],
+                        ip_dst  = dst_ip_str
+                        )
+                    pkt = str( parsed_pkt )
+                    if out_port == in_port:
+                        verify_no_packet( self, pkt, in_port )
+                        continue
+                    verify_packet( self, pkt, out_port )
+                    verify_no_other_packets( self )
+        finally:
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
+            delete_all_groups( self.controller )
+
 @disabled
 class _MplsFwd( base_tests.SimpleDataPlane ):
     """ Verify basic MPLS forwarding: Label switch router  """
@@ -2268,7 +2334,7 @@ class L3McastToVPN( base_tests.SimpleDataPlane ):
             #                                                       index=(0x10000+port3), ref_gid= mpls_gid3, push_mpls_header=True, set_mpls_label=port3, set_bos=1, cpy_ttl_outward=True)
 
             mcat_group_msg = add_l3_mcast_group( self.controller, in_vlan, 2, [ mpls_label_gid2 ] )
-            add_mcast4_routing_flow( self.controller, in_vlan, src_ip, 0, dst_ip, mcat_group_msg.group_id )
+            add_mcast4_routing_flow( self.controller, in_vlan, src_ip, 0, dst_ip, 0, mcat_group_msg.group_id )
 
             parsed_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True, vlan_vid=1, eth_dst=dst_mac_str,
                     eth_src=port1_mac_str, ip_ttl=64, ip_src=src_ip_str, ip_dst=dst_ip_str )

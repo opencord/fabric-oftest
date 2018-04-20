@@ -25,6 +25,8 @@ from oftest.parse import parse_ipv6
 from ncclient import manager
 import ncclient
 
+from loxi.pp import pp
+
 OFDPA_GROUP_TYPE_SHIFT=28
 OFDPA_VLAN_ID_SHIFT   =16
 OFDPA_TUNNEL_ID_SHIFT =12
@@ -1373,7 +1375,7 @@ def add_mpls_flow_pw(ctrl, action_group_id, label, ethertype, bos, tunnel_index,
 
     return request
 
-def add_mcast4_routing_flow(ctrl, vlan_id, src_ip, src_ip_mask, dst_ip, action_group_id, send_barrier=False):
+def add_mcast4_routing_flow(ctrl, vlan_id, src_ip, src_ip_mask, dst_ip, dst_ip_mask, action_group_id, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(0x0800))
     match.oxm_list.append(ofp.oxm.vlan_vid(0x1000 + vlan_id))
@@ -1381,9 +1383,11 @@ def add_mcast4_routing_flow(ctrl, vlan_id, src_ip, src_ip_mask, dst_ip, action_g
         match.oxm_list.append(ofp.oxm.ipv4_src_masked(src_ip, src_ip_mask))
     else:
         match.oxm_list.append(ofp.oxm.ipv4_src(src_ip))
-
-    match.oxm_list.append(ofp.oxm.ipv4_dst(dst_ip))
-
+    if dst_ip_mask != 0:
+        logging.info("IP: %s", pp(ofp.oxm.ipv4_dst_masked(dst_ip, dst_ip_mask)))
+        match.oxm_list.append(ofp.oxm.ipv4_dst_masked(dst_ip, dst_ip_mask))
+    else:
+        match.oxm_list.append(ofp.oxm.ipv4_dst(dst_ip))
     request = ofp.message.flow_add(
             table_id=40,
             cookie=42,

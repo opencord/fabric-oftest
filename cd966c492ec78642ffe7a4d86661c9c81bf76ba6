@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "9aefa172_89176a27",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 1712,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2018-04-21T09:55:40Z",
+      "side": 1,
+      "message": "Please update the description",
+      "range": {
+        "startLine": 1708,
+        "startChar": 0,
+        "endLine": 1712,
+        "endChar": 7
+      },
+      "revId": "cd966c492ec78642ffe7a4d86661c9c81bf76ba6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ed7c2ec5_752977f1",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 5
+      },
+      "lineNbr": 1777,
+      "author": {
+        "id": 1000042
+      },
+      "writtenOn": "2018-04-21T09:55:40Z",
+      "side": 1,
+      "message": "I think you can remove this",
+      "range": {
+        "startLine": 1769,
+        "startChar": 0,
+        "endLine": 1777,
+        "endChar": 63
+      },
+      "revId": "cd966c492ec78642ffe7a4d86661c9c81bf76ba6",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

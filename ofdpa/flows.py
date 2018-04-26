@@ -1969,6 +1969,7 @@ class _24UcastTagged( base_tests.SimpleDataPlane ):
                     add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
                 # add unicast routing flow
                 dst_ip = dip + (vlan_id << 8)
+                # def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=0, send_ctrl=False, send_barrier=False, priority = 1):
                 add_unicast_routing_flow( self.controller, 0x0800, dst_ip, 0xffffff00, l3_msg.group_id )
                 Groups.put( l2gid )
                 Groups.put( l3_msg.group_id )
@@ -1994,6 +1995,62 @@ class _24UcastTagged( base_tests.SimpleDataPlane ):
                             ip_src=ip_src, ip_dst=ip_dst )
                     pkt = str( exp_pkt )
                     verify_packet( self, pkt, out_port )
+                    verify_no_other_packets( self )
+        finally:
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
+            delete_all_groups( self.controller )
+
+class _24UcastRouteBlackHole( base_tests.SimpleDataPlane ):
+    """ Verify black-holing of unicast routes, feature present only from OFDPA Premium 1.1.3.0"""
+
+    def runTest( self ):
+        Groups = Queue.LifoQueue( )
+        try:
+            test_id = 27
+            if len( config[ "port_map" ] ) < 2:
+                logging.info( "Port count less than 2, can't run this case" )
+                return
+            intf_src_mac = [ 0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc ]
+            dst_mac = [ 0x00, 0x00, 0x00, 0x22, 0x22, 0x00 ]
+            dip = 0xc0a80001
+            ports = config[ "port_map" ].keys( )
+            for port in ports:
+                # add l2 interface group
+                vlan_id = port + test_id
+                # add vlan flow table
+                add_one_vlan_table_flow( self.controller, port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+                # add termination flow
+                if config["switch_type"] == "qmx":
+                    add_termination_flow( self.controller, 0, 0x0800, intf_src_mac, vlan_id )
+                else:
+                    add_termination_flow( self.controller, port, 0x0800, intf_src_mac, vlan_id )
+                # add unicast routing flow
+                #dst ip = 10.0.0.0/8
+                dst_ip = 0x0a000000
+                add_unicast_blackhole_flow(self.controller, 0x0800, dst_ip, 0xffffff00 )
+            do_barrier( self.controller )
+
+            switch_mac = ':'.join( [ '%02X' % x for x in intf_src_mac ] )
+            for in_port in ports:
+                mac_src = '00:00:00:22:22:%02X' % (test_id + in_port)
+                ip_src = '192.168.%02d.1' % (test_id + in_port)
+                for out_port in ports:
+                    if in_port == out_port:
+                        continue
+                    ip_dst = '192.168.%02d.1' % (test_id + out_port)
+                    parsed_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True,
+                            vlan_vid=(test_id + in_port), eth_dst=switch_mac, eth_src=mac_src, ip_ttl=64,
+                            ip_src=ip_src, ip_dst=ip_dst )
+                    pkt = str( parsed_pkt )
+                    self.dataplane.send( in_port, pkt )
+                    # build expected packet
+                    mac_dst = '00:00:00:22:22:%02X' % (test_id + out_port)
+                    exp_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True,
+                            vlan_vid=(test_id + out_port), eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=63,
+                            ip_src=ip_src, ip_dst=ip_dst )
+                    pkt = str( exp_pkt )
+                    verify_no_packet( self, pkt, out_port )
                     verify_no_other_packets( self )
         finally:
             delete_all_flows( self.controller )

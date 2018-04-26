@@ -1205,6 +1205,34 @@ def add_unicast_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=
 
     return request
 
+def add_unicast_blackhole_flow(ctrl, eth_type, dst_ip, mask, vrf=0, send_ctrl=False, send_barrier=False, priority = 1):
+    match = ofp.match()
+    match.oxm_list.append(ofp.oxm.eth_type(eth_type))
+    if config["switch_type"] != 'xpliant' and vrf != 0:
+        match.oxm_list.append(ofp.oxm.exp2ByteValue(ofp.oxm.OFDPA_EXP_TYPE_VRF, vrf))
+
+    match.oxm_list.append(ofp.oxm.ipv4_dst_masked(dst_ip, mask))
+
+    instructions = []
+    instructions.append(ofp.instruction.goto_table(60))
+    instructions.append(ofp.instruction.clear_actions( ))
+
+    request = ofp.message.flow_add(
+            table_id=30,
+            cookie=42,
+            match=match,
+            instructions=instructions,
+            buffer_id=ofp.OFP_NO_BUFFER,
+            priority=priority)
+
+    logging.info("Inserting unicast blackhole routing flow eth_type %lx, dip %ld",eth_type, dst_ip)
+    ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
+
+    return request
+
 def add_unicast_v6_routing_flow(ctrl, eth_type, dst_ip, mask, action_group_id, vrf=0, send_ctrl=False, send_barrier=False):
     match = ofp.match()
     match.oxm_list.append(ofp.oxm.eth_type(eth_type))

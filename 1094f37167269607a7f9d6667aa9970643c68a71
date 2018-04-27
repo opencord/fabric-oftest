@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "5590e9d0_ee79a2ca",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 2031,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2018-04-27T14:00:20Z",
+      "side": 1,
+      "message": "No need. You can put variable name in the parameter if you want to clarify which value maps to which key",
+      "range": {
+        "startLine": 2031,
+        "startChar": 16,
+        "endLine": 2031,
+        "endChar": 152
+      },
+      "revId": "1094f37167269607a7f9d6667aa9970643c68a71",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

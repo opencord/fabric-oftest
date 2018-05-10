@@ -290,9 +290,10 @@ def fill_mcast_pipeline_L3toL3(
 
         # add mcast group
         mcat_group_msg = add_l3_mcast_group( controller, port_to_in_vlan[port], port_to_in_vlan[port], L3_Groups )
+        do_barrier(controller)
         Groups._put( mcat_group_msg.group_id )
         # add mcast flow
-        add_mcast4_routing_flow( controller, port_to_in_vlan[port], port_to_src_ip[port], 0, dst_ip, mcat_group_msg.group_id )
+        add_mcast4_routing_flow( controller, port_to_in_vlan[port], port_to_src_ip[port], 0, dst_ip, mcat_group_msg.group_id, True )
         # add termination flow
         add_termination_flow( controller, port, 0x0800, switch_mac, port_to_in_vlan[port] )
         # add vlan flow table

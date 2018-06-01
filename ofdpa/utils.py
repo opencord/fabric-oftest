@@ -280,7 +280,7 @@ def fill_mcast_pipeline_L3toL3(
         for other_port in ports:
             # add l2 interface group
             l2gid, msg = add_one_l2_interface_group( controller, other_port, vlan_id=port_to_out_vlan[other_port],
-            is_tagged=True, send_barrier=False )
+            is_tagged=True, send_barrier=True )
             Groups._put( l2gid )
             # add l3 interface group
             l3group_ucast_msg = add_l3_interface_group( controller, other_port, port_to_out_vlan[other_port], port_to_in_vlan[other_port],

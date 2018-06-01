@@ -43,7 +43,7 @@ class PacketInICMPv6( base_tests.SimpleDataPlane ):
                 self.controller,
                 eth_type=0x86dd,
                 ip_proto=0x3A,
-                send_barrier=False
+                send_barrier=True
                 )
 
             ports = config[ "port_map" ].keys( )

@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "f289860f_6b3ce228",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 621,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2018-06-15T20:20:22Z",
+      "side": 1,
+      "message": "Redundant",
+      "range": {
+        "startLine": 621,
+        "startChar": 37,
+        "endLine": 621,
+        "endChar": 38
+      },
+      "revId": "c7aa55b5dcfd8067b930989abb98780cb4b5f505",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fe43a854_5ac1c9b0",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 2641,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2018-06-15T20:20:22Z",
+      "side": 1,
+      "message": "Redundant",
+      "range": {
+        "startLine": 2641,
+        "startChar": 0,
+        "endLine": 2641,
+        "endChar": 12
+      },
+      "revId": "c7aa55b5dcfd8067b930989abb98780cb4b5f505",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "fdbc4177_a74c0c0c",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 3264,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2018-06-15T20:20:22Z",
+      "side": 1,
+      "message": "Redundant",
+      "range": {
+        "startLine": 3264,
+        "startChar": 0,
+        "endLine": 3264,
+        "endChar": 4
+      },
+      "revId": "c7aa55b5dcfd8067b930989abb98780cb4b5f505",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "9e887f63_92068589",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 3349,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2018-06-15T20:20:22Z",
+      "side": 1,
+      "message": "Redundant",
+      "range": {
+        "startLine": 3349,
+        "startChar": 0,
+        "endLine": 3349,
+        "endChar": 1
+      },
+      "revId": "c7aa55b5dcfd8067b930989abb98780cb4b5f505",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

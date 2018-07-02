@@ -3353,3 +3353,93 @@ class _MplsFwdInterfaceProblem_PW( base_tests.SimpleDataPlane ):
                 delete_all_groups( self.controller )
 
 
+
+class VlanCrossConnect ( base_tests.SimpleDataPlane ):
+    """
+    Tries the cross connect functionality of the ofdpa switches.
+    """
+    def runTest( self ):
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 2:
+                logging.info( "Port count less than 2, can't run this case" )
+                return
+
+            # each entry represents a subscriber [id, ip in hex, inner_vlan, outer_vlan, ip in dot form]
+            subscriber_info = [ [10, 0xc0a80001, 12, 11, "192.168.0.1"] ],
+                               [20, 0xc0a80002, 10, 101, "192.168.0.2", "20"],
+                               [30, 0xc0a80003, 11, 102, "192.168.0.3", "30"],
+                               [40, 0xc0a80004, 11, 103, "192.168.0.4", "40"]]
+            index = 5
+            for sub_info in subscriber_info:
+
+                print("Initializing rules for subscriber with id {0}".format(sub_info[0]))
+
+                input_src_mac = [ 0x00, 0x00, 0x00, 0xcc, 0xcc, sub_info[0] ]
+                input_src_mac_str = ':'.join( [ '%02X' % x for x in input_src_mac ] )
+
+                input_dst_mac = [ 0x00, 0x00, 0x00, 0x22, 0x22, 0x00 ]
+                input_dst_mac_str = ':'.join( [ '%02X' % x for x in input_dst_mac ] )
+
+                output_dst_mac = [ 0x00, 0x00, 0x00, 0x33, 0x33, 0x00 ]
+                output_dst_mac_str = ':'.join( [ '%02X' % x for x in output_dst_mac ] )
+
+                dip = sub_info[1]
+                ports = config[ "port_map" ].keys( )
+
+                inner_vlan = sub_info[2]
+                outer_vlan = sub_info[3]
+
+                index = inner_vlan
+
+                port = ports[0]
+                out_port = ports[1]
+
+                # add l2 interface group, uncomment for unfiltered
+                l2_gid, l2_msg = add_one_l2_interface_group( self.controller, out_port, outer_vlan, True, True)
+                #i l2_gid, l2_msg = add_one_l2_unfiltered_group( self.controller, out_port, 1, True)
+
+                # add vlan flow table
+                add_one_vlan_table_flow( self.controller, port, inner_vlan, outer_vlan, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_STACKED )
+                add_one_vlan_1_table_flow_pw( self.controller, port, index, new_outer_vlan_id=outer_vlan ,outer_vlan_id=outer_vlan, inner_vlan_id=inner_vlan,  flag=VLAN_TABLE_FLAG_ONLY_TAG, cross_connect=True, send_barrier=True)
+                add_mpls_l2_port_flow(ctrl=self.controller, of_port=port, mpls_l2_port=port, tunnel_index=index, ref_gid=l2_gid, qos_index=0, goto=ACL_FLOW_TABLE)
+                index += 1
+
+                Groups._put( l2_gid )
+                do_barrier( self.controller )
+
+            for sub_info in subscriber_info:
+                print("Sending packet for subscriber with id {0}".format(sub_info[0]))
+                input_src_mac = [ 0x00, 0x00, 0x00, 0xcc, 0xcc, sub_info[0] ]
+                input_src_mac_str = ':'.join( [ '%02X' % x for x in input_src_mac ] )
+
+                input_dst_mac = [ 0x00, 0x00, 0x00, 0x22, 0x22, 0x00 ]
+                input_dst_mac_str = ':'.join( [ '%02X' % x for x in input_dst_mac ] )
+
+                dip = sub_info[1]
+                ports = config[ "port_map" ].keys( )
+
+                inner_vlan = sub_info[2]
+                outer_vlan = sub_info[3]
+
+                port = ports[0]
+                out_port = ports[1]
+
+                ip_src = sub_info[4]
+                ip_dst = '192.168.0.{}'.format(sub_info[0])
+                parsed_pkt = qinq_tcp_packet( pktlen=120, vlan_vid=inner_vlan, dl_vlan_outer=outer_vlan,
+                        eth_dst=input_dst_mac_str, eth_src=input_src_mac_str, ip_ttl=64, ip_src=ip_src, ip_dst=ip_dst )
+                parsed_pkt = simple_tcp_packet_two_vlan( pktlen=120, out_dl_vlan_enable=True, in_dl_vlan_enable=True, in_vlan_vid=inner_vlan, out_vlan_vid=outer_vlan,
+                        eth_dst=input_dst_mac_str, eth_src=input_src_mac_str, ip_ttl=64, ip_src=ip_src, ip_dst=ip_dst )
+
+                pkt = str( parsed_pkt )
+
+                self.dataplane.send( port, pkt )
+                verify_packet( self, pkt, out_port )
+                verify_no_other_packets( self )
+
+        finally:
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
+            delete_all_groups( self.controller )
+

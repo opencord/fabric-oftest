@@ -6170,6 +6170,7 @@ OFDPA_EXP_TYPE_ALLOW_VLAN_TRANSLATION=24
 
 VPWS                        = 1
 TUNNEL_ID_BASE              = 0x10000
+TUNNEL_ID_BASE_CROSS_CONNECT = 0x20000
 L3_PHP                      = 32
 
 class exp1ByteValue(oxm):

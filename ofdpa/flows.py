@@ -3451,4 +3451,87 @@ class VlanCrossConnect ( base_tests.SimpleDataPlane ):
             delete_groups( self.controller, Groups )
             delete_all_groups( self.controller )
 
+@disabled
+class Lag( base_tests.SimpleDataPlane ):
+    """
+    Checks the L2 load balancing (LAG) functionality of the ofdpa switches.
+    """
+    def runTest( self ):
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 2:
+                logging.info( "Port count less than 2, can't run this case" )
+                return
+
+            ports = sorted(config[ "port_map" ].keys( ))
+            in_port = ports[0]
+            out_port = ports[1]
+
+            # add l2 interface unfiltered group
+            l2_o_gid, l2_o_msg = add_one_l2_unfiltered_group( self.controller, out_port, True)
+
+            # create l2 load-balance group
+            lag_gid, lag_msg = add_l2_loadbal_group(self.controller, 1, [l2_o_gid], True)
+            Groups.put(l2_o_gid, lag_gid)
+
+            # --- TEST 1: bridging with load-bal----
+            vlan_in_port_untagged = 31
+            # table 10 flows and bridging flows for dstMac+vlan -> l2-load-bal group
+            add_one_vlan_table_flow( self.controller, in_port, vlan_id=vlan_in_port_untagged, flag=VLAN_TABLE_FLAG_ONLY_BOTH,
+                                     send_barrier=True)
+            mac_dst = [ 0x00, 0x11, 0x22, 0x33, 0x44, 0x55 ]
+            mac_dst_str = '00:11:22:33:44:55'
+            add_bridge_flow( self.controller, mac_dst, vlan_in_port_untagged, lag_gid, True )
+            # untagged packet input becomes tagged packet at output
+            pkt = str( simple_tcp_packet( pktlen=80, eth_dst=mac_dst_str ) )
+            exp_pkt = str( simple_tcp_packet( pktlen=84, dl_vlan_enable=True, vlan_vid=vlan_in_port_untagged, eth_dst=mac_dst_str ) )
+            self.dataplane.send( in_port, pkt )
+            verify_packet( self, exp_pkt, out_port )
+            verify_no_other_packets( self )
+
+            # --- TEST 2: flooding with load-bal ----
+            # flooding group --> load-bal group --> l2 unfiltered interface
+            floodmsg = add_l2_flood_group_with_gids( self.controller, [lag_gid] , vlan_in_port_untagged, id=0 )
+            Groups.put( floodmsg.group_id )
+            # add bridging flows for flooding groups
+            add_bridge_flow( self.controller, dst_mac=None, vlanid=vlan_in_port_untagged, group_id=floodmsg.group_id )
+            # unknown dstmac  packet input to hit flood group
+            un_mac_dst_str = '00:11:22:ff:ff:ff'
+            pkt = str( simple_tcp_packet( pktlen=80, eth_dst=un_mac_dst_str ) )
+            exp_pkt = str( simple_tcp_packet( pktlen=84, dl_vlan_enable=True, vlan_vid=vlan_in_port_untagged, eth_dst=un_mac_dst_str ) )
+            self.dataplane.send( in_port, pkt )
+            verify_packet( self, exp_pkt, out_port )
+            verify_no_other_packets( self )
+
+            # --- TEST 3: editing load-bal ----
+            # create and add another l2 unfiltered interface group to the load-balancing group
+            #l2_i_gid, l2_i_msg = add_one_l2_unfiltered_group( self.controller, in_port, True)
+            #msg = mod_l2_loadbal_group(self.controller, 1, [l2_o_gid, l2_i_gid], True)
+            #self.dataplane.send( in_port, pkt )
+
+            # delete all buckets in loadbal group
+            msg = mod_l2_loadbal_group(self.controller, 1, [], True)
+            self.dataplane.send( in_port, pkt )
+            verify_no_other_packets( self ) # no buckets -- this test is failing
+
+            #msg = mod_l2_loadbal_group(self.controller, 1, [l2_i_gid], True)
+            #self.dataplane.send( in_port, pkt )
+            #verify_no_other_packets( self ) # packet should not be sent out of in port
+
+            msg = mod_l2_loadbal_group(self.controller, 1, [l2_o_gid], True)
+            self.dataplane.send( in_port, pkt )
+            verify_packet( self, exp_pkt, out_port )
+            #verify_no_other_packets( self )
+
+            # loadbal with mixed l2i and l2u
+            # flooding with mixed l2i and loadbal-> l2u
+            # crossconnect with load-bal
+            # routing with ecmp and load-bal
+
+        finally:
+            #print("done")
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
+            delete_all_groups( self.controller )
+
 

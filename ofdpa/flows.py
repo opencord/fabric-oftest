@@ -3452,3 +3452,346 @@ class VlanCrossConnect ( base_tests.SimpleDataPlane ):
             delete_all_groups( self.controller )
 
 
+@disabled
+class Lag( base_tests.SimpleDataPlane ):
+    """
+    Checks the L2 load balancing (LAG) functionality of the ofdpa switches.
+    """
+    def runTest( self ):
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 2:
+                logging.info( "Port count less than 2, can't run this case" )
+                return
+
+            ports = sorted(config[ "port_map" ].keys( ))
+            in_port = ports[0]
+            out_port = ports[1]
+
+            # add l2 interface unfiltered group
+            l2_o_gid, l2_o_msg = add_one_l2_unfiltered_group( self.controller, out_port, True)
+
+            # create l2 load-balance group
+            lag_gid, lag_msg = add_l2_loadbal_group(self.controller, 1, [l2_o_gid], True)
+            Groups.put(l2_o_gid, lag_gid)
+
+            # --- TEST 1: bridging with load-bal----
+            vlan_in_port_untagged = 31
+            # table 10 flows and bridging flows for dstMac+vlan -> l2-load-bal group
+            add_one_vlan_table_flow( self.controller, in_port, vlan_id=vlan_in_port_untagged, flag=VLAN_TABLE_FLAG_ONLY_BOTH,
+                                     send_barrier=True)
+            mac_dst = [ 0x00, 0x11, 0x22, 0x33, 0x44, 0x55 ]
+            mac_dst_str = '00:11:22:33:44:55'
+            add_bridge_flow( self.controller, mac_dst, vlan_in_port_untagged, lag_gid, True )
+            # untagged packet input becomes tagged packet at output
+            time.sleep(0.1)
+            pkt = str( simple_tcp_packet( pktlen=80, eth_dst=mac_dst_str ) )
+            exp_pkt = str( simple_tcp_packet( pktlen=84, dl_vlan_enable=True, vlan_vid=vlan_in_port_untagged, eth_dst=mac_dst_str ) )
+            self.dataplane.send( in_port, pkt )
+            verify_packet( self, exp_pkt, out_port )
+            verify_no_other_packets( self )
+
+            # --- TEST 2: flooding with load-bal ----
+            # flooding group --> load-bal group --> l2 unfiltered interface
+            floodmsg = add_l2_flood_group_with_gids( self.controller, [lag_gid] , vlan_in_port_untagged, id=0 )
+            Groups.put( floodmsg.group_id )
+            # add bridging flows for flooding groups
+            add_bridge_flow( self.controller, dst_mac=None, vlanid=vlan_in_port_untagged, group_id=floodmsg.group_id )
+            # unknown dstmac  packet input to hit flood group
+            un_mac_dst_str = '00:11:22:ff:ff:ff'
+            pkt = str( simple_tcp_packet( pktlen=80, eth_dst=un_mac_dst_str ) )
+            exp_pkt = str( simple_tcp_packet( pktlen=84, dl_vlan_enable=True, vlan_vid=vlan_in_port_untagged, eth_dst=un_mac_dst_str ) )
+            time.sleep(0.1)
+            self.dataplane.send( in_port, pkt )
+            verify_packet( self, exp_pkt, out_port )
+            verify_no_other_packets( self )
+
+            # --- TEST 3: editing load-bal ----
+            # create and add another l2 unfiltered interface group to the load-balancing group
+            l2_i_gid, l2_i_msg = add_one_l2_unfiltered_group( self.controller, in_port, True)
+            msg = mod_l2_loadbal_group(self.controller, 1, [l2_o_gid, l2_i_gid], True)
+            self.dataplane.send( in_port, pkt )
+            verify_packet( self, exp_pkt, out_port )
+
+            # delete all buckets in loadbal group
+            msg = mod_l2_loadbal_group(self.controller, 1, [], True)
+            time.sleep(0.1)
+            self.dataplane.send( in_port, pkt )
+            verify_no_other_packets( self ) # no buckets
+
+            # only input port in load balancing group
+            msg = mod_l2_loadbal_group(self.controller, 1, [l2_i_gid], True)
+            self.dataplane.send( in_port, pkt )
+            verify_no_other_packets( self ) # packet should not be sent out of in port
+
+            # remove input port and add output port in lag group
+            msg = mod_l2_loadbal_group(self.controller, 1, [l2_o_gid], True)
+            time.sleep(0.1)
+            self.dataplane.send( in_port, pkt )
+            verify_packet( self, exp_pkt, out_port )
+            verify_no_other_packets( self )
+
+        finally:
+            #print("done")
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
+            delete_all_groups( self.controller )
+
+@disabled
+class FloodMix( base_tests.SimpleDataPlane ):
+    """
+    Checks the combination of L2 filtered and L2 load balancing (LAG) groups
+    in a flooding group
+    """
+    def runTest( self ):
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 2:
+                logging.info( "Port count less than 2, can't run this case" )
+                return
+
+            ports = sorted(config[ "port_map" ].keys( ))
+            in_port = ports[0]
+            out_port = ports[1]
+            vlan_in_port_untagged = 31
+
+            # add l2 unfiltered interface group for outport
+            l2_o_gid, l2_o_msg = add_one_l2_unfiltered_group( self.controller, out_port, True)
+
+            # create l2 load-balance group
+            lag_gid, lag_msg = add_l2_loadbal_group(self.controller, 1, [l2_o_gid], True)
+
+            # create l2 interface (filtered) group for inport
+            l2_i_gid, l2_i_msg = add_one_l2_interface_group( self.controller, in_port, vlan_in_port_untagged,
+                                                             is_tagged=False, send_barrier=True)
+
+            # create l2 flood group with mix of l2i and l2-loadbal
+            floodmsg = add_l2_flood_group_with_gids( self.controller, [lag_gid, l2_i_gid] , vlan_in_port_untagged, id=0 )
+            Groups.put( l2_o_gid )
+            Groups.put( lag_gid )
+            Groups.put( l2_i_gid )
+            Groups.put( floodmsg.group_id )
+
+            # table 10 flows for untagged input
+            add_one_vlan_table_flow( self.controller, in_port, vlan_id=vlan_in_port_untagged, flag=VLAN_TABLE_FLAG_ONLY_BOTH,
+                                     send_barrier=True)
+
+            # add bridging flows for flooding groups
+            add_bridge_flow( self.controller, dst_mac=None, vlanid=vlan_in_port_untagged, group_id=floodmsg.group_id )
+            # unknown dstmac packet will hit flood group
+            un_mac_dst_str = '00:11:22:ff:ff:ff'
+
+            # check one direction -> packet enters through filtered port (inport) and exits through
+            # unfiltered port (outport) via the flood and lag groups
+            pkt = str( simple_tcp_packet( pktlen=80, eth_dst=un_mac_dst_str ) )
+            exp_pkt = str( simple_tcp_packet( pktlen=84, dl_vlan_enable=True, vlan_vid=vlan_in_port_untagged, eth_dst=un_mac_dst_str ) )
+            self.dataplane.send( in_port, pkt )
+            verify_packet( self, exp_pkt, out_port )
+            verify_no_other_packets( self )
+
+            # check other direction -> packet enters through unfiltered port (outport) and exits through
+            # filtered port (inport) via the flood group
+            add_one_vlan_table_flow( self.controller, out_port, vlan_id=vlan_in_port_untagged, flag=VLAN_TABLE_FLAG_ONLY_BOTH,
+                                     send_barrier=True)
+            pkt = str( simple_tcp_packet( pktlen=80, eth_dst=un_mac_dst_str ) )
+            exp_pkt = pkt # ingress packet gets internal vlan 31 which gets popped at l2 interface group before egress
+            self.dataplane.send( out_port, pkt )
+            verify_packet( self, exp_pkt, in_port )
+            verify_no_other_packets( self )
+
+        finally:
+            print("done")
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
+            delete_all_groups( self.controller )
+
+@disabled
+class LagMix( base_tests.SimpleDataPlane ):
+    """
+    Checks the combination of L2 filtered and unfiltered interface groups
+    in a L2 load balancing (LAG) group - this should not work according to spec
+    """
+    def runTest( self ):
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 2:
+                logging.info( "Port count less than 2, can't run this case" )
+                return
+
+            ports = sorted(config[ "port_map" ].keys( ))
+            in_port = ports[0]
+            out_port = ports[1]
+            vlan_in_port_untagged = 31
+
+            # add l2 unfiltered interface group
+            l2_o_gid, l2_o_msg = add_one_l2_unfiltered_group( self.controller, out_port, True)
+
+            # create  l2 interface (filtered) group
+            l2_i_gid, l2_i_msg = add_one_l2_interface_group( self.controller, in_port, vlan_in_port_untagged,
+                                                             is_tagged=False, send_barrier=True)
+
+            # create l2 load-balance group with a mix of filtered and unfiltered groups
+            """
+            XXX the following does not work - the group does not get created but curiously we don't get an openflow
+            error message. The ofdpa logs show
+            ofdbGroupBucketValidate: Referenced Group Id 0x1f000c not of type L2 Unfiltered Interface.
+            We do get an openflow error message for the flood group that follows because it cannot
+            find the lag group it points to (because it did not get created).
+            """
+            lag_gid, lag_msg = add_l2_loadbal_group(self.controller, 1, [l2_o_gid, l2_i_gid], True)
+
+            # create l2 flood group to point to lag group
+            floodmsg = add_l2_flood_group_with_gids( self.controller, [lag_gid] , vlan_in_port_untagged, id=0 )
+            Groups.put( floodmsg.group_id, l2_i_gid, lag_gid )
+            Groups.put( l2_o_gid )
+
+        finally:
+            #print("done")
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
+            delete_all_groups( self.controller )
+
+
+@disabled
+class LagXconn( base_tests.SimpleDataPlane ):
+    """
+    Checks the L2 load balancing (LAG) with vlan crossconnects.
+    Note that for this to work, basic VlanCrossConnect test above (without LAG) should work first
+    Note: this doesn't work on XGS or QMX yet with premium 1.1.7
+    """
+    def runTest( self ):
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 2:
+                logging.info( "Port count less than 2, can't run this case" )
+                return
+
+            ports = sorted(config[ "port_map" ].keys( ))
+            in_port = ports[0]
+            out_port = ports[1]
+
+            # add l2 interface unfiltered group
+            l2_o_gid, l2_o_msg = add_one_l2_unfiltered_group( self.controller, out_port, True)
+
+            # create l2 load-balance group
+            lag_gid, lag_msg = add_l2_loadbal_group(self.controller, 1, [l2_o_gid], True)
+            Groups.put(l2_o_gid, lag_gid)
+
+            # a subscriber [id, ip in hex, inner_vlan, outer_vlan, ip in dot form]
+            sub_info = [10, 0xc0a80001, 12, 11, "192.168.0.1"]
+
+            input_src_mac = [ 0x00, 0x00, 0x00, 0xcc, 0xcc, sub_info[0] ]
+            input_src_mac_str = ':'.join( [ '%02X' % x for x in input_src_mac ] )
+            input_dst_mac = [ 0x00, 0x00, 0x00, 0x22, 0x22, 0x00 ]
+            input_dst_mac_str = ':'.join( [ '%02X' % x for x in input_dst_mac ] )
+            output_dst_mac = [ 0x00, 0x00, 0x00, 0x33, 0x33, 0x00 ]
+            output_dst_mac_str = ':'.join( [ '%02X' % x for x in output_dst_mac ] )
+
+            dip = sub_info[1]
+            ports = config[ "port_map" ].keys( )
+            inner_vlan = sub_info[2]
+            outer_vlan = sub_info[3]
+            index = inner_vlan
+            port = ports[0]
+            out_port = ports[1]
+
+            # add vlan flow table
+            add_one_vlan_table_flow( self.controller, port, inner_vlan, outer_vlan, vrf=0, flag=VLAN_TABLE_FLAG_ONLY_STACKED )
+            add_one_vlan_1_table_flow_pw( self.controller, port, index, new_outer_vlan_id=outer_vlan, outer_vlan_id=outer_vlan,
+                                          inner_vlan_id=inner_vlan, cross_connect=True, send_barrier=True)
+            """
+            XXX The following flow in table 13 is rejected by the switch (qmx) probably due to the reference to lag group
+            ofdpa logs say: 08-22 00:43:10.344338 [ofstatemanager] Error from Forwarding while inserting flow: Unknown error
+            """
+            add_mpls_l2_port_flow(ctrl=self.controller, of_port=port, mpls_l2_port=port, tunnel_index=index, ref_gid=lag_gid,
+                                  qos_index=0, goto=ACL_FLOW_TABLE)
+            do_barrier( self.controller )
+
+            ip_src = sub_info[4]
+            ip_dst = '192.168.0.{}'.format(sub_info[0])
+            parsed_pkt = qinq_tcp_packet( pktlen=120, vlan_vid=inner_vlan, dl_vlan_outer=outer_vlan,
+                                          eth_dst=input_dst_mac_str, eth_src=input_src_mac_str, ip_ttl=64, ip_src=ip_src, ip_dst=ip_dst )
+            parsed_pkt = simple_tcp_packet_two_vlan( pktlen=120, out_dl_vlan_enable=True, in_dl_vlan_enable=True,
+                                                     in_vlan_vid=inner_vlan, out_vlan_vid=outer_vlan,
+                                                     eth_dst=input_dst_mac_str, eth_src=input_src_mac_str,
+                                                     ip_ttl=64, ip_src=ip_src, ip_dst=ip_dst )
+
+            pkt = str( parsed_pkt )
+            self.dataplane.send( port, pkt )
+            verify_packet( self, pkt, out_port )
+            verify_no_other_packets( self )
+
+        finally:
+            #print("done")
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
+            delete_all_groups( self.controller )
+
+@disabled
+class LagRouting( base_tests.SimpleDataPlane ):
+    """
+    Checks the L2 load balancing (LAG) with routing flows.
+    Specifically route -> L3Unicast -> Lag -> L2 Unfiltered interface
+    """
+    def runTest( self ):
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 2:
+                logging.info( "Port count less than 2, can't run this case" )
+                return
+
+            ports = sorted(config[ "port_map" ].keys( ))
+            in_port = ports[0]
+            out_port = ports[1]
+
+            # add l2 interface unfiltered group
+            l2_o_gid, l2_o_msg = add_one_l2_unfiltered_group( self.controller, out_port, True)
+
+            # create l2 load-balance group
+            lag_gid, lag_msg = add_l2_loadbal_group(self.controller, 1, [l2_o_gid], True)
+            Groups.put(l2_o_gid, lag_gid)
+
+            intf_src_mac = [ 0x00, 0x00, 0x00, 0xcc, 0xcc, 0xcc ]
+            dst_mac = [ 0x00, 0x00, 0x00, 0x22, 0x22, 0x00 ]
+            dip = 0xc0a80001
+            vlan_id = 31
+
+            # create L3 Unicast group to point to Lag group
+            l3_msg = add_l3_unicast_group( self.controller, out_port, vlanid=vlan_id, id=vlan_id,
+                                           src_mac=intf_src_mac, dst_mac=dst_mac, gid=lag_gid )
+            # add vlan flow table
+            add_one_vlan_table_flow( self.controller, in_port, 1, vlan_id, flag=VLAN_TABLE_FLAG_ONLY_TAG )
+            # add termination flow
+            if config["switch_type"] == "qmx":
+                add_termination_flow( self.controller, 0, 0x0800, intf_src_mac, vlan_id )
+            else:
+                add_termination_flow( self.controller, in_port, 0x0800, intf_src_mac, vlan_id )
+            # add unicast routing flow
+            add_unicast_routing_flow( self.controller, 0x0800, dip, 0xffffffff, l3_msg.group_id )
+
+            Groups.put( l3_msg.group_id )
+            do_barrier( self.controller )
+
+            switch_mac = ':'.join( [ '%02X' % x for x in intf_src_mac ] )
+            mac_src = '00:00:00:22:22:%02X' % (in_port)
+            ip_src = '192.168.0.2'
+            ip_dst = '192.168.0.1'
+            parsed_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True,
+                                            vlan_vid=vlan_id, eth_dst=switch_mac, eth_src=mac_src, ip_ttl=64,
+                                            ip_src=ip_src, ip_dst=ip_dst )
+            pkt = str( parsed_pkt )
+            self.dataplane.send( in_port, pkt )
+            # build expected packet
+            mac_dst = '00:00:00:22:22:00'
+            exp_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True,
+                                         vlan_vid=vlan_id, eth_dst=mac_dst, eth_src=switch_mac, ip_ttl=63,
+                                         ip_src=ip_src, ip_dst=ip_dst )
+            pkt = str( exp_pkt )
+            verify_packet( self, pkt, out_port )
+            verify_no_other_packets( self )
+
+        finally:
+            #print("done")
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
+            delete_all_groups( self.controller )

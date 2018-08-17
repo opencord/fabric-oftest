@@ -160,6 +160,9 @@ def encode_l3_ecmp_group_id(id):
 def encode_l2_unfiltered_group_id(id):
     return id + (11 << OFDPA_GROUP_TYPE_SHIFT)
 
+def encode_l2_loadbal_group_id(id):
+    return id + (12 << OFDPA_GROUP_TYPE_SHIFT)
+
 def encode_l2_overlay_group_id(tunnel_id, subtype, index):
     tunnel_id=tunnel_id&0xffff #16 bits
     subtype = subtype&3        #2 bits
@@ -306,6 +309,20 @@ def add_l2_flood_group(ctrl, ports, vlanid, id):
     ctrl.message_send(request)
     return request
 
+def add_l2_flood_group_with_gids(ctrl, gids, vlanid, id):
+    buckets=[]
+    for gid in gids:
+        action=[ofp.action.group(gid)]
+        buckets.append(ofp.bucket(actions=action))
+
+    group_id =encode_l2_flood_group_id(vlanid, id)
+    request = ofp.message.group_add(group_type=ofp.OFPGT_ALL,
+                                    group_id=group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    return request
+
 def mod_l2_flood_group(ctrl, ports, vlanid, id):
     buckets=[]
     for of_port in ports:
@@ -395,6 +412,37 @@ def add_l3_interface_group(ctrl, port, vlanid, id, src_mac):
                                    )
     ctrl.message_send(request)
     return request
+
+
+def add_l2_loadbal_group(ctrl, id, l2_unfil_intf_groups, send_barrier=False):
+    buckets=[]
+    for group in l2_unfil_intf_groups:
+        buckets.append(ofp.bucket(actions=[ofp.action.group(group)]))
+
+    group_id=encode_l2_loadbal_group_id(id)
+    request = ofp.message.group_add(group_type=ofp.OFPGT_SELECT,
+                                   group_id=group_id,
+                                   buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    if send_barrier:
+        do_barrier(ctrl)
+
+    return group_id, request
+
+def mod_l2_loadbal_group(ctrl, id, l2_unfil_intf_groups, send_barrier=False):
+    buckets=[]
+    for group in l2_unfil_intf_groups:
+        buckets.append(ofp.bucket(actions=[ofp.action.group(group)]))
+
+    group_id =encode_l2_loadbal_group_id(id)
+    request = ofp.message.group_modify(group_type=ofp.OFPGT_SELECT,
+                                    group_id=group_id,
+                                    buckets=buckets
+                                   )
+    ctrl.message_send(request)
+    return request
+
 
 def add_l3_ecmp_group(ctrl, id, l3_ucast_groups, send_barrier=False):
     buckets=[]
@@ -2147,3 +2195,4 @@ def print_current_table_flow_stat(ctrl, table_id=0xff):
         print "hard_timeout", obj.hard_timeout
         #obj.actions
         print "packet count: %lx"%obj.packet_count
+

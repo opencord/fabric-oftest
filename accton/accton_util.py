@@ -309,7 +309,7 @@ def add_l2_flood_group(ctrl, ports, vlanid, id):
     ctrl.message_send(request)
     return request
 
-def add_l2_flood_group_with_gids(ctrl, gids, vlanid, id):
+def add_l2_flood_group_with_gids(ctrl, gids, vlanid, id, send_barrier=False):
     buckets=[]
     for gid in gids:
         action=[ofp.action.group(gid)]
@@ -321,6 +321,10 @@ def add_l2_flood_group_with_gids(ctrl, gids, vlanid, id):
                                     buckets=buckets
                                    )
     ctrl.message_send(request)
+
+    if send_barrier:
+        do_barrier(ctrl)
+
     return request
 
 def mod_l2_flood_group(ctrl, ports, vlanid, id):

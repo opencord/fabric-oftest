@@ -3597,7 +3597,7 @@ class FloodLb( base_tests.SimpleDataPlane ):
             delete_all_groups( self.controller )
 
 @disabled
-class FloodMix( base_tests.SimpleDataPlane ):
+class FloodMixUntagged( base_tests.SimpleDataPlane ):
     """
     Checks the combination of L2 filtered and L2 load balancing (LAG) groups
     in a flooding group
@@ -3654,6 +3654,74 @@ class FloodMix( base_tests.SimpleDataPlane ):
                                      send_barrier=True)
             pkt = str( simple_tcp_packet( pktlen=80, eth_dst=un_mac_dst_str ) )
             exp_pkt = pkt # ingress packet gets internal vlan 31 which gets popped at l2 interface group before egress
+            self.dataplane.send( out_port, pkt )
+            verify_packet( self, exp_pkt, in_port )
+            verify_no_other_packets( self )
+
+        finally:
+            print("done")
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
+            delete_all_groups( self.controller )
+
+@disabled
+class FloodMixTagged( base_tests.SimpleDataPlane ):
+    """
+    Checks the combination of L2 filtered and L2 load balancing (LAG) groups
+    in a flooding group
+    """
+    def runTest( self ):
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 2:
+                logging.info( "Port count less than 2, can't run this case" )
+                return
+
+            ports = sorted(config[ "port_map" ].keys( ))
+            in_port = ports[0]
+            out_port = ports[1]
+            vlan_in_port_untagged = 31
+
+            # add l2 unfiltered interface group for outport
+            l2_o_gid, l2_o_msg = add_one_l2_unfiltered_group( self.controller, out_port, True)
+
+            # create l2 load-balance group
+            lag_gid, lag_msg = add_l2_loadbal_group(self.controller, 1, [l2_o_gid], True)
+
+            # create l2 interface (filtered) group for inport
+            l2_i_gid, l2_i_msg = add_one_l2_interface_group( self.controller, in_port, vlan_in_port_untagged,
+                                                             is_tagged=True, send_barrier=True)
+
+            # create l2 flood group with mix of l2i and l2-loadbal
+            floodmsg = add_l2_flood_group_with_gids( self.controller, [lag_gid, l2_i_gid] , vlan_in_port_untagged, id=0 )
+            Groups.put( l2_o_gid )
+            Groups.put( lag_gid )
+            Groups.put( l2_i_gid )
+            Groups.put( floodmsg.group_id )
+
+            # table 10 flows for tagged in_port. Note: VLAN in table 10 must be wildcarded for an unfiltered port
+            add_vlan_table_flow_allow_all_vlan(self.controller, in_port, send_barrier=True)
+
+            # add bridging flows for flooding groups
+            add_bridge_flow( self.controller, dst_mac=None, vlanid=vlan_in_port_untagged, group_id=floodmsg.group_id )
+            # unknown dstmac packet will hit flood group
+            un_mac_dst_str = '00:11:22:ff:ff:ff'
+
+            # check one direction -> packet enters through unfiltered port (inport) and exits through
+            # unfiltered port (outport) via the flood and lag groups
+            pkt = str( simple_tcp_packet( pktlen=80, dl_vlan_enable=True, vlan_vid=vlan_in_port_untagged, eth_dst=un_mac_dst_str ) )
+            exp_pkt = pkt
+            self.dataplane.send( in_port, pkt )
+            verify_packet( self, exp_pkt, out_port )
+            verify_no_other_packets( self )
+
+            # check other direction -> packet enters through unfiltered port (outport) and exits through
+            # unfiltered port (inport) via the flood group
+
+            # table 10 flows for tagged out_port. Note: VLAN must be wildcarded for an unfiltered port
+            add_vlan_table_flow_allow_all_vlan(self.controller, out_port, send_barrier=True)
+            pkt = str( simple_tcp_packet( pktlen=80, dl_vlan_enable=True, vlan_vid=vlan_in_port_untagged, eth_dst=un_mac_dst_str ) )
+            exp_pkt = pkt
             self.dataplane.send( out_port, pkt )
             verify_packet( self, exp_pkt, in_port )
             verify_no_other_packets( self )

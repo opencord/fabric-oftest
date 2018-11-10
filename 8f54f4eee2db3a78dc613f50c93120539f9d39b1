@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "74e252d1_aedd0bd2",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 3540,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2018-11-10T02:02:30Z",
+      "side": 1,
+      "message": "This test need to be run individually",
+      "parentUuid": "c5fe5595_0dcc47d8",
+      "range": {
+        "startLine": 3540,
+        "startChar": 1,
+        "endLine": 3540,
+        "endChar": 9
+      },
+      "revId": "8f54f4eee2db3a78dc613f50c93120539f9d39b1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "a6892c4a_ea195154",
         "filename": "ofdpa/flows.py",
         "patchSetId": 2
@@ -36,6 +60,30 @@
       "writtenOn": "2018-09-19T21:52:20Z",
       "side": 1,
       "message": "We once discussed about the following case. A L2 flood group has two buckets.\nL2FG -\u003e L2IG (port 1)\nL2FG -\u003e L2LBG (port 2, 3)\nWhen a packet comes in from port 3, it will get flooded back to port 2, which is the same host.\nThese test cases don\u0027t seem to cover that case.",
+      "range": {
+        "startLine": 3584,
+        "startChar": 0,
+        "endLine": 3600,
+        "endChar": 43
+      },
+      "revId": "8f54f4eee2db3a78dc613f50c93120539f9d39b1",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "ac92b05f_ee264b6f",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 3600,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2018-11-10T02:02:30Z",
+      "side": 1,
+      "message": "Test for this case is implemented at https://gerrit.opencord.org/#/c/11368/",
+      "parentUuid": "a6892c4a_ea195154",
       "range": {
         "startLine": 3584,
         "startChar": 0,

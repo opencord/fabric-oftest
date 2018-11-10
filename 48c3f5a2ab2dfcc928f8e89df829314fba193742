@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "cf5d3657_6384a274",
+        "filename": "ofdpa/flows.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 3980,
+      "author": {
+        "id": 1000002
+      },
+      "writtenOn": "2018-11-10T05:03:45Z",
+      "side": 1,
+      "message": "VLAN 0 is usually reserved and we use -1 for untagged in ONOS. So the number here is a little bit confusing.",
+      "range": {
+        "startLine": 3975,
+        "startChar": 0,
+        "endLine": 3980,
+        "endChar": 35
+      },
+      "revId": "48c3f5a2ab2dfcc928f8e89df829314fba193742",
+      "serverId": "2a2bfe1b-c5c2-48ed-9ac8-16438ab24388",
+      "unresolved": false
+    }
+  ]
+}

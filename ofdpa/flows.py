@@ -3922,3 +3922,85 @@ class LagRouting( base_tests.SimpleDataPlane ):
             delete_all_flows( self.controller )
             delete_groups( self.controller, Groups )
             delete_all_groups( self.controller )
+
+@disabled
+class PatchPanel( base_tests.SimpleDataPlane ):
+    """
+    Test for simple patch panel funtionality on OFDPA switches
+    Inport --> table 60 --> L2 Unfiltered Group --> Outport
+    bidirectional behavior
+    """
+    def runTest( self ):
+        Groups = Queue.LifoQueue( )
+        try:
+            if len( config[ "port_map" ] ) < 2:
+                logging.info( "Port count less than 2, can't run this case" )
+                return
+
+            ports = sorted(config[ "port_map" ].keys( ))
+            in_port = ports[0]
+            out_port = ports[1]
+
+            # add l2 interface unfiltered group for both ports
+            l2_i_gid, l2_i_msg = add_one_l2_unfiltered_group( self.controller, in_port, True)
+            l2_o_gid, l2_o_msg = add_one_l2_unfiltered_group( self.controller, out_port, True)
+
+            Groups.put(l2_o_gid, l2_i_gid)
+
+            # add table 60 flows
+            match = ofp.match( )
+            match.oxm_list.append( ofp.oxm.in_port( in_port ) )
+            request = ofp.message.flow_add( table_id=60, cookie=42, match=match, instructions=[
+                ofp.instruction.write_actions( actions=[
+                    ofp.action.group(l2_o_gid ) ] ), ],
+                    buffer_id=ofp.OFP_NO_BUFFER, priority=1000 )
+            self.controller.message_send( request )
+            do_barrier( self.controller )
+
+            match = ofp.match( )
+            match.oxm_list.append( ofp.oxm.in_port( out_port ) )
+            request = ofp.message.flow_add( table_id=60, cookie=42, match=match, instructions=[
+                ofp.instruction.write_actions( actions=[
+                    ofp.action.group(l2_i_gid ) ] ), ],
+                    buffer_id=ofp.OFP_NO_BUFFER, priority=1000 )
+            self.controller.message_send( request )
+            do_barrier( self.controller )
+
+            for vlan_id in [31, 1, 4000, 0, -1]:
+                dip = 0xc0a80001
+                mac_src = '00:00:00:22:22:%02X' % (in_port)
+                dst_mac = '00:00:00:44:44:%02X' % (out_port)
+                ip_src = '192.168.0.2'
+                ip_dst = '192.168.0.1'
+                if vlan_id == 0:
+                    # untagged
+                    parsed_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=False,
+                                                    eth_dst=dst_mac, eth_src=mac_src, ip_ttl=64,
+                                                    ip_src=ip_src, ip_dst=ip_dst )
+                elif vlan_id == -1:
+                    # double tagged
+                    parsed_pkt = simple_tcp_packet_two_vlan( pktlen=108, out_dl_vlan_enable=True,
+                                                             out_vlan_vid=100, in_dl_vlan_enable=True, in_vlan_vid=10,
+                                                             eth_dst='00:12:34:56:78:9a', eth_src=mac_src )
+                else:
+                    # single tagged
+                    parsed_pkt = simple_tcp_packet( pktlen=100, dl_vlan_enable=True,
+                                                    vlan_vid=vlan_id, eth_dst=dst_mac, eth_src=mac_src, ip_ttl=64,
+                                                    ip_src=ip_src, ip_dst=ip_dst )
+                pkt = str( parsed_pkt )
+                self.dataplane.send( in_port, pkt )
+                # expected packet is exactly the same as pkt
+                verify_packet( self, pkt, out_port )
+                verify_no_other_packets( self )
+
+                # send it the other way
+                self.dataplane.send( out_port, pkt )
+                # expected packet is exactly the same as pkt
+                verify_packet( self, pkt, in_port )
+                verify_no_other_packets( self )
+
+        finally:
+            #print("done")
+            delete_all_flows( self.controller )
+            delete_groups( self.controller, Groups )
+            delete_all_groups( self.controller )
